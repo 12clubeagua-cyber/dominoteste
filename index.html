@@ -935,13 +935,23 @@ function play(pIdx, tIdx, side) {
   if (netMode === 'client') {
      document.getElementById('side-picker').style.display = 'none';
      STATE.isBlocked = true; // Impede duplo clique enviando spam de requests
+     
+     // === CORREÇÃO: PREVISÃO LOCAL (CLIENT-SIDE PREDICTION) ===
+     // Remove a peça da mão e diminui o contador instantaneamente na tela do Client
+     STATE.hands[pIdx].splice(tIdx, 1);
+     STATE.handSize[pIdx]--;
+     renderHands(); 
+     // =========================================================
+
      myConnToHost.send({ type: 'play_request', tIdx, side });
      return; 
   }
 
+  // --- Lógica do Host continua normal a partir daqui ---
   STATE.playerPassed.fill(false);
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
+  
   const isD = tile[0] === tile[1];
   let nP = {};
 
