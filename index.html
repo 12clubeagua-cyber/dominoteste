@@ -429,16 +429,12 @@ body {
 </div>
 
 <div id="game-area">
-  <div id="hand-2" class="hand"></div>
-  <div id="mid-row">
-    <div id="hand-1" class="hand hand-side"></div>
-    <div id="board-container">
+  <div id="hand-2" class="hand"></div> <div id="mid-row">
+    <div id="hand-1" class="hand hand-side"></div> <div id="board-container">
       <div id="snake"></div>
     </div>
-    <div id="hand-3" class="hand hand-side"></div>
-  </div>
-  <div id="hand-0" class="hand"></div>
-  <div id="side-picker">
+    <div id="hand-3" class="hand hand-side"></div> </div>
+  <div id="hand-0" class="hand"></div> <div id="side-picker">
     <button class="btn-side" onclick="executeMove(0)">↑ Esquerda</button>
     <button class="btn-side btn-cancel" onclick="cancelMove()">✕ Cancelar</button>
     <button class="btn-side" onclick="executeMove(1)">Direita ↓</button>
@@ -449,7 +445,6 @@ body {
 /* ═══════════════════════════════════════════════════════
    ESTADO GLOBAL E REDE
 ═══════════════════════════════════════════════════════ */
-// Mudamos STATE de const para let para o Client poder sobrescrever
 let STATE = {
   hands: [],
   extremes: [null, null],
@@ -473,7 +468,7 @@ const NAMES = ["JOGADOR 1", "JOGADOR 2", "JOGADOR 3", "JOGADOR 4"];
 let audioCtx = null;
 
 let netMode = 'offline'; 
-let myPlayerIdx = 0; // Host e Offline sempre são 0. Client recebe do Host.
+let myPlayerIdx = 0; 
 let myPeer = null;
 let myConnToHost = null; 
 let connectedClients = []; 
@@ -553,13 +548,11 @@ function initializeHost() {
     });
 
     conn.on('data', (data) => {
-      // Host recebe intenção de jogada de um Client
       if (data.type === 'play_request' && !STATE.isBlocked) {
         if (STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
         }
       }
-      // O Client clica em "Próxima Rodada" e avisa o Host
       if (data.type === 'next_round_request' && STATE.isOver) {
          startRound();
       }
@@ -591,12 +584,10 @@ function cancelHosting() {
   goToStep('step-mode');
 }
 
-// Envia pacote para todos os clientes conectados
 function broadcastToClients(payload) {
   connectedClients.forEach(c => c.send(payload));
 }
 
-// Sincroniza o estado atual do jogo com todos (Apenas o Host chama isso)
 function broadcastState() {
   if (netMode !== 'host') return;
   broadcastToClients({ type: 'sync_state', state: STATE });
@@ -630,16 +621,17 @@ function connectToHost() {
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;
         document.getElementById('start-screen').style.display = 'none';
+        updateScoreDisplay(); // Atualiza os nomes das equipes correto para o Client
       }
       
       if (data.type === 'sync_state') {
         STATE = data.state;
         updateScoreDisplay();
-        renderBoardFromState(); // Redesenha a mesa baseada no STATE global
-        renderHands(STATE.isOver); // Revela se acabou
+        renderBoardFromState(); 
+        renderHands(STATE.isOver); 
         updateSnakeScale();
         
-        // Verifica se é minha vez após receber estado
+        // CORREÇÃO AQUI: Garante que o Highlight rode se for a vez do Client e o Host autorizou
         if (STATE.current === myPlayerIdx && !STATE.isOver && !STATE.isBlocked) {
           const moves = getMoves(STATE.hands[STATE.current]);
           if (moves.length > 0) highlight(moves);
@@ -647,7 +639,6 @@ function connectToHost() {
       }
 
       if (data.type === 'animate_play') {
-         // Toca animação, e quando termina envia request pro Host sincronizar
          animateTile(data.pIdx, data.nP, () => {});
       }
 
@@ -679,11 +670,9 @@ function startMatch() {
   safeAudioInit();
   STATE.scores = [0, 0];
   STATE.roundWinner = null;
-  updateScoreDisplay();
   document.getElementById('start-screen').style.display = 'none';
   
   if (netMode === 'host') {
-    // Distribui os assentos: Host = 0, Parente 1 = 2 (Parceiro), Parente 2 = 1, Parente 3 = 3
     const seatOrder = [2, 1, 3];
     connectedClients.forEach((conn, index) => {
        conn.assignedIdx = seatOrder[index];
@@ -691,6 +680,7 @@ function startMatch() {
     });
   }
   
+  updateScoreDisplay();
   if (netMode !== 'client') startRound();
 }
 
@@ -699,6 +689,15 @@ function updateScoreDisplay() {
   document.getElementById('scoreB').textContent = STATE.scores[1];
   document.getElementById('scoreA').classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
   document.getElementById('scoreB').classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
+
+  // Garante que o Placar sempre reflita quem é sua dupla baseado no seu Assento
+  if (myPlayerIdx === 1 || myPlayerIdx === 3) {
+      document.getElementById('label-team-a').innerText = "Oponentes";
+      document.getElementById('label-team-b').innerText = "Sua Dupla";
+  } else {
+      document.getElementById('label-team-a').innerText = "Sua Dupla";
+      document.getElementById('label-team-b').innerText = "Oponentes";
+  }
 }
 
 function startRoundBtn() {
@@ -710,7 +709,6 @@ function startRoundBtn() {
 }
 
 function startRound() {
-  // Apenas Host ou Offline rodam o setup inicial
   if (netMode === 'client') return; 
 
   safeAudioInit();
@@ -720,7 +718,7 @@ function startRound() {
   document.getElementById('scoreB').classList.remove('score-blink-green');
 
   STATE.isOver = false;
-  STATE.isBlocked = true;
+  STATE.isBlocked = true; // Bloqueado enquanto embaralha
   STATE.passCount = 0;
   STATE.playerPassed.fill(false);
   STATE.playerMemory = [[], [], [], []];
@@ -728,12 +726,11 @@ function startRound() {
 
   document.getElementById('result-area').style.display = 'none';
   
-  // Limpa o CSS piscante de todo mundo
   for (let i = 0; i < 4; i++) {
     document.getElementById(`hand-${i}`).classList.remove('hand-pass-blink', 'hand-win-blink');
   }
   
-  broadcastState(); // Reseta nos clients
+  broadcastState(); 
   updateStatus('EMBARALHANDO...', '');
 
   const snake = document.getElementById('snake');
@@ -791,9 +788,9 @@ function dealAndStart() {
   else STATE.hands.forEach((h, i) => h.forEach(t => { if (t[0]===6 && t[1]===6) STATE.current = i; }));
 
   document.getElementById('snake').innerHTML = '';
-  STATE.isBlocked = false;
+  STATE.isBlocked = false; // Desbloqueia a partida
   
-  broadcastState(); // Avisa todo mundo como ficou a mesa e as mãos
+  broadcastState(); 
   renderHands();
   processTurn();
 }
@@ -809,17 +806,15 @@ function updateStatusLocal(text, cls) {
   el.className = cls ? `active` : (text.includes('PAS') ? 'pass' : '');
 }
 
-/* ── RENDERIZAÇÃO DA MESA (Novo para Redes) ── */
 function renderBoardFromState() {
   const s = document.getElementById('snake');
-  s.innerHTML = ''; // Limpa a mesa
+  s.innerHTML = ''; 
   STATE.positions.forEach((nP, i) => {
     const el = document.createElement('div');
     el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
     el.style.left = (nP.x - (nP.isV ? 9 : 18)) + 'px';
     el.style.top  = (nP.y - (nP.isV ? 18 : 9)) + 'px';
     el.innerHTML = `<div class="half">${getPips(nP.v1)}</div><div class="half">${getPips(nP.v2)}</div>`;
-    // A última peça jogada ganha brilho
     if (i === STATE.positions.length - 1 && !STATE.isOver) el.classList.add('last-move');
     s.appendChild(el);
   });
@@ -827,37 +822,24 @@ function renderBoardFromState() {
 
 function renderHands(reveal = false) {
   for (let i = 0; i < 4; i++) {
-    const c = document.getElementById(`hand-${i}`);
+    // CORREÇÃO: Fórmula mágica que gira a mesa inteira baseada no seu assento
+    // 0 = Baixo (Você), 1 = Esquerda, 2 = Topo, 3 = Direita
+    const viewPos = (i - myPlayerIdx + 4) % 4;
+    const isSide = (viewPos === 1 || viewPos === 3);
+    
+    const c = document.getElementById(`hand-${viewPos}`);
     c.innerHTML = '';
     
-    // Roda para colocar os quadradinhos do lado correto
-    let posClass = '';
-    if (myPlayerIdx === 0) posClass = i % 2 !== 0 ? 'hand-side' : '';
-    if (myPlayerIdx === 1) posClass = (i===0 || i===2) ? 'hand-side' : '';
-    if (myPlayerIdx === 2) posClass = i % 2 !== 0 ? 'hand-side' : '';
-    if (myPlayerIdx === 3) posClass = (i===0 || i===2) ? 'hand-side' : '';
-    
-    // Gira a mesa visualmente para o jogador sempre ficar embaixo
-    const visualPositions = [
-        [0, 1, 2, 3], // Eu sou 0: 0 em baixo, 1 esquerda, 2 topo, 3 direita
-        [3, 0, 1, 2], // Eu sou 1: 1 em baixo, 2 esquerda, 3 topo, 0 direita
-        [2, 3, 0, 1], // Eu sou 2: 2 em baixo, 3 esquerda, 0 topo, 1 direita
-        [1, 2, 3, 0]  // Eu sou 3: 3 em baixo, 0 esquerda, 1 topo, 2 direita
-    ];
-    const visualId = visualPositions[myPlayerIdx].indexOf(i);
-    
-    c.className = `hand ${posClass} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
+    c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
 
     STATE.hands[i].forEach((t, idx) => {
       const el = document.createElement('div');
       const isDouble = t[0] === t[1];
-      // Esconde se não for o próprio jogador (a menos que seja reveal)
       const hidden = !reveal && i !== myPlayerIdx;
       
-      el.className = `tile tile-rel ${posClass ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${isDouble ? 'tile-double' : ''}`;
+      el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${isDouble ? 'tile-double' : ''}`;
       el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
       
-      // Só posso clicar nas MINHAS peças
       if (i === myPlayerIdx) el.id = `my-tile-${idx}`;
       c.appendChild(el);
     });
@@ -904,12 +886,10 @@ function processTurn() {
         });
       }
 
+      broadcastState(); 
+      const viewPos = (STATE.current - myPlayerIdx + 4) % 4;
+      document.getElementById(`hand-${viewPos}`).classList.add('hand-pass-blink');
       updateStatus(`✕ ${NAMES[STATE.current]} PASSOU`, 'pass');
-      broadcastState();
-      
-      // Animação de piscar para quem passou
-      document.getElementById(`hand-${STATE.current}`).classList.add('hand-pass-blink');
-      if (netMode === 'host') broadcastToClients({ type: 'status', text: '', cls: '' });
 
       setTimeout(() => updateStatus('', ''), 2000);
 
@@ -919,27 +899,32 @@ function processTurn() {
     return;
   }
 
-  // É a minha vez! (Funciona para Host Offline, Host jogando, ou Client jogando)
+  // É a minha vez! (Funciona para Host ou Client jogando)
   if (STATE.current === myPlayerIdx) {
     STATE.isBlocked = false;
+    if (netMode === 'host') broadcastState(); // Garante envio se Host destravou si mesmo
     updateStatus('SUA VEZ!', 'active');
     if (navigator.vibrate) navigator.vibrate([25,40,25]);
     highlight(moves);
     return;
   }
 
-  // Se for Host, verifica se quem deve jogar é um bot (nenhum cliente com aquele ID)
+  // Se for a vez de outra pessoa e eu sou o Host:
   if (netMode !== 'client') {
      const isHumanClientTurn = connectedClients.some(c => c.assignedIdx === STATE.current);
      
-     updateStatus(`${NAMES[STATE.current]} PENSANDO...`);
-     
-     if (!isHumanClientTurn) {
-        // Roda a IA
-        setTimeout(() => {
-          const best = chooseBotMove(STATE.current, moves);
-          play(STATE.current, best.idx, best.side === 'both' || best.side === 'any' ? 0 : best.side);
-        }, 900 + Math.random() * 400);
+     if (isHumanClientTurn) {
+         // CORREÇÃO: O Host precisa DESBLOQUEAR a partida globalmente para o Client jogar!
+         STATE.isBlocked = false; 
+         updateStatus(`VEZ DE ${NAMES[STATE.current]}...`);
+         broadcastState(); 
+     } else {
+         STATE.isBlocked = true; // Bloqueia clicks de quem sobrou enquanto IA pensa
+         updateStatus(`${NAMES[STATE.current]} PENSANDO...`);
+         setTimeout(() => {
+           const best = chooseBotMove(STATE.current, moves);
+           play(STATE.current, best.idx, best.side === 'both' || best.side === 'any' ? 0 : best.side);
+         }, 900 + Math.random() * 400);
      }
   }
 }
@@ -947,14 +932,13 @@ function processTurn() {
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
 
-  // Se sou Client, peço autorização pro Host e paro por aqui
   if (netMode === 'client') {
+     document.getElementById('side-picker').style.display = 'none';
+     STATE.isBlocked = true; // Impede duplo clique enviando spam de requests
      myConnToHost.send({ type: 'play_request', tIdx, side });
-     cancelMove(); // Esconde a interface
      return; 
   }
 
-  // Daqui pra baixo, SOMENTE Host ou Offline executam
   STATE.playerPassed.fill(false);
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
@@ -1012,9 +996,8 @@ function play(pIdx, tIdx, side) {
   if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP });
 
   animateTile(pIdx, nP, () => {
-    // Após animação, renderizamos a mesa estática correta
     renderBoardFromState();
-    broadcastState(); // Atualiza clients para terem a peça desenhada
+    broadcastState(); 
 
     if (STATE.hands[pIdx].length === 0) {
       STATE.roundWinner = pIdx;
@@ -1034,7 +1017,8 @@ function animateTile(pIdx, target, cb) {
   proxy.style.transition = 'none';
   document.body.appendChild(proxy);
 
-  const hRect = document.getElementById(`hand-${pIdx}`).getBoundingClientRect();
+  const viewPos = (pIdx - myPlayerIdx + 4) % 4;
+  const hRect = document.getElementById(`hand-${viewPos}`).getBoundingClientRect();
   const startX = hRect.left + hRect.width/2;
   const startY = hRect.top  + hRect.height/2;
 
@@ -1125,7 +1109,7 @@ function executeMove(s) {
 }
 
 function endRound(type, idx) {
-  if (netMode === 'client') return; // Apenas o Host resolve o fim da rodada
+  if (netMode === 'client') return; 
   if (STATE.isOver) return;
   STATE.isOver = true;
 
@@ -1146,10 +1130,10 @@ function endRound(type, idx) {
 
   if (winTeam !== -1) STATE.scores[winTeam]++;
   
-  broadcastState(); // Manda as mãos abertas pra todo mundo
+  broadcastState(); 
   if (netMode === 'host') broadcastToClients({ type: 'end_round', winTeam, idx, msg });
   
-  executeEndRoundUI(winTeam, idx, msg); // Roda local pro Host
+  executeEndRoundUI(winTeam, idx, msg); 
 }
 
 function executeEndRoundUI(winTeam, idx, msg) {
@@ -1158,13 +1142,11 @@ function executeEndRoundUI(winTeam, idx, msg) {
   if (winTeam === 0 || winTeam === 1) playVictory();
 
   if (winTeam === 0) {
-    document.getElementById('scoreA').classList.add('score-blink-green');
-    document.getElementById('hand-0').classList.add('hand-win-blink');
-    document.getElementById('hand-2').classList.add('hand-win-blink');
+    document.getElementById(`hand-${(0 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
+    document.getElementById(`hand-${(2 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
   } else if (winTeam === 1) {
-    document.getElementById('scoreB').classList.add('score-blink-green');
-    document.getElementById('hand-1').classList.add('hand-win-blink');
-    document.getElementById('hand-3').classList.add('hand-win-blink');
+    document.getElementById(`hand-${(1 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
+    document.getElementById(`hand-${(3 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
   }
 
   updateStatusLocal(msg, 'active');
@@ -1198,7 +1180,6 @@ function getPips(v) {
   return p[v] || '';
 }
 
-/* FUNÇÕES DOS BOTS (Mantidas inalteradas) */
 function getMoves(hand) {
   if (!STATE.positions.length) {
     if (STATE.roundWinner === null) {
