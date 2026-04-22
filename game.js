@@ -1,6 +1,43 @@
 /* ═══════════════════════════════════════════════════════
    REGRAS E LÓGICA DO JOGO (game.js)
 ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+   INÍCIO DA RODADA (Faltava este bloco!)
+═══════════════════════════════════════════════════════ */
+function startRound() {
+  if (netMode === 'client') return; 
+  if (!STATE.isOver && STATE.hands.length > 0) return; 
+
+  safeAudioInit();
+  if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
+
+  document.getElementById('scoreA').classList.remove('score-blink-green');
+  document.getElementById('scoreB').classList.remove('score-blink-green');
+
+  STATE.isOver = false;
+  STATE.isBlocked = true;
+  STATE.passCount = 0;
+  STATE.playerPassed.fill(false);
+  window.visualPass.fill(false);
+  STATE.playerMemory = [[], [], [], []];
+  STATE.handSize = [7, 7, 7, 7];
+
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('next-btn').disabled = false;
+  
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`hand-${i}`).classList.remove('hand-pass-blink', 'hand-win-blink');
+  }
+  
+  broadcastState(); 
+  updateStatus('EMBARALHANDO...', '');
+
+  if (netMode === 'host') broadcastToClients({ type: 'shuffle_start' });
+  
+  runShuffleAnimation(() => dealAndStart());
+}
+
 function dealAndStart() {
   const deck = [];
   for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
