@@ -10,13 +10,12 @@ function startRound() {
   safeAudioInit();
   if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
 
-  // RESET TOTAL
   STATE.isOver = false;
   STATE.isBlocked = true;
   STATE.passCount = 0;
   STATE.playerPassed.fill(false);
   window.visualPass.fill(false);
-  STATE.playerMemory = [[], [], [], []]; // Limpa memória da rodada anterior
+  STATE.playerMemory = [[], [], [], []];
   STATE.handSize = [7, 7, 7, 7];
 
   const resArea = document.getElementById('result-area');
@@ -33,7 +32,6 @@ function dealAndStart() {
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
 
-  // RESET DE CÂMERA
   window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
   window.currentSnakeScale = window.minScaleReached;
 
@@ -80,7 +78,6 @@ function processTurn() {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
       
-      // Bots memorizam o "não tenho"
       STATE.extremes.forEach(ex => {
          if (ex !== null && !STATE.playerMemory[STATE.current].includes(ex)) {
              STATE.playerMemory[STATE.current].push(ex);
@@ -142,7 +139,10 @@ function play(pIdx, tIdx, side) {
      return; 
   }
 
+  // CORREÇÃO: Reseta o contador de passes sempre que alguém joga
   STATE.playerPassed.fill(false);
+  STATE.passCount = 0; 
+
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
   renderHands(); 
