@@ -2,71 +2,145 @@
    INTERFACE VISUAL (ui.js)
 ═══════════════════════════════════════════════════════ */
 
-function renderHands(showAll = false) {
-  for (let i = 0; i < 4; i++) {
-    // Calcula qual elemento HTML corresponde a qual jogador
-    const relativeIdx = (i - myPlayerIdx + 4) % 4;
-    const handEl = document.getElementById(`hand-${relativeIdx}`);
-    if (!handEl) continue;
-
-    handEl.innerHTML = ''; // Limpa a mão para evitar duplicação/empilhamento
-    const isLocal = (i === myPlayerIdx);
-    const handData = STATE.hands[i] || [];
-
-    handData.forEach((tile, idx) => {
-      const tEl = document.createElement('div');
-      tEl.className = 'tile';
-      if (isLocal) tEl.id = `my-tile-${idx}`;
-
-      // Se for o jogador local ou fim de jogo, mostra os pontos
-      if (isLocal || showAll) {
-        if (tile[0] === tile[1]) tEl.classList.add('double');
-        tEl.innerHTML = `
-          <div class="tile-half">${getPips(tile[0])}</div>
-          <div class="tile-half">${getPips(tile[1])}</div>
-        `;
-      } else {
-        // Para oponentes, mostra as costas da peça
-        tEl.classList.add('tile-back');
-      }
-      handEl.appendChild(tEl);
-    });
-  }
-}
-
-function renderBoardFromState() {
-  const container = document.getElementById('snake');
-  if (!container) return;
-  container.innerHTML = ''; 
-
-  STATE.positions.forEach(p => {
-    const tileEl = document.createElement('div');
-    tileEl.className = `tile ${p.v1 === p.v2 ? 'double' : ''}`;
-    
-    // Posicionamento absoluto na mesa
-    tileEl.style.left = `calc(50% + ${p.x}px)`;
-    tileEl.style.top = `calc(50% + ${p.y}px)`;
-    tileEl.style.transform = `translate(-50%, -50%) rotate(${p.rot}deg) scale(${window.currentSnakeScale || 1})`;
-    
-    tileEl.innerHTML = `
-      <div class="tile-half">${getPips(p.v1)}</div>
-      <div class="tile-half">${getPips(p.v2)}</div>
-    `;
-    container.appendChild(tileEl);
-  });
-}
-
 function updateScoreDisplay() {
-  const sA = document.getElementById('scoreA');
-  const sB = document.getElementById('scoreB');
-  if (sA) sA.textContent = STATE.scores[0];
-  if (sB) sB.textContent = STATE.scores[1];
+  document.getElementById('scoreA').textContent = STATE.scores[0];
+  document.getElementById('scoreB').textContent = STATE.scores[1];
+  document.getElementById('scoreA').classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
+  document.getElementById('scoreB').classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
+
+  const teamLabels = (myPlayerIdx === 1 || myPlayerIdx === 3) ? ["Oponentes", "Sua Dupla"] : ["Sua Dupla", "Oponentes"];
+  document.getElementById('label-team-a').innerText = teamLabels[0];
+  document.getElementById('label-team-b').innerText = teamLabels[1];
+}
+
+function startRoundBtn() {
+    const btn = document.getElementById('next-btn');
+    if (btn) btn.disabled = true;
+    if (netMode === 'client') myConnToHost.send({ type: 'next_round_request' });
+    else startRound();
+}
+
+function triggerPassVisual(pIdx) {
+    window.visualPass[pIdx] = true;
+    renderHands(STATE.isOver); 
+    setTimeout(() => {
+        window.visualPass[pIdx] = false;
+        renderHands(STATE.isOver); 
+    }, CONFIG.GAME.PASS_DISPLAY_TIME);
 }
 
 function updateStatus(text, cls = '') {
+  updateStatusLocal(text, cls);
+  if (netMode === 'host') broadcastToClients({ type: 'status', text, cls });
+}
+
+function updateStatusLocal(text, cls) {
   const el = document.getElementById('game-status');
-  if (el) {
-    el.innerText = text;
-    el.className = cls;
+  if (!el) return;
+  el.innerText = text;
+  el.className = cls ? `active` : (text.includes('PAS') ? 'pass' : '');
+}
+
+function renderBoardFromState() {
+  const s = document.getElementById('snake');
+  if (!s) return;
+  s.innerHTML = ''; 
+  
+  const W = CONFIG.GAME.TILE_W;
+  const L = CONFIG.GAME.TILE_L;
+
+  STATE.positions.forEach((nP, i) => {
+    const el = document.createElement('div');
+    el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
+    
+    // Centralização perfeita baseada nos eixos X e Y
+    const offsetX = nP.isV ? (W / 2) : (L / 2);
+    const offsetY = nP.isV ? (L / 2) : (W / 2);
+
+    el.style.left = (nP.x - offsetX) + 'px';
+    el.style.top  = (nP.y - offsetY) + 'px';
+    
+    el.innerHTML = `<div class="half">${getPips(nP.v1)}</div><div class="half">${getPips(nP.v2)}</div>`;
+    if (i === STATE.positions.length - 1 && !STATE.isOver) el.classList.add('last-move');
+    s.appendChild(el);
+  });
+}
+
+function renderHands(reveal = false) {
+  for (let i = 0; i < 4; i++) {
+    const viewPos = (i - myPlayerIdx + 4) % 4;
+    const isSide = (viewPos === 1 || viewPos === 3);
+    const c = document.getElementById(`hand-${viewPos}`);
+    if (!c) continue;
+    c.innerHTML = '';
+    const isBlinking = window.visualPass && window.visualPass[i];
+    c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
+    if (isBlinking) c.classList.add('hand-pass-blink');
+
+    STATE.hands[i].forEach((t, idx) => {
+      const el = document.createElement('div');
+      const hidden = !reveal && i !== myPlayerIdx;
+      el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${t[0] === t[1] ? 'tile-double' : ''}`;
+      el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
+      if (i === myPlayerIdx) el.id = `my-tile-${idx}`;
+      c.appendChild(el);
+    });
+
+    if (STATE.hands[i].length > 0 && !STATE.isOver) {
+      const ind = document.createElement('div');
+      ind.className = 'hand-indicators';
+      if (isBlinking) {
+        const x = document.createElement('div');
+        x.className = 'pass-x'; x.innerText = '✕';
+        ind.appendChild(x);
+      }
+      const badge = document.createElement('div');
+      badge.className = 'tile-count';
+      badge.innerText = STATE.hands[i].length;
+      ind.appendChild(badge);
+      c.appendChild(ind);
+    }
+  }
+  if (STATE.current === myPlayerIdx && !STATE.isBlocked && !STATE.isOver) {
+     const moves = getMoves(STATE.hands[myPlayerIdx]);
+     if (moves.length > 0) highlight(moves);
+  }
+}
+
+function executeEndRoundUI(winTeam, idx, msg) {
+  renderHands(true);
+  updateScoreDisplay();
+  if (winTeam === 0 || winTeam === 1) playVictory();
+
+  if (winTeam === 0 || winTeam === 1) {
+    const teamA = [0, 2], teamB = [1, 3];
+    (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
+        const handEl = document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`);
+        if (handEl) handEl.classList.add('hand-win-blink');
+    });
+  }
+
+  updateStatusLocal(msg, 'active');
+  const resArea = document.getElementById('result-area');
+  if (resArea) resArea.style.setProperty('display', 'block', 'important');
+  
+  const nextBtn = document.getElementById('next-btn');
+  if (!nextBtn) return;
+
+  if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
+    const finalMsg = STATE.scores[0] >= STATE.targetScore ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
+    updateStatusLocal(`${finalMsg}\nPlacar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
+    nextBtn.innerText = 'VOLTAR AO MENU';
+    nextBtn.onclick = () => window.location.reload();
+  } else {
+    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME;
+    nextBtn.innerText = `Próxima (${timeLeft}s)`;
+    if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
+    STATE.autoNextInterval = setInterval(() => {
+        timeLeft--;
+        if(timeLeft > 0) nextBtn.innerText = `Próxima (${timeLeft}s)`;
+        else { clearInterval(STATE.autoNextInterval); startRoundBtn(); }
+    }, 1000);
+    nextBtn.onclick = () => { clearInterval(STATE.autoNextInterval); startRoundBtn(); };
   }
 }

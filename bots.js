@@ -1,20 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    INTELIGÊNCIA DOS BOTS (bots.js)
 ═══════════════════════════════════════════════════════ */
-function getMoves(hand) {
-  if (!STATE.positions.length) {
-    if (STATE.roundWinner === null) {
-      const idx = hand.findIndex(t => t[0]===6 && t[1]===6);
-      if (idx !== -1) return [{ idx, side:'any' }];
-    }
-    return hand.map((_, i) => ({ idx:i, side:'any' }));
-  }
-  return hand.map((t, i) => {
-    const L = t[0]===STATE.extremes[0] || t[1]===STATE.extremes[0];
-    const R = t[0]===STATE.extremes[1] || t[1]===STATE.extremes[1];
-    return L && R ? { idx:i, side:'both' } : L ? { idx:i, side:0 } : R ? { idx:i, side:1 } : null;
-  }).filter(Boolean);
-}
+// getMoves está definido em logic.js — sem duplicata aqui
 
 function chooseBotMove(botIdx, moves) {
     if (STATE.difficulty === 'hard') {

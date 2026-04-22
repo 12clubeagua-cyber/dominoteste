@@ -2,27 +2,30 @@
    FLUXO DE JOGO (game.js)
 ═══════════════════════════════════════════════════════ */
 
+// ── INICIA UMA NOVA RODADA (embaralha + distribui) ──────────────────────────
 function startRound() {
   STATE.isOver = false;
-  STATE.isBlocked = false;
+  STATE.isBlocked = true;
+  STATE.isShuffling = true;
+  STATE.playerMemory = [[], [], [], []];
   STATE.passCount = 0;
-  STATE.playerPassed.fill(false);
-  
+  STATE.playerPassed = [false, false, false, false];
+
   const resArea = document.getElementById('result-area');
   if (resArea) resArea.style.display = 'none';
 
-  if (STATE.autoNextInterval) {
-    clearInterval(STATE.autoNextInterval);
-    STATE.autoNextInterval = null;
+  // Limpa animações de vitória das mãos
+  for (let v = 0; v < 4; v++) {
+    const el = document.getElementById(`hand-${v}`);
+    if (el) el.classList.remove('hand-win-blink');
   }
 
-  if (netMode === 'host') {
-    broadcast({ type: 'shuffle_start' });
-  }
+  if (netMode === 'host') broadcastToClients({ type: 'shuffle_start' });
 
-  dealAndStart();
+  runShuffleAnimation(() => dealAndStart());
 }
 
+// ── DISTRIBUI AS PEÇAS E COMEÇA O TURNO ────────────────────────────────────
 function dealAndStart() {
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
@@ -31,138 +34,215 @@ function dealAndStart() {
   window.currentSnakeScale = window.minScaleReached;
 
   const deck = [];
-  for (let i = 0; i <= 6; i++) {
-    for (let j = i; j <= 6; j++) {
-      deck.push([i, j]);
-    }
-  }
-  deck.sort(() => Math.random() - 0.5);
+  for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
+  deck.sort(() => Math.random() - .5);
 
-  STATE.hands = [deck.splice(0,7), deck.splice(0,7), deck.splice(0,7), deck.splice(0,7)];
+  STATE.hands = [deck.splice(0, 7), deck.splice(0, 7), deck.splice(0, 7), deck.splice(0, 7)];
   STATE.handSize = [7, 7, 7, 7];
   STATE.positions = [];
   STATE.extremes = [null, null];
   STATE.ends = [
-    { hscX:0, hscY:0, dir:270, lineCount:1, lastVDir:270, wasDouble:false },
-    { hscX:0, hscY:0, dir:90,  lineCount:1, lastVDir:90,  wasDouble:false },
+    { hscX: 0, hscY: 0, dir: 270, lineCount: 1, lastVDir: 270, wasDouble: false },
+    { hscX: 0, hscY: 0, dir: 90,  lineCount: 1, lastVDir: 90,  wasDouble: false },
   ];
 
+  // Determina quem começa: vencedor anterior ou quem tem o [6,6]
   if (STATE.roundWinner !== null) {
     STATE.current = STATE.roundWinner;
   } else {
-    let starter = 0;
-    STATE.hands.forEach((h, i) => {
-      h.forEach(t => { if (t[0] === 6 && t[1] === 6) starter = i; });
-    });
-    STATE.current = starter;
+    STATE.current = 0;
+    STATE.hands.forEach((h, i) => h.forEach(t => {
+      if (t[0] === 6 && t[1] === 6) STATE.current = i;
+    }));
   }
 
-  STATE.isBlocked = false; 
+  STATE.isOver = false;
+  STATE.isBlocked = false;
   STATE.isShuffling = false;
 
-  if (netMode === 'host') broadcastState(); 
-  
+  broadcastState();
   renderHands();
   renderBoardFromState();
   processTurn();
 }
 
+// ── PROCESSA O TURNO DO JOGADOR ATUAL ──────────────────────────────────────
 function processTurn() {
   if (STATE.isOver) return;
 
-  const pIdx = STATE.current;
-  const moves = getMoves(STATE.hands[pIdx]);
+  const cur = STATE.current;
+  const moves = getMoves(STATE.hands[cur]);
 
-  if (moves.length === 0) {
-    STATE.playerPassed[pIdx] = true;
-    STATE.passCount++;
-    triggerPassVisual(pIdx);
-    playPass();
-    
-    if (netMode === 'host') {
-      broadcast({ type: 'animate_pass', pIdx });
+  // É BOT (ou cliente remoto)?
+  if (cur !== myPlayerIdx || netMode === 'client') {
+    STATE.isBlocked = true;
+
+    if (moves.length === 0) {
+      const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
+      updateStatus(CONFIG.BOT.THINKING_MSG);
+      setTimeout(() => doPass(cur), delay);
+    } else {
+      const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
+      updateStatus(CONFIG.BOT.THINKING_MSG);
+      setTimeout(() => {
+        const move = chooseBotMove(cur, moves);
+        const side = move.side === 'both' ? 0 : (move.side === 'any' ? 0 : move.side);
+        play(cur, move.idx, side);
+      }, delay);
     }
-
-    if (STATE.passCount >= 4) {
-      endRound("JOGO TRANCADO!");
-      return;
-    }
-
-    setTimeout(() => {
-      STATE.current = (STATE.current + 1) % 4;
-      processTurn();
-    }, 1000);
     return;
   }
 
-  if (pIdx === myPlayerIdx && netMode !== 'client') {
-    highlight(moves);
-    updateStatus("SUA VEZ", "active");
-    STATE.isBlocked = false; 
-  } else if (netMode !== 'client') {
-    updateStatus(NAMES[pIdx] + CONFIG.BOT.THINKING_MSG);
-    const delay = Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY) + CONFIG.BOT.MIN_DELAY;
-    
-    setTimeout(() => {
-      const choice = moves[Math.floor(Math.random() * moves.length)];
-      play(pIdx, choice.idx, choice.side === 'both' ? (Math.random() > 0.5 ? 0 : 1) : (choice.side === 'any' ? 0 : choice.side));
-    }, delay);
+  // É O JOGADOR HUMANO LOCAL
+  STATE.isBlocked = false;
+  if (moves.length === 0) {
+    STATE.isBlocked = true;
+    setTimeout(() => doPass(cur), 600);
+  } else {
+    updateStatus('SUA VEZ', 'active');
+    renderHands();
   }
 }
 
+// ── PASSA A VEZ ────────────────────────────────────────────────────────────
+function doPass(pIdx) {
+  if (STATE.isOver) return;
+
+  // Registra na memória dos bots que este jogador não tem essas pontas
+  if (STATE.extremes[0] !== null) {
+    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[0]))
+      STATE.playerMemory[pIdx].push(STATE.extremes[0]);
+    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[1]))
+      STATE.playerMemory[pIdx].push(STATE.extremes[1]);
+  }
+
+  STATE.playerPassed[pIdx] = true;
+  STATE.passCount++;
+
+  playPass();
+  triggerPassVisual(pIdx);
+
+  if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx });
+
+  // 4 passes seguidos = jogo trancado
+  if (STATE.passCount >= 4) {
+    endRound('block', -1);
+    return;
+  }
+
+  STATE.current = (STATE.current + 1) % 4;
+  broadcastState();
+
+  setTimeout(() => processTurn(), CONFIG.GAME.PASS_DISPLAY_TIME);
+}
+
+// ── ENCERRA A RODADA ───────────────────────────────────────────────────────
+function endRound(reason, winnerIdx) {
+  if (STATE.isOver) return;
+  STATE.isOver = true;
+  STATE.isBlocked = true;
+
+  let winTeam = -1;
+  let msg = '';
+  let detail = '';
+
+  if (reason === 'win') {
+    winTeam = (winnerIdx % 2 === 0) ? 0 : 1;
+    const winnerName = NAMES[winnerIdx];
+    STATE.scores[winTeam]++;
+    STATE.roundWinner = winnerIdx;
+
+    // Ajusta mensagem para perspectiva do jogador local
+    const isMyTeam = (myPlayerIdx % 2 === winnerIdx % 2);
+    msg = isMyTeam ? '🏆 SUA DUPLA VENCEU!' : '🏆 OPONENTES VENCERAM!';
+    detail = `${winnerName} fechou a mão! +1 ponto`;
+
+  } else if (reason === 'block') {
+    const sumA = STATE.hands[0].reduce((s, t) => s + t[0] + t[1], 0)
+               + STATE.hands[2].reduce((s, t) => s + t[0] + t[1], 0);
+    const sumB = STATE.hands[1].reduce((s, t) => s + t[0] + t[1], 0)
+               + STATE.hands[3].reduce((s, t) => s + t[0] + t[1], 0);
+
+    detail = `Equipe A: ${sumA} pts · Equipe B: ${sumB} pts`;
+
+    if (sumA < sumB) {
+      winTeam = 0; STATE.scores[0]++; STATE.roundWinner = 0;
+    } else if (sumB < sumA) {
+      winTeam = 1; STATE.scores[1]++; STATE.roundWinner = 1;
+    } else {
+      winTeam = -1;
+    }
+
+    if (winTeam !== -1) {
+      const isMyTeam = (myPlayerIdx % 2 === winTeam);
+      msg = `JOGO TRANCADO!\n${isMyTeam ? 'Sua dupla vence' : 'Oponentes vencem'}`;
+    } else {
+      msg = 'JOGO TRANCADO!\nEmpate — sem pontos';
+    }
+  }
+
+  const resDetail = document.getElementById('res-detail');
+  if (resDetail) resDetail.textContent = detail;
+
+  if (netMode === 'host') {
+    broadcastToClients({ type: 'end_round', winTeam, idx: winnerIdx, msg });
+    broadcastState();
+  }
+
+  executeEndRoundUI(winTeam, winnerIdx, msg);
+}
+
+// ── JOGADA ─────────────────────────────────────────────────────────────────
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
-  STATE.isBlocked = true;
-  
+
   if (netMode === 'client') {
-     const picker = document.getElementById('side-picker');
-     if (picker) picker.style.display = 'none';
-     client_predicted = true;
-     STATE.hands[pIdx].splice(tIdx, 1);
-     STATE.handSize[pIdx]--;
-     renderHands(); 
-     myConnToHost.send({ type: 'play_request', tIdx, side });
-     return; 
+    const picker = document.getElementById('side-picker');
+    if (picker) picker.style.display = 'none';
+    STATE.isBlocked = true;
+    client_predicted = true;
+    STATE.hands[pIdx].splice(tIdx, 1);
+    STATE.handSize[pIdx]--;
+    renderHands();
+    myConnToHost.send({ type: 'play_request', tIdx, side });
+    return;
   }
 
   STATE.playerPassed.fill(false);
-  STATE.passCount = 0; 
+  STATE.passCount = 0;
 
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
-  renderHands(); 
+  renderHands();
 
-  const placement = calculateTilePlacement(tile, side);
-  
+  const placement = calculateTilePlacement(tile, side === 'any' ? 0 : side);
+
   if (!STATE.positions.length) {
+    // Dupla na abertura: as duas pontas têm o mesmo valor
+    if (tile[0] === tile[1]) {
+      STATE.extremes = [tile[0], tile[0]];
+    } else {
       STATE.extremes = [tile[0], tile[1]];
+    }
   } else {
-      STATE.extremes[side] = placement.vOther;
-  }
-  
-  STATE.positions.push(placement.nP);
-  try { updateSnakeScale(); } catch(err) {}
-  
-  if (netMode === 'host') {
-    broadcast({ 
-      type: 'animate_play', 
-      pIdx, 
-      tIdx, 
-      side, 
-      nP: placement.nP 
-    });
+    STATE.extremes[side] = placement.vOther;
   }
 
-  // ANIMAÇÃO
+  STATE.positions.push(placement.nP);
+  try { updateSnakeScale(); } catch (err) {}
+
+  if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP: placement.nP, tIdx });
+
   animateTile(pIdx, placement.nP, () => {
-    // CORREÇÃO: Renderiza o tabuleiro fixo após o término da animação
-    renderBoardFromState(); 
-    
+    renderBoardFromState();
+    broadcastState();
     if (STATE.hands[pIdx].length === 0) {
-      endRound(NAMES[pIdx] + " BATEU!");
-      return;
+      STATE.roundWinner = pIdx;
+      endRound('win', pIdx);
+    } else {
+      STATE.current = (STATE.current + 1) % 4;
+      broadcastState();
+      processTurn();
     }
-    STATE.current = (STATE.current + 1) % 4;
-    processTurn();
   });
 }

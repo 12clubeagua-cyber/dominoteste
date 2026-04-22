@@ -42,22 +42,17 @@ function startMatch() {
   safeAudioInit();
   STATE.scores = [0, 0];
   STATE.roundWinner = null;
+  STATE.isOver = false;
+  document.getElementById('start-screen').style.display = 'none';
   
-  // Esconde o menu inicial
-  const startScreen = document.getElementById('start-screen');
-  if (startScreen) startScreen.style.display = 'none';
-  
-  if (netMode === 'offline') {
-    // CORREÇÃO: Inicia a primeira rodada no modo offline
-    startRound(); 
-  } else if (netMode === 'host') {
+  if (netMode === 'host') {
     const seatOrder = [2, 1, 3];
-    connectedClients.forEach((conn, i) => {
-       conn.send({ type: 'game_start', yourIdx: seatOrder[i] });
+    connectedClients.forEach((conn, index) => {
+       conn.assignedIdx = seatOrder[index];
+       conn.send({ type: 'game_start', yourIdx: conn.assignedIdx });
     });
-    myPlayerIdx = 0;
-    updateScoreDisplay();
-    // Inicia a primeira rodada como host
-    startRound();
   }
+  
+  updateScoreDisplay();
+  if (netMode !== 'client') startRound();
 }
