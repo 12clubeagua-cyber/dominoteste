@@ -17,6 +17,13 @@ function initializeHost() {
   
   myPeer.on('open', () => document.getElementById('btn-start-multi').style.display = 'flex');
 
+  myPeer.on('error', (err) => {
+    if (err.type === 'unavailable-id') {
+        alert("Código de sala já em uso. Tente novamente.");
+        window.location.reload();
+    }
+  });
+
   myPeer.on('connection', (conn) => {
     if (connectedClients.length >= 3) {
       conn.send({ type: 'error', msg: 'Sala cheia!' });
@@ -42,8 +49,10 @@ function initializeHost() {
 }
 
 function updateHostLobbyUI() {
-  document.getElementById('host-status').innerText = `Jogadores: ${connectedClients.length}/3`;
+  const countEl = document.getElementById('host-status');
+  if (countEl) countEl.innerText = `Jogadores: ${connectedClients.length}/3`;
   const list = document.getElementById('host-player-list');
+  if (!list) return;
   list.innerHTML = '<div class="player-item">Você (Host)</div>';
   connectedClients.forEach(() => {
     const el = document.createElement('div');
@@ -54,7 +63,6 @@ function updateHostLobbyUI() {
 }
 
 function cancelHosting() {
-  // Fecha conexões ativas antes de destruir o peer
   connectedClients.forEach(conn => {
     conn.send({ type: 'status', text: 'O Host encerrou a sala.', cls: 'pass' });
     conn.close();
@@ -111,7 +119,10 @@ function connectToHost() {
          animateTile(data.pIdx, data.nP, () => {});
       }
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
-      if (data.type === 'animate_pass') triggerPassVisual(data.pIdx);
+      if (data.type === 'animate_pass') {
+          playPass(); // Toca som remoto
+          triggerPassVisual(data.pIdx);
+      }
       if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
     });
     myConnToHost.on('close', () => window.location.reload());
