@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   INTERFACE DO TABULEIRO (ui.js)
+   INTERFACE VISUAL (ui.js)
 ═══════════════════════════════════════════════════════ */
 
 function updateScoreDisplay() {
@@ -25,7 +25,7 @@ function triggerPassVisual(pIdx) {
     setTimeout(() => {
         window.visualPass[pIdx] = false;
         renderHands(STATE.isOver); 
-    }, 2500);
+    }, CONFIG.GAME.PASS_DISPLAY_TIME);
 }
 
 function updateStatus(text, cls = '') {
@@ -96,43 +96,11 @@ function renderHands(reveal = false) {
   }
 }
 
-function highlight(moves) {
-  moves.forEach(x => {
-    const el = document.getElementById(`my-tile-${x.idx}`);
-    if (!el) return;
-    el.classList.add('playable');
-    el.onclick = () => {
-      safeAudioInit();
-      if (STATE.isBlocked) return;
-      if (x.side === 'both' && STATE.extremes[0] !== STATE.extremes[1] && STATE.hands[myPlayerIdx].length > 1) {
-        STATE.pendingIdx = x.idx;
-        document.getElementById('side-picker').style.display = 'flex';
-        STATE.isBlocked = true;
-      } else {
-        STATE.isBlocked = true;
-        play(myPlayerIdx, x.idx, x.side === 'both' || x.side === 'any' ? 1 : x.side);
-      }
-    };
-  });
-}
-
-function cancelMove() {
-  document.getElementById('side-picker').style.display = 'none';
-  STATE.isBlocked = false;
-}
-
-function executeMove(s) {
-  document.getElementById('side-picker').style.display = 'none';
-  STATE.isBlocked = false;
-  play(myPlayerIdx, STATE.pendingIdx, s);
-}
-
 function executeEndRoundUI(winTeam, idx, msg) {
   renderHands(true);
   updateScoreDisplay();
   if (winTeam === 0 || winTeam === 1) playVictory();
 
-  // Correção Empate: Só brilha se winTeam for 0 ou 1
   if (winTeam === 0 || winTeam === 1) {
     const teamA = [0, 2], teamB = [1, 3];
     (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
@@ -154,7 +122,7 @@ function executeEndRoundUI(winTeam, idx, msg) {
     nextBtn.innerText = 'VOLTAR AO MENU';
     nextBtn.onclick = () => window.location.reload();
   } else {
-    let timeLeft = 7;
+    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME;
     nextBtn.innerText = `Próxima (${timeLeft}s)`;
     if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
     STATE.autoNextInterval = setInterval(() => {
@@ -165,11 +133,3 @@ function executeEndRoundUI(winTeam, idx, msg) {
     nextBtn.onclick = () => { clearInterval(STATE.autoNextInterval); startRoundBtn(); };
   }
 }
-
-// Listener de redimensionamento para ajustar a mesa
-window.addEventListener('resize', () => {
-  if (STATE.positions && STATE.positions.length > 0) {
-    updateSnakeScale();
-    renderBoardFromState();
-  }
-});
