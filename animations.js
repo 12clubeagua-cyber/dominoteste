@@ -1,8 +1,10 @@
 /* ═══════════════════════════════════════════════════════
    ANIMAÇÕES E CÂMERA (animations.js)
 ═══════════════════════════════════════════════════════ */
+
 function runShuffleAnimation(cb) {
   const snake = document.getElementById('snake');
+  if (!snake) return;
   snake.innerHTML = '';
   window.minScaleReached = 1.2;
   window.currentSnakeScale = 1.2;
@@ -47,11 +49,15 @@ function animateTile(pIdx, target, cb) {
   document.body.appendChild(proxy);
 
   const viewPos = (pIdx - myPlayerIdx + 4) % 4;
-  const hRect = document.getElementById(`hand-${viewPos}`).getBoundingClientRect();
+  const handEl = document.getElementById(`hand-${viewPos}`);
+  if (!handEl) { proxy.remove(); cb(); return; }
+  
+  const hRect = handEl.getBoundingClientRect();
   const startX = hRect.left + hRect.width/2;
   const startY = hRect.top  + hRect.height/2;
 
-  const bRect = document.getElementById('board-container').getBoundingClientRect();
+  const boardEl = document.getElementById('board-container');
+  const bRect = boardEl.getBoundingClientRect();
   const bCX = bRect.left + bRect.width/2;
   const bCY = bRect.top  + bRect.height/2;
   const sc  = window.currentSnakeScale || 1;
@@ -79,7 +85,7 @@ function animateTile(pIdx, target, cb) {
 function updateSnakeScale() {
   const s = document.getElementById('snake');
   const b = document.getElementById('board-container');
-  if (!STATE.positions.length) return;
+  if (!STATE.positions.length || !s || !b) return;
 
   let minX=0, maxX=0, minY=0, maxY=0;
   STATE.positions.forEach(p => {
