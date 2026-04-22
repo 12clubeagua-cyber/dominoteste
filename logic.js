@@ -2,9 +2,6 @@
    LÓGICA MATEMÁTICA DO JOGO (logic.js)
 ═══════════════════════════════════════════════════════ */
 
-/**
- * Retorna quais movimentos são possíveis para uma determinada mão
- */
 function getMoves(hand) {
   if (!STATE.positions.length) {
     if (STATE.roundWinner === null) {
@@ -23,11 +20,20 @@ function getMoves(hand) {
   }).filter(Boolean);
 }
 
-/**
- * Calcula a posição exata (X, Y) do centro da nova peça
- */
 function calculateTilePlacement(tile, side) {
   const isD = tile[0] === tile[1];
+  
+  // CORREÇÃO: Inicializa AMBOS os lados na primeira peça
+  if (!STATE.positions.length) {
+    const nP = { x: 0, y: 0, v1: tile[0], v2: tile[1], isV: !isD };
+    
+    // Define o ponto inicial (0,0) para as duas direções de crescimento
+    STATE.ends[0].hscX = 0; STATE.ends[0].hscY = 0; STATE.ends[0].wasDouble = isD;
+    STATE.ends[1].hscX = 0; STATE.ends[1].hscY = 0; STATE.ends[1].wasDouble = isD;
+    
+    return { nP, vOther: tile[1] };
+  }
+
   const c = STATE.extremes[side];
   const vMatch = tile[0] === c ? tile[0] : tile[1];
   const vOther = tile[0] === c ? tile[1] : tile[0];
@@ -35,7 +41,6 @@ function calculateTilePlacement(tile, side) {
   const e = STATE.ends[side];
   let isVertFlow = (e.dir === 90 || e.dir === 270);
   
-  // Lógica de curva da serpente
   const maxInLine = isVertFlow ? CONFIG.GAME.MAX_VERT : CONFIG.GAME.MAX_HORIZ;
   
   if (e.lineCount >= maxInLine && !isD && !e.wasDouble) {
@@ -53,39 +58,26 @@ function calculateTilePlacement(tile, side) {
   const dx = e.dir === 0 ? 1 : e.dir === 180 ? -1 : 0;
   const dy = e.dir === 90 ? 1 : e.dir === 270 ? -1 : 0;
 
-  // --- MATEMÁTICA DE CENTROS ---
-  // Step é a distância do centro da peça atual ao centro da próxima
+  // MATEMÁTICA DE CENTROS: Calcula a distância exata para encostar sem sobrepor
   let step = 0;
   if (isD && e.wasDouble) {
-    step = CONFIG.GAME.TILE_W; // Dois carretões (18px)
+    step = CONFIG.GAME.TILE_W; // 18px
   } else if (isD || e.wasDouble) {
-    step = (CONFIG.GAME.TILE_L / 2) + (CONFIG.GAME.TILE_W / 2); // Normal + Carretão (27px)
+    step = (CONFIG.GAME.TILE_L / 2) + (CONFIG.GAME.TILE_W / 2); // 27px (18+9)
   } else {
-    step = CONFIG.GAME.TILE_L; // Duas normais (36px)
+    step = CONFIG.GAME.TILE_L; // 36px
   }
 
-  // Se for a PRIMEIRA peça do jogo, o centro é 0,0
-  if (!STATE.positions.length) {
-    const nP = { x: 0, y: 0, v1: tile[0], v2: tile[1], isV: !isD };
-    e.hscX = 0;
-    e.hscY = 0;
-    e.wasDouble = isD;
-    return { nP, vOther };
-  }
-
-  // Calcula o novo centro baseado no centro da peça anterior
   const nx = e.hscX + (step * dx);
   const ny = e.hscY + (step * dy);
 
   const nP = {
-    x: nx,
-    y: ny,
+    x: nx, y: ny,
     v1: (e.dir === 180 || e.dir === 270) ? vOther : vMatch,
     v2: (e.dir === 180 || e.dir === 270) ? vMatch : vOther,
     isV: isVertFlow ? !isD : isD
   };
   
-  // Atualiza a referência de centro para a próxima peça
   e.hscX = nx;
   e.hscY = ny;
   e.wasDouble = isD;
