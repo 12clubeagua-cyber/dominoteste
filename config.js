@@ -8,12 +8,14 @@ const CONFIG = {
     THINKING_MSG: " PENSANDO..."
   },
   GAME: {
-    TILE_W: 20,           // Largura da peça (lado curto)
-    TILE_L: 40,           // Comprimento da peça (lado longo)
+    TILE_W: 18,           // Largura da peça
+    TILE_L: 36,           // Comprimento da peça
     RESULT_DISPLAY_TIME: 7,
     PASS_DISPLAY_TIME: 2500,
     START_DELAY: 1200,
-    SNAKE_MAX_SCALE: 1.2
+    SNAKE_MAX_SCALE: 1.2,
+    MAX_VERT: 6,
+    MAX_HORIZ: 2
   },
   AUDIO: {
     CLACK_FREQ: 800,
