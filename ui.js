@@ -41,6 +41,7 @@ function updateStatusLocal(text, cls) {
 
 function renderBoardFromState() {
   const s = document.getElementById('snake');
+  if (!s) return;
   s.innerHTML = ''; 
   STATE.positions.forEach((nP, i) => {
     const el = document.createElement('div');
@@ -58,6 +59,7 @@ function renderHands(reveal = false) {
     const viewPos = (i - myPlayerIdx + 4) % 4;
     const isSide = (viewPos === 1 || viewPos === 3);
     const c = document.getElementById(`hand-${viewPos}`);
+    if (!c) continue;
     c.innerHTML = '';
     const isBlinking = window.visualPass && window.visualPass[i];
     c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
@@ -129,10 +131,14 @@ function executeEndRoundUI(winTeam, idx, msg) {
   updateScoreDisplay();
   if (winTeam === 0 || winTeam === 1) playVictory();
 
-  const teamA = [0, 2], teamB = [1, 3];
-  (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
-      document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
-  });
+  // Correção: Só pisca se houver um vencedor claro (não pisca no empate)
+  if (winTeam !== -1) {
+    const teamA = [0, 2], teamB = [1, 3];
+    (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
+        const handEl = document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`);
+        if (handEl) handEl.classList.add('hand-win-blink');
+    });
+  }
 
   updateStatusLocal(msg, 'active');
   document.getElementById('result-area').style.display = 'block';
@@ -156,7 +162,6 @@ function executeEndRoundUI(winTeam, idx, msg) {
   }
 }
 
-// FIX: Ajusta a mesa automaticamente se o jogador girar o celular
 window.addEventListener('resize', () => {
   if (STATE.positions && STATE.positions.length > 0) {
     updateSnakeScale();
