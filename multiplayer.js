@@ -12,11 +12,14 @@ function generateShortID() {
 function initializeHost() {
   if (myPeer) myPeer.destroy();
   const roomCode = generateShortID();
-  document.getElementById('host-code-display').innerText = roomCode.split('-')[1];
+  const codeEl = document.getElementById('host-code-display');
+  if (codeEl) codeEl.innerText = roomCode.split('-')[1];
+  
   myPeer = new Peer(roomCode);
   
   myPeer.on('open', () => {
-      document.getElementById('btn-start-multi').style.display = 'flex';
+      const btn = document.getElementById('btn-start-multi');
+      if (btn) btn.style.display = 'flex';
   });
 
   myPeer.on('error', (err) => {
@@ -86,27 +89,36 @@ function connectToHost() {
   const input = document.getElementById('join-code-input').value.toUpperCase().trim();
   if (input.length < 5) return;
 
-  document.getElementById('client-status').innerText = "Conectando...";
+  const statusEl = document.getElementById('client-status');
+  if (statusEl) statusEl.innerText = "Conectando...";
+  
   if (myPeer) myPeer.destroy();
   myPeer = new Peer(); 
   
   myPeer.on('open', () => {
     myConnToHost = myPeer.connect('DOMINO-' + input);
-    myConnToHost.on('open', () => document.getElementById('client-status').innerText = "Aguardando início...");
+    myConnToHost.on('open', () => {
+        if (statusEl) statusEl.innerText = "Aguardando início...";
+    });
+    
     myConnToHost.on('data', (data) => {
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;
-        document.getElementById('start-screen').style.display = 'none';
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) startScreen.style.display = 'none';
         updateScoreDisplay(); 
       }
       if (data.type === 'shuffle_start') runShuffleAnimation();
+      
       if (data.type === 'sync_state') {
-        STATE = data.state;
+        // CORREÇÃO: Injeta os dados no objeto existente para manter a referência
+        Object.assign(STATE, data.state);
         updateScoreDisplay();
         renderBoardFromState(); 
         renderHands(STATE.isOver); 
         updateSnakeScale();
       }
+      
       if (data.type === 'animate_play') {
          if (data.pIdx === myPlayerIdx && !client_predicted) {
             STATE.hands[data.pIdx].splice(data.tIdx, 1);
@@ -118,16 +130,19 @@ function connectToHost() {
             renderHands();
          }
          client_predicted = false;
-         // Sincronização de som: playClack() é chamado dentro de animateTile()
          animateTile(data.pIdx, data.nP, () => {});
       }
+      
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
+      
       if (data.type === 'animate_pass') {
-          playPass(); // Toca som para o cliente quando alguém passa
+          playPass(); // Som remoto
           triggerPassVisual(data.pIdx);
       }
+      
       if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
     });
+    
     myConnToHost.on('close', () => window.location.reload());
   });
 }
