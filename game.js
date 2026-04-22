@@ -10,13 +10,12 @@ function startRound() {
   safeAudioInit();
   if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
 
-  // RESET DE ESTADO PARA NOVA RODADA
   STATE.isOver = false;
   STATE.isBlocked = true;
   STATE.passCount = 0;
   STATE.playerPassed.fill(false);
   window.visualPass.fill(false);
-  STATE.playerMemory = [[], [], [], []]; // Limpa a memória dos bots
+  STATE.playerMemory = [[], [], [], []];
   STATE.handSize = [7, 7, 7, 7];
 
   const resArea = document.getElementById('result-area');
@@ -30,6 +29,10 @@ function startRound() {
 }
 
 function dealAndStart() {
+  // CORREÇÃO: Limpa os resíduos da animação de embaralhar antes de começar
+  const s = document.getElementById('snake');
+  if (s) s.innerHTML = '';
+
   const deck = [];
   for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
   deck.sort(() => Math.random() - .5);
@@ -51,6 +54,7 @@ function dealAndStart() {
 
   broadcastState(); 
   renderHands();
+  renderBoardFromState(); // Garante que o tabuleiro comece vazio visualmente
   processTurn();
 }
 
@@ -71,23 +75,12 @@ function processTurn() {
     if (netMode !== 'client') {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
-      
-      // Bot anota que este jogador não tem as extremidades atuais
-      STATE.extremes.forEach(ex => {
-         if (ex !== null && !STATE.playerMemory[STATE.current].includes(ex)) {
-             STATE.playerMemory[STATE.current].push(ex);
-         }
-      });
-
       const passedIdx = STATE.current;
       if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx: passedIdx });
-      
       playPass(); 
       triggerPassVisual(passedIdx);
       updateStatus(`✕ ${NAMES[passedIdx]} PASSOU`, 'pass');
-      
       if (STATE.passCount >= 4) { setTimeout(() => endRound('blocked'), 2000); return; }
-      
       setTimeout(() => {
           STATE.current = (STATE.current + 1) % 4;
           broadcastState();
@@ -191,16 +184,25 @@ function endRound(type, idx) {
   STATE.isOver = true;
   const ptA = STATE.hands[0].concat(STATE.hands[2]).reduce((s, t) => s + t[0] + t[1], 0);
   const ptB = STATE.hands[1].concat(STATE.hands[3]).reduce((s, t) => s + t[0] + t[1], 0);
+  
   let winTeam = -1;
   let msg = "";
+  
   if (type === 'win') {
     winTeam = idx % 2 === 0 ? 0 : 1;
     msg = winTeam === 0 ? `EQUIPE A BATEU!` : `EQUIPE B BATEU!`;
   } else {
     if (ptA < ptB) winTeam = 0; else if (ptB < ptA) winTeam = 1;
-    msg = winTeam === -1 ? `EMPATE NO TRANCO!` : `TRANCADO: EQUIPE ${winTeam === 0 ? 'A' : 'B'} VENCEU`;
+    
+    // CORREÇÃO: Mostra a soma das peças no empate ou no tranco
+    if (winTeam === -1) {
+        msg = `EMPATE NO TRANCO!\n(${ptA} vs ${ptB} pts)`;
+    } else {
+        msg = `TRANCADO: EQUIPE ${winTeam === 0 ? 'A' : 'B'} VENCEU\n(${ptA} vs ${ptB} pts)`;
+    }
     STATE.roundWinner = winTeam === -1 ? null : winTeam;
   }
+  
   if (winTeam !== -1) STATE.scores[winTeam]++;
   broadcastState(); 
   if (netMode === 'host') broadcastToClients({ type: 'end_round', winTeam, idx, msg });
