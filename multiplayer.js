@@ -111,7 +111,6 @@ function connectToHost() {
       if (data.type === 'shuffle_start') runShuffleAnimation();
       
       if (data.type === 'sync_state') {
-        // CORREÇÃO: Injeta os dados no objeto existente para manter a referência
         Object.assign(STATE, data.state);
         updateScoreDisplay();
         renderBoardFromState(); 
@@ -136,7 +135,7 @@ function connectToHost() {
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
       
       if (data.type === 'animate_pass') {
-          playPass(); // Som remoto
+          playPass(); // CORREÇÃO: Som toca agora no cliente também
           triggerPassVisual(data.pIdx);
       }
       
