@@ -139,7 +139,6 @@ function play(pIdx, tIdx, side) {
      return; 
   }
 
-  // CORREÇÃO: Reseta o contador de passes sempre que alguém joga
   STATE.playerPassed.fill(false);
   STATE.passCount = 0; 
 
@@ -147,7 +146,9 @@ function play(pIdx, tIdx, side) {
   STATE.handSize[pIdx]--;
   renderHands(); 
 
+  // MATEMÁTICA: Pega o novo posicionamento
   const placement = calculateTilePlacement(tile, side);
+  
   STATE.extremes[side] = placement.vOther;
   STATE.positions.push(placement.nP);
   
