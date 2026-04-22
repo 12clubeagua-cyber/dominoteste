@@ -10,12 +10,13 @@ function startRound() {
   safeAudioInit();
   if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
 
+  // RESET DE ESTADO PARA NOVA RODADA
   STATE.isOver = false;
   STATE.isBlocked = true;
   STATE.passCount = 0;
   STATE.playerPassed.fill(false);
   window.visualPass.fill(false);
-  STATE.playerMemory = [[], [], [], []];
+  STATE.playerMemory = [[], [], [], []]; // Limpa a memória dos bots
   STATE.handSize = [7, 7, 7, 7];
 
   const resArea = document.getElementById('result-area');
@@ -60,7 +61,7 @@ function processTurn() {
   if (!STATE.positions.length && STATE.roundWinner === null) {
     if (netMode !== 'client') {
       STATE.isBlocked = true;
-      updateStatus(`${NAMES[STATE.current]} SAINDO COM O 6|6...`);
+      updateStatus(`${NAMES[STATE.current]} SAINDO...`);
       setTimeout(() => play(STATE.current, moves[0].idx, 1), 1200);
     }
     return;
@@ -70,12 +71,23 @@ function processTurn() {
     if (netMode !== 'client') {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
+      
+      // Bot anota que este jogador não tem as extremidades atuais
+      STATE.extremes.forEach(ex => {
+         if (ex !== null && !STATE.playerMemory[STATE.current].includes(ex)) {
+             STATE.playerMemory[STATE.current].push(ex);
+         }
+      });
+
       const passedIdx = STATE.current;
       if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx: passedIdx });
-      playPass(); // Som de passar local
+      
+      playPass(); 
       triggerPassVisual(passedIdx);
       updateStatus(`✕ ${NAMES[passedIdx]} PASSOU`, 'pass');
+      
       if (STATE.passCount >= 4) { setTimeout(() => endRound('blocked'), 2000); return; }
+      
       setTimeout(() => {
           STATE.current = (STATE.current + 1) % 4;
           broadcastState();
