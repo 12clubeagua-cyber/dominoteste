@@ -15,7 +15,9 @@ function initializeHost() {
   document.getElementById('host-code-display').innerText = roomCode.split('-')[1];
   myPeer = new Peer(roomCode);
   
-  myPeer.on('open', () => document.getElementById('btn-start-multi').style.display = 'flex');
+  myPeer.on('open', () => {
+      document.getElementById('btn-start-multi').style.display = 'flex';
+  });
 
   myPeer.on('error', (err) => {
     if (err.type === 'unavailable-id') {
@@ -116,11 +118,12 @@ function connectToHost() {
             renderHands();
          }
          client_predicted = false;
+         // Sincronização de som: playClack() é chamado dentro de animateTile()
          animateTile(data.pIdx, data.nP, () => {});
       }
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
       if (data.type === 'animate_pass') {
-          playPass(); // Toca som remoto
+          playPass(); // Toca som para o cliente quando alguém passa
           triggerPassVisual(data.pIdx);
       }
       if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
