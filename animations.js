@@ -5,12 +5,15 @@
 function runShuffleAnimation(cb) {
   const snake = document.getElementById('snake');
   if (!snake) return;
+
+  // CORREÇÃO: Limpeza imediata antes de iniciar
   snake.innerHTML = '';
-  window.minScaleReached = 1.2;
-  window.currentSnakeScale = 1.2;
+  
+  window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
+  window.currentSnakeScale = window.minScaleReached;
   window.currentSnakeCx = 0;
   window.currentSnakeCy = 0;
-  snake.style.transform = 'scale(1.2) translate(0px,0px)';
+  snake.style.transform = `scale(${window.minScaleReached}) translate(0px,0px)`;
 
   const fakes = [];
   for (let i = 0; i < 28; i++) {
@@ -99,7 +102,7 @@ function updateSnakeScale() {
   const pad = 60;
   const scX = b.clientWidth  / ((maxX-minX) + pad || 1);
   const scY = b.clientHeight / ((maxY-minY) + pad || 1);
-  const target = Math.min(scX, scY, 1.2);
+  const target = Math.min(scX, scY, CONFIG.GAME.SNAKE_MAX_SCALE);
 
   if (target < window.minScaleReached) window.minScaleReached = target;
 
