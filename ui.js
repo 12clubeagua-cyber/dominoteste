@@ -1,28 +1,22 @@
 /* ═══════════════════════════════════════════════════════
    INTERFACE DO TABULEIRO (ui.js)
 ═══════════════════════════════════════════════════════ */
+
 function updateScoreDisplay() {
   document.getElementById('scoreA').textContent = STATE.scores[0];
   document.getElementById('scoreB').textContent = STATE.scores[1];
   document.getElementById('scoreA').classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
   document.getElementById('scoreB').classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
 
-  if (myPlayerIdx === 1 || myPlayerIdx === 3) {
-      document.getElementById('label-team-a').innerText = "Oponentes";
-      document.getElementById('label-team-b').innerText = "Sua Dupla";
-  } else {
-      document.getElementById('label-team-a').innerText = "Sua Dupla";
-      document.getElementById('label-team-b').innerText = "Oponentes";
-  }
+  const teamLabels = (myPlayerIdx === 1 || myPlayerIdx === 3) ? ["Oponentes", "Sua Dupla"] : ["Sua Dupla", "Oponentes"];
+  document.getElementById('label-team-a').innerText = teamLabels[0];
+  document.getElementById('label-team-b').innerText = teamLabels[1];
 }
 
 function startRoundBtn() {
     document.getElementById('next-btn').disabled = true;
-    if (netMode === 'client') {
-        myConnToHost.send({ type: 'next_round_request' });
-    } else {
-        startRound();
-    }
+    if (netMode === 'client') myConnToHost.send({ type: 'next_round_request' });
+    else startRound();
 }
 
 function triggerPassVisual(pIdx) {
@@ -71,9 +65,8 @@ function renderHands(reveal = false) {
 
     STATE.hands[i].forEach((t, idx) => {
       const el = document.createElement('div');
-      const isDouble = t[0] === t[1];
       const hidden = !reveal && i !== myPlayerIdx;
-      el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${isDouble ? 'tile-double' : ''}`;
+      el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${t[0] === t[1] ? 'tile-double' : ''}`;
       el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
       if (i === myPlayerIdx) el.id = `my-tile-${idx}`;
       c.appendChild(el);
@@ -108,8 +101,7 @@ function highlight(moves) {
     el.onclick = () => {
       safeAudioInit();
       if (STATE.isBlocked) return;
-      const isLast = STATE.hands[myPlayerIdx].length === 1;
-      if (x.side === 'both' && STATE.extremes[0] !== STATE.extremes[1] && !isLast) {
+      if (x.side === 'both' && STATE.extremes[0] !== STATE.extremes[1] && STATE.hands[myPlayerIdx].length > 1) {
         STATE.pendingIdx = x.idx;
         document.getElementById('side-picker').style.display = 'flex';
         STATE.isBlocked = true;
@@ -124,7 +116,6 @@ function highlight(moves) {
 function cancelMove() {
   document.getElementById('side-picker').style.display = 'none';
   STATE.isBlocked = false;
-  STATE.pendingIdx = null;
 }
 
 function executeMove(s) {
@@ -138,36 +129,37 @@ function executeEndRoundUI(winTeam, idx, msg) {
   updateScoreDisplay();
   if (winTeam === 0 || winTeam === 1) playVictory();
 
-  if (winTeam === 0) {
-    document.getElementById(`hand-${(0 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
-    document.getElementById(`hand-${(2 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
-  } else if (winTeam === 1) {
-    document.getElementById(`hand-${(1 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
-    document.getElementById(`hand-${(3 - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
-  }
+  const teamA = [0, 2], teamB = [1, 3];
+  (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
+      document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`).classList.add('hand-win-blink');
+  });
 
   updateStatusLocal(msg, 'active');
-  const resultArea = document.getElementById('result-area');
+  document.getElementById('result-area').style.display = 'block';
   const nextBtn = document.getElementById('next-btn');
-  resultArea.style.display = 'block';
 
   if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
-    const isTeamA = STATE.scores[0] >= STATE.targetScore;
-    const finalMsg = isTeamA ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
+    const finalMsg = STATE.scores[0] >= STATE.targetScore ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
     updateStatusLocal(`${finalMsg}\nPlacar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
     nextBtn.innerText = 'VOLTAR AO MENU';
-    nextBtn.disabled = false;
-    nextBtn.onclick = () => { window.location.reload(); };
+    nextBtn.onclick = () => window.location.reload();
   } else {
     let timeLeft = 7;
     nextBtn.innerText = `Próxima (${timeLeft}s)`;
-    nextBtn.disabled = false;
     if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
     STATE.autoNextInterval = setInterval(() => {
         timeLeft--;
-        if(timeLeft > 0) { nextBtn.innerText = `Próxima (${timeLeft}s)`; } 
+        if(timeLeft > 0) nextBtn.innerText = `Próxima (${timeLeft}s)`;
         else { clearInterval(STATE.autoNextInterval); startRoundBtn(); }
     }, 1000);
     nextBtn.onclick = () => { clearInterval(STATE.autoNextInterval); startRoundBtn(); };
   }
 }
+
+// FIX: Ajusta a mesa automaticamente se o jogador girar o celular
+window.addEventListener('resize', () => {
+  if (STATE.positions && STATE.positions.length > 0) {
+    updateSnakeScale();
+    renderBoardFromState();
+  }
+});
