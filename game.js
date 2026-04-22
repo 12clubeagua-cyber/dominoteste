@@ -2,6 +2,33 @@
    FLUXO DE JOGO (game.js)
 ═══════════════════════════════════════════════════════ */
 
+/**
+ * Inicia ou reinicia uma rodada (limpa o tabuleiro e dá as cartas)
+ */
+function startRound() {
+  STATE.isOver = false;
+  STATE.isBlocked = false;
+  STATE.passCount = 0;
+  STATE.playerPassed.fill(false);
+  
+  // Esconde a área de resultados da rodada anterior
+  const resArea = document.getElementById('result-area');
+  if (resArea) resArea.style.display = 'none';
+
+  // Se houver um intervalo de auto-next ativo, limpa-o
+  if (STATE.autoNextInterval) {
+    clearInterval(STATE.autoNextInterval);
+    STATE.autoNextInterval = null;
+  }
+
+  // Se for host, avisa os clientes
+  if (netMode === 'host') {
+    broadcast({ type: 'shuffle_start' });
+  }
+
+  dealAndStart();
+}
+
 function dealAndStart() {
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
@@ -9,10 +36,16 @@ function dealAndStart() {
   window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
   window.currentSnakeScale = window.minScaleReached;
 
+  // Criação e embaralalhamento do deck
   const deck = [];
-  for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
-  deck.sort(() => Math.random() - .5);
+  for (let i = 0; i <= 6; i++) {
+    for (let j = i; j <= 6; j++) {
+      deck.push([i, j]);
+    }
+  }
+  deck.sort(() => Math.random() - 0.5);
 
+  // Distribuição
   STATE.hands = [deck.splice(0,7), deck.splice(0,7), deck.splice(0,7), deck.splice(0,7)];
   STATE.handSize = [7, 7, 7, 7];
   STATE.positions = [];
@@ -22,16 +55,74 @@ function dealAndStart() {
     { hscX:0, hscY:0, dir:90,  lineCount:1, lastVDir:90,  wasDouble:false },
   ];
 
-  if (STATE.roundWinner !== null) STATE.current = STATE.roundWinner;
-  else STATE.hands.forEach((h, i) => h.forEach(t => { if (t[0]===6 && t[1]===6) STATE.current = i; }));
+  // Determina quem começa
+  if (STATE.roundWinner !== null) {
+    STATE.current = STATE.roundWinner;
+  } else {
+    // Na primeira rodada, quem tiver o 6-6 começa. 
+    // Se ninguém tiver (raro em 4 jogadores), jogador 0 começa.
+    let starter = 0;
+    STATE.hands.forEach((h, i) => {
+      h.forEach(t => { if (t[0] === 6 && t[1] === 6) starter = i; });
+    });
+    STATE.current = starter;
+  }
 
   STATE.isBlocked = false; 
   STATE.isShuffling = false;
 
-  broadcastState(); 
+  if (netMode === 'host') broadcastState(); 
+  
   renderHands();
   renderBoardFromState();
+  
+  // Inicia o ciclo de turnos
   processTurn();
+}
+
+function processTurn() {
+  if (STATE.isOver) return;
+
+  const pIdx = STATE.current;
+  const moves = getMoves(STATE.hands[pIdx]);
+
+  if (moves.length === 0) {
+    // Jogador não tem peças: Passa a vez
+    STATE.playerPassed[pIdx] = true;
+    STATE.passCount++;
+    triggerPassVisual(pIdx);
+    playPass();
+    
+    if (netMode === 'host') {
+      broadcast({ type: 'animate_pass', pIdx });
+    }
+
+    if (STATE.passCount >= 4) {
+      endRound("JOGO TRANCADO!");
+      return;
+    }
+
+    setTimeout(() => {
+      STATE.current = (STATE.current + 1) % 4;
+      processTurn();
+    }, 1000);
+    return;
+  }
+
+  // Se for a vez do utilizador local
+  if (pIdx === myPlayerIdx && netMode !== 'client') {
+    highlight(moves);
+    updateStatus("SUA VEZ", "active");
+  } else if (netMode !== 'client') {
+    // Lógica de Bot (para Offline ou Host gerindo bots)
+    updateStatus(NAMES[pIdx] + CONFIG.BOT.THINKING_MSG);
+    const delay = Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY) + CONFIG.BOT.MIN_DELAY;
+    
+    setTimeout(() => {
+      const choice = moves[Math.floor(Math.random() * moves.length)];
+      play(pIdx, choice.idx, choice.side === 'both' ? (Math.random() > 0.5 ? 0 : 1) : choice.side);
+    }, delay);
+  }
 }
 
 function play(pIdx, tIdx, side) {
@@ -56,7 +147,7 @@ function play(pIdx, tIdx, side) {
   STATE.handSize[pIdx]--;
   renderHands(); 
 
-  // MATEMÁTICA: Pega o posicionamento corrigido
+  // MATEMÁTICA: Pega o posicionamento corrigido através da lógica snake
   const placement = calculateTilePlacement(tile, side === 'any' ? 0 : side);
   
   if (!STATE.positions.length) {
@@ -68,18 +159,22 @@ function play(pIdx, tIdx, side) {
   STATE.positions.push(placement.nP);
   try { updateSnakeScale(); } catch(err) {}
   
-  if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP: placement.nP, tIdx });
+  if (netMode === 'host') {
+    broadcast({ 
+      type: 'animate_play', 
+      pIdx, 
+      tIdx, 
+      side, 
+      nP: placement.nP 
+    });
+  }
 
   animateTile(pIdx, placement.nP, () => {
-    renderBoardFromState();
-    broadcastState(); 
     if (STATE.hands[pIdx].length === 0) {
-      STATE.roundWinner = pIdx;
-      endRound('win', pIdx);
-    } else {
-      STATE.current = (STATE.current + 1) % 4;
-      broadcastState();
-      processTurn();
+      endRound(NAMES[pIdx] + " BATEU!");
+      return;
     }
+    STATE.current = (STATE.current + 1) % 4;
+    processTurn();
   });
 }
