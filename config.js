@@ -8,11 +8,12 @@ const CONFIG = {
     THINKING_MSG: " PENSANDO..."
   },
   GAME: {
-    RESULT_DISPLAY_TIME: 7, // segundos
-    PASS_DISPLAY_TIME: 2500, // milissegundos
+    TILE_W: 20,           // Largura da peça (lado curto)
+    TILE_L: 40,           // Comprimento da peça (lado longo)
+    RESULT_DISPLAY_TIME: 7,
+    PASS_DISPLAY_TIME: 2500,
     START_DELAY: 1200,
-    SNAKE_MAX_SCALE: 1.2,
-    TILE_BASE_SIZE: 18
+    SNAKE_MAX_SCALE: 1.2
   },
   AUDIO: {
     CLACK_FREQ: 800,
