@@ -6,14 +6,9 @@ function startRound() {
   if (netMode === 'client' || STATE.isShuffling) return; 
   if (!STATE.isOver && STATE.hands.length > 0) return; 
 
-  // Ativa a trava para evitar que cliques rápidos reiniciem o processo
   STATE.isShuffling = true;
-
   safeAudioInit();
   if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
-
-  document.getElementById('scoreA').classList.remove('score-blink-green');
-  document.getElementById('scoreB').classList.remove('score-blink-green');
 
   STATE.isOver = false;
   STATE.isBlocked = true;
@@ -23,18 +18,13 @@ function startRound() {
   STATE.playerMemory = [[], [], [], []];
   STATE.handSize = [7, 7, 7, 7];
 
-  document.getElementById('result-area').style.display = 'none';
-  document.getElementById('next-btn').disabled = false;
-  
-  for (let i = 0; i < 4; i++) {
-    document.getElementById(`hand-${i}`).classList.remove('hand-pass-blink', 'hand-win-blink');
-  }
+  const resArea = document.getElementById('result-area');
+  if (resArea) resArea.style.display = 'none';
   
   broadcastState(); 
   updateStatus('EMBARALHANDO...', '');
 
   if (netMode === 'host') broadcastToClients({ type: 'shuffle_start' });
-  
   runShuffleAnimation(() => dealAndStart());
 }
 
@@ -55,9 +45,8 @@ function dealAndStart() {
   if (STATE.roundWinner !== null) STATE.current = STATE.roundWinner;
   else STATE.hands.forEach((h, i) => h.forEach(t => { if (t[0]===6 && t[1]===6) STATE.current = i; }));
 
-  document.getElementById('snake').innerHTML = '';
   STATE.isBlocked = false; 
-  STATE.isShuffling = false; // Libera a trava após distribuir as peças
+  STATE.isShuffling = false;
 
   broadcastState(); 
   renderHands();
@@ -82,15 +71,11 @@ function processTurn() {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
       const passedIdx = STATE.current;
-
       if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx: passedIdx });
+      playPass(); // Som de passar local
       triggerPassVisual(passedIdx);
-
       updateStatus(`✕ ${NAMES[passedIdx]} PASSOU`, 'pass');
-      setTimeout(() => updateStatus('', ''), 2000);
-
       if (STATE.passCount >= 4) { setTimeout(() => endRound('blocked'), 2000); return; }
-      
       setTimeout(() => {
           STATE.current = (STATE.current + 1) % 4;
           broadcastState();
@@ -125,7 +110,6 @@ function processTurn() {
 
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
-
   if (netMode === 'client') {
      document.getElementById('side-picker').style.display = 'none';
      STATE.isBlocked = true; 
@@ -144,11 +128,9 @@ function play(pIdx, tIdx, side) {
 
   const isD = tile[0] === tile[1];
   let nP = {};
-
   if (!STATE.positions.length) {
     STATE.extremes = [tile[0], tile[1]];
-    const isV = !isD;
-    nP = { x:0, y:0, v1:tile[0], v2:tile[1], isV };
+    nP = { x:0, y:0, v1:tile[0], v2:tile[1], isV:!isD };
     STATE.ends[0] = isD ? {hscX:0, hscY:0, dir:270, lineCount:1, lastVDir:270, wasDouble:true} : {hscX:0, hscY:-9, dir:270, lineCount:1, lastVDir:270, wasDouble:false};
     STATE.ends[1] = isD ? {hscX:0, hscY:0, dir:90, lineCount:1, lastVDir:90, wasDouble:true} : {hscX:0, hscY:9, dir:90, lineCount:1, lastVDir:90, wasDouble:false};
   } else {
@@ -156,7 +138,6 @@ function play(pIdx, tIdx, side) {
     const vMatch = tile[0] === c ? tile[0] : tile[1];
     const vOther = tile[0] === c ? tile[1] : tile[0];
     STATE.extremes[side] = vOther;
-
     const e = STATE.ends[side];
     let isVertFlow = (e.dir === 90 || e.dir === 270);
     if (e.lineCount >= (isVertFlow ? 6 : 2) && !isD && !e.wasDouble) {
@@ -166,27 +147,19 @@ function play(pIdx, tIdx, side) {
       isVertFlow = (e.dir === 90 || e.dir === 270);
     }
     e.lineCount++;
-
     const dx = e.dir===0?1 : e.dir===180?-1 : 0;
     const dy = e.dir===90?1 : e.dir===270?-1 : 0;
     const chX = e.hscX + 18*dx, chY = e.hscY + 18*dy;
-
     let cx, cy, newHscX, newHscY;
-    const isV = isVertFlow ? !isD : isD;
     if (isD) { cx = chX; cy = chY; newHscX = chX; newHscY = chY; } 
     else { cx = (chX + (chX + 18*dx))/2; cy = (chY + (chY + 18*dy))/2; newHscX = chX + 18*dx; newHscY = chY + 18*dy; }
-
-    const swap = (e.dir===180 || e.dir===270);
-    nP = { x:cx, y:cy, v1:swap?vOther:vMatch, v2:swap?vMatch:vOther, isV };
+    nP = { x:cx, y:cy, v1:(e.dir===180||e.dir===270)?vOther:vMatch, v2:(e.dir===180||e.dir===270)?vMatch:vOther, isV:isVertFlow ? !isD : isD };
     e.hscX = newHscX; e.hscY = newHscY; e.wasDouble = isD;
   }
 
   STATE.positions.push(nP);
   try { updateSnakeScale(); } catch(err) {}
-  STATE.passCount = 0;
-  
   if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP, tIdx });
-
   animateTile(pIdx, nP, () => {
     renderBoardFromState();
     broadcastState(); 
@@ -204,24 +177,18 @@ function play(pIdx, tIdx, side) {
 function endRound(type, idx) {
   if (netMode === 'client' || STATE.isOver) return;
   STATE.isOver = true;
-
   const ptA = STATE.hands[0].concat(STATE.hands[2]).reduce((s, t) => s + t[0] + t[1], 0);
   const ptB = STATE.hands[1].concat(STATE.hands[3]).reduce((s, t) => s + t[0] + t[1], 0);
-
   let winTeam = -1;
   let msg = "";
-
   if (type === 'win') {
     winTeam = idx % 2 === 0 ? 0 : 1;
-    msg = winTeam === 0 ? `VITÓRIA!\nEQUIPE A BATEU` : `VITÓRIA!\nEQUIPE B BATEU`;
+    msg = winTeam === 0 ? `EQUIPE A BATEU!` : `EQUIPE B BATEU!`;
   } else {
     if (ptA < ptB) winTeam = 0; else if (ptB < ptA) winTeam = 1;
-    if (winTeam === 0) msg = `TRANCADO: EQUIPE A VENCEU\n(${ptA} vs ${ptB} pts)`;
-    else if (winTeam === 1) msg = `TRANCADO: EQUIPE B VENCEU\n(${ptB} vs ${ptA} pts)`;
-    else msg = `EMPATE NO TRANCO\n(${ptA} pts)`;
-    STATE.roundWinner = winTeam === 0 ? 0 : (winTeam === 1 ? 1 : null); 
+    msg = winTeam === -1 ? `EMPATE NO TRANCO!` : `TRANCADO: EQUIPE ${winTeam === 0 ? 'A' : 'B'} VENCEU`;
+    STATE.roundWinner = winTeam === -1 ? null : winTeam;
   }
-
   if (winTeam !== -1) STATE.scores[winTeam]++;
   broadcastState(); 
   if (netMode === 'host') broadcastToClients({ type: 'end_round', winTeam, idx, msg });
