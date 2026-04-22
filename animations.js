@@ -50,13 +50,15 @@ function animateTile(pIdx, target, cb) {
 
   const viewPos = (pIdx - myPlayerIdx + 4) % 4;
   const handEl = document.getElementById(`hand-${viewPos}`);
-  if (!handEl) { proxy.remove(); cb(); return; }
+  if (!handEl) { proxy.remove(); if(cb) cb(); return; }
   
   const hRect = handEl.getBoundingClientRect();
   const startX = hRect.left + hRect.width/2;
   const startY = hRect.top  + hRect.height/2;
 
   const boardEl = document.getElementById('board-container');
+  if (!boardEl) { proxy.remove(); if(cb) cb(); return; }
+  
   const bRect = boardEl.getBoundingClientRect();
   const bCX = bRect.left + bRect.width/2;
   const bCY = bRect.top  + bRect.height/2;
@@ -76,7 +78,7 @@ function animateTile(pIdx, target, cb) {
     if (p < 1) requestAnimationFrame(step);
     else {
       playClack();
-      setTimeout(() => { proxy.remove(); cb(); }, 10);
+      setTimeout(() => { proxy.remove(); if(cb) cb(); }, 10);
     }
   }
   requestAnimationFrame(step);
