@@ -10,12 +10,13 @@ function startRound() {
   safeAudioInit();
   if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
 
+  // RESET TOTAL
   STATE.isOver = false;
   STATE.isBlocked = true;
   STATE.passCount = 0;
   STATE.playerPassed.fill(false);
   window.visualPass.fill(false);
-  STATE.playerMemory = [[], [], [], []];
+  STATE.playerMemory = [[], [], [], []]; // Limpa memória da rodada anterior
   STATE.handSize = [7, 7, 7, 7];
 
   const resArea = document.getElementById('result-area');
@@ -31,6 +32,10 @@ function startRound() {
 function dealAndStart() {
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
+
+  // RESET DE CÂMERA
+  window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
+  window.currentSnakeScale = window.minScaleReached;
 
   const deck = [];
   for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
@@ -75,7 +80,7 @@ function processTurn() {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
       
-      // Bots memorizam que este jogador não tem as pontas atuais
+      // Bots memorizam o "não tenho"
       STATE.extremes.forEach(ex => {
          if (ex !== null && !STATE.playerMemory[STATE.current].includes(ex)) {
              STATE.playerMemory[STATE.current].push(ex);
@@ -126,7 +131,8 @@ function processTurn() {
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
   if (netMode === 'client') {
-     document.getElementById('side-picker').style.display = 'none';
+     const picker = document.getElementById('side-picker');
+     if (picker) picker.style.display = 'none';
      STATE.isBlocked = true; 
      client_predicted = true;
      STATE.hands[pIdx].splice(tIdx, 1);
@@ -141,9 +147,7 @@ function play(pIdx, tIdx, side) {
   STATE.handSize[pIdx]--;
   renderHands(); 
 
-  // MATEMÁTICA: Chama a lógica externa para calcular posição
   const placement = calculateTilePlacement(tile, side);
-  
   STATE.extremes[side] = placement.vOther;
   STATE.positions.push(placement.nP);
   
@@ -179,11 +183,8 @@ function endRound(type, idx) {
     msg = winTeam === 0 ? `EQUIPE A BATEU!` : `EQUIPE B BATEU!`;
   } else {
     if (ptA < ptB) winTeam = 0; else if (ptB < ptA) winTeam = 1;
-    if (winTeam === -1) {
-        msg = `EMPATE NO TRANCO!\n(${ptA} vs ${ptB} pts)`;
-    } else {
-        msg = `TRANCADO: EQUIPE ${winTeam === 0 ? 'A' : 'B'} VENCEU\n(${ptA} vs ${ptB} pts)`;
-    }
+    if (winTeam === -1) msg = `EMPATE NO TRANCO!\n(${ptA} vs ${ptB} pts)`;
+    else msg = `TRANCADO: EQUIPE ${winTeam === 0 ? 'A' : 'B'} VENCEU\n(${ptA} vs ${ptB} pts)`;
     STATE.roundWinner = winTeam === -1 ? null : winTeam;
   }
   
