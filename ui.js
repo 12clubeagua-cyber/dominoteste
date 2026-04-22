@@ -35,6 +35,7 @@ function updateStatus(text, cls = '') {
 
 function updateStatusLocal(text, cls) {
   const el = document.getElementById('game-status');
+  if (!el) return;
   el.innerText = text;
   el.className = cls ? `active` : (text.includes('PAS') ? 'pass' : '');
 }
@@ -131,8 +132,8 @@ function executeEndRoundUI(winTeam, idx, msg) {
   updateScoreDisplay();
   if (winTeam === 0 || winTeam === 1) playVictory();
 
-  // Correção: Só pisca se houver um vencedor claro (não pisca no empate)
-  if (winTeam !== -1) {
+  // Correção Empate: Só brilha se winTeam for 0 ou 1
+  if (winTeam === 0 || winTeam === 1) {
     const teamA = [0, 2], teamB = [1, 3];
     (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
         const handEl = document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`);
@@ -141,8 +142,11 @@ function executeEndRoundUI(winTeam, idx, msg) {
   }
 
   updateStatusLocal(msg, 'active');
-  document.getElementById('result-area').style.display = 'block';
+  const resArea = document.getElementById('result-area');
+  if (resArea) resArea.style.display = 'block';
+  
   const nextBtn = document.getElementById('next-btn');
+  if (!nextBtn) return;
 
   if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
     const finalMsg = STATE.scores[0] >= STATE.targetScore ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
@@ -162,6 +166,7 @@ function executeEndRoundUI(winTeam, idx, msg) {
   }
 }
 
+// Listener de redimensionamento para ajustar a mesa
 window.addEventListener('resize', () => {
   if (STATE.positions && STATE.positions.length > 0) {
     updateSnakeScale();
