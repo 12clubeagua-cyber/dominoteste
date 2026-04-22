@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   LÓGICA E REGRAS DO JOGO (game.js)
+   FLUXO E REGRAS DE NEGÓCIO (game.js)
 ═══════════════════════════════════════════════════════ */
 
 function startRound() {
@@ -29,7 +29,6 @@ function startRound() {
 }
 
 function dealAndStart() {
-  // CORREÇÃO: Limpa os resíduos da animação de embaralhar antes de começar
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
 
@@ -54,7 +53,7 @@ function dealAndStart() {
 
   broadcastState(); 
   renderHands();
-  renderBoardFromState(); // Garante que o tabuleiro comece vazio visualmente
+  renderBoardFromState();
   processTurn();
 }
 
@@ -66,7 +65,7 @@ function processTurn() {
     if (netMode !== 'client') {
       STATE.isBlocked = true;
       updateStatus(`${NAMES[STATE.current]} SAINDO...`);
-      setTimeout(() => play(STATE.current, moves[0].idx, 1), 1200);
+      setTimeout(() => play(STATE.current, moves[0].idx, 1), CONFIG.GAME.START_DELAY);
     }
     return;
   }
@@ -75,12 +74,23 @@ function processTurn() {
     if (netMode !== 'client') {
       STATE.passCount++;
       STATE.playerPassed[STATE.current] = true;
+      
+      // Bots memorizam que este jogador não tem as pontas atuais
+      STATE.extremes.forEach(ex => {
+         if (ex !== null && !STATE.playerMemory[STATE.current].includes(ex)) {
+             STATE.playerMemory[STATE.current].push(ex);
+         }
+      });
+
       const passedIdx = STATE.current;
       if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx: passedIdx });
+      
       playPass(); 
       triggerPassVisual(passedIdx);
       updateStatus(`✕ ${NAMES[passedIdx]} PASSOU`, 'pass');
+      
       if (STATE.passCount >= 4) { setTimeout(() => endRound('blocked'), 2000); return; }
+      
       setTimeout(() => {
           STATE.current = (STATE.current + 1) % 4;
           broadcastState();
@@ -104,11 +114,11 @@ function processTurn() {
          updateStatus(`VEZ DE ${NAMES[STATE.current]}...`);
      } else {
          STATE.isBlocked = true; 
-         updateStatus(`${NAMES[STATE.current]} PENSANDO...`);
+         updateStatus(`${NAMES[STATE.current]}${CONFIG.BOT.THINKING_MSG}`);
          setTimeout(() => {
            const best = chooseBotMove(STATE.current, moves);
            play(STATE.current, best.idx, best.side === 'both' || best.side === 'any' ? 0 : best.side);
-         }, 900 + Math.random() * 400);
+         }, CONFIG.BOT.MIN_DELAY + Math.random() * 400);
      }
   }
 }
@@ -131,41 +141,17 @@ function play(pIdx, tIdx, side) {
   STATE.handSize[pIdx]--;
   renderHands(); 
 
-  const isD = tile[0] === tile[1];
-  let nP = {};
-  if (!STATE.positions.length) {
-    STATE.extremes = [tile[0], tile[1]];
-    nP = { x:0, y:0, v1:tile[0], v2:tile[1], isV:!isD };
-    STATE.ends[0] = isD ? {hscX:0, hscY:0, dir:270, lineCount:1, lastVDir:270, wasDouble:true} : {hscX:0, hscY:-9, dir:270, lineCount:1, lastVDir:270, wasDouble:false};
-    STATE.ends[1] = isD ? {hscX:0, hscY:0, dir:90, lineCount:1, lastVDir:90, wasDouble:true} : {hscX:0, hscY:9, dir:90, lineCount:1, lastVDir:90, wasDouble:false};
-  } else {
-    const c = STATE.extremes[side];
-    const vMatch = tile[0] === c ? tile[0] : tile[1];
-    const vOther = tile[0] === c ? tile[1] : tile[0];
-    STATE.extremes[side] = vOther;
-    const e = STATE.ends[side];
-    let isVertFlow = (e.dir === 90 || e.dir === 270);
-    if (e.lineCount >= (isVertFlow ? 6 : 2) && !isD && !e.wasDouble) {
-      if (isVertFlow) { e.lastVDir = e.dir; e.dir = side === 1 ? 0 : 180; }
-      else { e.dir = e.lastVDir === 90 ? 270 : 90; }
-      e.lineCount = 1;
-      isVertFlow = (e.dir === 90 || e.dir === 270);
-    }
-    e.lineCount++;
-    const dx = e.dir===0?1 : e.dir===180?-1 : 0;
-    const dy = e.dir===90?1 : e.dir===270?-1 : 0;
-    const chX = e.hscX + 18*dx, chY = e.hscY + 18*dy;
-    let cx, cy, newHscX, newHscY;
-    if (isD) { cx = chX; cy = chY; newHscX = chX; newHscY = chY; } 
-    else { cx = (chX + (chX + 18*dx))/2; cy = (chY + (chY + 18*dy))/2; newHscX = chX + 18*dx; newHscY = chY + 18*dy; }
-    nP = { x:cx, y:cy, v1:(e.dir===180||e.dir===270)?vOther:vMatch, v2:(e.dir===180||e.dir===270)?vMatch:vOther, isV:isVertFlow ? !isD : isD };
-    e.hscX = newHscX; e.hscY = newHscY; e.wasDouble = isD;
-  }
-
-  STATE.positions.push(nP);
+  // MATEMÁTICA: Chama a lógica externa para calcular posição
+  const placement = calculateTilePlacement(tile, side);
+  
+  STATE.extremes[side] = placement.vOther;
+  STATE.positions.push(placement.nP);
+  
   try { updateSnakeScale(); } catch(err) {}
-  if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP, tIdx });
-  animateTile(pIdx, nP, () => {
+  
+  if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP: placement.nP, tIdx });
+
+  animateTile(pIdx, placement.nP, () => {
     renderBoardFromState();
     broadcastState(); 
     if (STATE.hands[pIdx].length === 0) {
@@ -193,8 +179,6 @@ function endRound(type, idx) {
     msg = winTeam === 0 ? `EQUIPE A BATEU!` : `EQUIPE B BATEU!`;
   } else {
     if (ptA < ptB) winTeam = 0; else if (ptB < ptA) winTeam = 1;
-    
-    // CORREÇÃO: Mostra a soma das peças no empate ou no tranco
     if (winTeam === -1) {
         msg = `EMPATE NO TRANCO!\n(${ptA} vs ${ptB} pts)`;
     } else {
