@@ -53,7 +53,7 @@ function renderBoardFromState() {
     const el = document.createElement('div');
     el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
     
-    // Centralização: subtrai metade do tamanho para alinhar o centro da div com (nP.x, nP.y)
+    // Centralização perfeita baseada nos eixos X e Y
     const offsetX = nP.isV ? (W / 2) : (L / 2);
     const offsetY = nP.isV ? (L / 2) : (W / 2);
 
