@@ -2,6 +2,9 @@
    LÓGICA MATEMÁTICA DO JOGO (logic.js)
 ═══════════════════════════════════════════════════════ */
 
+/**
+ * Retorna quais movimentos são possíveis para uma determinada mão
+ */
 function getMoves(hand) {
   if (!STATE.positions.length) {
     if (STATE.roundWinner === null) {
@@ -20,6 +23,9 @@ function getMoves(hand) {
   }).filter(Boolean);
 }
 
+/**
+ * Calcula a posição exata (X, Y) do centro da nova peça
+ */
 function calculateTilePlacement(tile, side) {
   const isD = tile[0] === tile[1];
   const c = STATE.extremes[side];
@@ -29,7 +35,8 @@ function calculateTilePlacement(tile, side) {
   const e = STATE.ends[side];
   let isVertFlow = (e.dir === 90 || e.dir === 270);
   
-  const maxInLine = isVertFlow ? (CONFIG.GAME.MAX_VERT || 6) : (CONFIG.GAME.MAX_HORIZ || 2);
+  // Lógica de curva da serpente
+  const maxInLine = isVertFlow ? CONFIG.GAME.MAX_VERT : CONFIG.GAME.MAX_HORIZ;
   
   if (e.lineCount >= maxInLine && !isD && !e.wasDouble) {
     if (isVertFlow) { 
@@ -46,20 +53,27 @@ function calculateTilePlacement(tile, side) {
   const dx = e.dir === 0 ? 1 : e.dir === 180 ? -1 : 0;
   const dy = e.dir === 90 ? 1 : e.dir === 270 ? -1 : 0;
 
-  // --- MATEMÁTICA DE CENTROS (SEM SOBREPOSIÇÃO) ---
-  const W = CONFIG.GAME.TILE_W; // 20
-  const L = CONFIG.GAME.TILE_L; // 40
-  
+  // --- MATEMÁTICA DE CENTROS ---
+  // Step é a distância do centro da peça atual ao centro da próxima
   let step = 0;
   if (isD && e.wasDouble) {
-    step = W; // Distância entre dois carretões
+    step = CONFIG.GAME.TILE_W; // Dois carretões (18px)
   } else if (isD || e.wasDouble) {
-    step = (L / 2) + (W / 2); // Distância entre normal e carretão (30px)
+    step = (CONFIG.GAME.TILE_L / 2) + (CONFIG.GAME.TILE_W / 2); // Normal + Carretão (27px)
   } else {
-    step = L; // Distância entre duas normais (40px)
+    step = CONFIG.GAME.TILE_L; // Duas normais (36px)
   }
 
-  // Novo centro baseado no centro da peça anterior
+  // Se for a PRIMEIRA peça do jogo, o centro é 0,0
+  if (!STATE.positions.length) {
+    const nP = { x: 0, y: 0, v1: tile[0], v2: tile[1], isV: !isD };
+    e.hscX = 0;
+    e.hscY = 0;
+    e.wasDouble = isD;
+    return { nP, vOther };
+  }
+
+  // Calcula o novo centro baseado no centro da peça anterior
   const nx = e.hscX + (step * dx);
   const ny = e.hscY + (step * dy);
 
@@ -71,7 +85,7 @@ function calculateTilePlacement(tile, side) {
     isV: isVertFlow ? !isD : isD
   };
   
-  // Atualiza o "ponto de referência" para o centro desta nova peça
+  // Atualiza a referência de centro para a próxima peça
   e.hscX = nx;
   e.hscY = ny;
   e.wasDouble = isD;
