@@ -29,8 +29,9 @@ function calculateTilePlacement(tile, side) {
   const e = STATE.ends[side];
   let isVertFlow = (e.dir === 90 || e.dir === 270);
   
-  // Regra de quebra de linha (serpente)
-  const maxInLine = isVertFlow ? 6 : 2;
+  // CORREÇÃO: Usa os valores do CONFIG ou padrões seguros
+  const maxInLine = isVertFlow ? (CONFIG.GAME.MAX_VERT || 6) : (CONFIG.GAME.MAX_HORIZ || 2);
+  
   if (e.lineCount >= maxInLine && !isD && !e.wasDouble) {
     if (isVertFlow) { e.lastVDir = e.dir; e.dir = side === 1 ? 0 : 180; }
     else { e.dir = e.lastVDir === 90 ? 270 : 90; }
