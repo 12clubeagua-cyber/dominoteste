@@ -110,6 +110,7 @@ function renderHands(reveal = false) {
 function executeEndRoundUI(winTeam, idx, msg) {
   renderHands(true);
   updateScoreDisplay();
+  
   if (winTeam === 0 || winTeam === 1) playVictory();
 
   if (winTeam === 0 || winTeam === 1) {
@@ -120,27 +121,36 @@ function executeEndRoundUI(winTeam, idx, msg) {
     });
   }
 
-  updateStatusLocal(msg, 'active');
-  const resArea = document.getElementById('result-area');
-  if (resArea) resArea.style.setProperty('display', 'block', 'important');
+  // 1. COMENTADO: Isso impede a tela gigante de aparecer sobre as peças
+  // const resArea = document.getElementById('result-area');
+  // if (resArea) resArea.style.setProperty('display', 'block', 'important');
   
-  const nextBtn = document.getElementById('next-btn');
-  if (!nextBtn) return;
-
+  // 2. NOVA LÓGICA (Sem depender do botão next-btn do HTML)
   if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
+    // Alguém atingiu os pontos para vencer a partida inteira
     const finalMsg = STATE.scores[0] >= STATE.targetScore ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
-    updateStatusLocal(`${finalMsg}\nPlacar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
-    nextBtn.innerText = 'VOLTAR AO MENU';
-    nextBtn.onclick = () => window.location.reload();
+    updateStatusLocal(`${finalMsg} - Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
+    
+    // Como não há botão, reinicia o jogo automaticamente após 6 segundos
+    setTimeout(() => window.location.reload(), 6000);
+    
   } else {
-    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME;
-    nextBtn.innerText = `Próxima (${timeLeft}s)`;
+    // Apenas acabou a rodada. Prepara a próxima automaticamente.
     if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
+    
+    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME; // Pega o tempo do seu config.js
+    
+    // Atualiza a barra de status com a mensagem e o tempo restante
+    updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
+    
     STATE.autoNextInterval = setInterval(() => {
         timeLeft--;
-        if(timeLeft > 0) nextBtn.innerText = `Próxima (${timeLeft}s)`;
-        else { clearInterval(STATE.autoNextInterval); startRoundBtn(); }
+        if(timeLeft > 0) {
+             updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
+        } else { 
+            clearInterval(STATE.autoNextInterval); 
+            startRoundBtn(); // Começa a próxima rodada
+        }
     }, 1000);
-    nextBtn.onclick = () => { clearInterval(STATE.autoNextInterval); startRoundBtn(); };
   }
 }
