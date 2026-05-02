@@ -57,12 +57,26 @@ function updateStatusLocal(text, cls) {
 function renderBoardFromState() {
   const s = document.getElementById('snake');
   if (!s) return;
-  s.innerHTML = ''; 
+  
+  // Limpa apenas os tiles que não são 'temp-hidden' (tiles que estão em animação)
+  const children = Array.from(s.children);
+  children.forEach(child => {
+      if (!child.classList.contains('temp-hidden')) child.remove();
+  });
   
   const W = CONFIG.GAME.TILE_W;
   const L = CONFIG.GAME.TILE_L;
 
   STATE.positions.forEach((nP, i) => {
+    // Verifica se este tile já está em animação (temp-hidden)
+    const isAlreadyAnimating = Array.from(s.children).some(child => 
+        child.classList.contains('temp-hidden') && 
+        parseInt(child.dataset.x) === nP.x && 
+        parseInt(child.dataset.y) === nP.y
+    );
+    
+    if (isAlreadyAnimating) return;
+
     const el = document.createElement('div');
     el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
     

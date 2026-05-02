@@ -221,6 +221,12 @@ function endRound(reason, winnerIdx) {
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
 
+  // Validação: Verificar se o jogador é o atual e se tIdx existe
+  if (STATE.current !== pIdx || !STATE.hands[pIdx][tIdx]) {
+      console.warn("Jogada inválida ignorada:", pIdx, tIdx);
+      return;
+  }
+
   if (netMode === 'client') {
     const picker = document.getElementById('side-picker');
     if (picker) picker.style.display = 'none';
@@ -243,7 +249,6 @@ function play(pIdx, tIdx, side) {
   const placement = calculateTilePlacement(tile, side === 'any' ? 0 : side);
 
   if (!STATE.positions.length) {
-    // Dupla na abertura: as duas pontas têm o mesmo valor
     if (tile[0] === tile[1]) {
       STATE.extremes = [tile[0], tile[0]];
     } else {

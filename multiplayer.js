@@ -36,9 +36,18 @@ function initializeHost() {
       return;
     }
     conn.on('open', () => {
+      // Atribui o próximo índice disponível (1, 2, ou 3)
+      const taken = connectedClients.map(c => c.assignedIdx);
+      for (let i = 1; i <= 3; i++) {
+          if (!taken.includes(i)) {
+              conn.assignedIdx = i;
+              break;
+          }
+      }
+      
       connectedClients.push(conn);
       updateHostLobbyUI();
-      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.' });
+      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx });
     });
     conn.on('data', (data) => {
       // REMOVIDO !STATE.isBlocked: O host fica bloqueado esperando o cliente, 
@@ -113,6 +122,9 @@ function connectToHost() {
     });
     
     myConnToHost.on('data', (data) => {
+      if (data.type === 'welcome') {
+        myPlayerIdx = data.yourIdx;
+      }
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;
         const startScreen = document.getElementById('start-screen');
@@ -122,7 +134,17 @@ function connectToHost() {
       if (data.type === 'shuffle_start') runShuffleAnimation();
       
       if (data.type === 'sync_state') {
-        Object.assign(STATE, data.state);
+        // Correção: Verifica se a mão local é consistente com o servidor
+        const isConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
+        
+        if (!client_predicted && !isConsistent) {
+            Object.assign(STATE, data.state);
+        } else {
+            // Apenas atualiza o resto, mantendo a mão local se a previsão estiver em curso
+            const { hands, ...others } = data.state;
+            Object.assign(STATE, others);
+        }
+
         updateScoreDisplay();
         renderBoardFromState(); 
         renderHands(STATE.isOver); 
@@ -130,7 +152,7 @@ function connectToHost() {
 
         // Se for a vez deste cliente após o sync, habilita as jogadas
         if (STATE.current === myPlayerIdx && !STATE.isOver) {
-           STATE.isBlocked = false; // DESBLOQUEIA para o cliente poder clicar
+           STATE.isBlocked = false; 
            const moves = getMoves(STATE.hands[myPlayerIdx]);
            if (moves.length > 0) highlight(moves);
         }

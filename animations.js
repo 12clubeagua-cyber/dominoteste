@@ -45,6 +45,16 @@ function scatter(el) {
 }
 
 function animateTile(pIdx, target, cb) {
+  // Adiciona o tile à board como 'temp-hidden' para que o renderBoardFromState o ignore
+  const boardEl = document.getElementById('snake');
+  if (boardEl) {
+    const hiddenTile = document.createElement('div');
+    hiddenTile.className = 'temp-hidden';
+    hiddenTile.dataset.x = target.x;
+    hiddenTile.dataset.y = target.y;
+    boardEl.appendChild(hiddenTile);
+  }
+
   const proxy = document.createElement('div');
   proxy.className = `tile moving-proxy ${target.isV ? 'tile-v' : 'tile-h'}`;
   proxy.innerHTML = `<div class="half">${getPips(target.v1)}</div><div class="half">${getPips(target.v2)}</div>`;
@@ -59,10 +69,10 @@ function animateTile(pIdx, target, cb) {
   const startX = hRect.left + hRect.width/2;
   const startY = hRect.top  + hRect.height/2;
 
-  const boardEl = document.getElementById('board-container');
-  if (!boardEl) { proxy.remove(); if(cb) cb(); return; }
+  const boardContainer = document.getElementById('board-container');
+  if (!boardContainer) { proxy.remove(); if(cb) cb(); return; }
   
-  const bRect = boardEl.getBoundingClientRect();
+  const bRect = boardContainer.getBoundingClientRect();
   const bCX = bRect.left + bRect.width/2;
   const bCY = bRect.top  + bRect.height/2;
   const sc  = window.currentSnakeScale || 1;
@@ -81,6 +91,9 @@ function animateTile(pIdx, target, cb) {
     if (p < 1) requestAnimationFrame(step);
     else {
       playClack();
+      // Remove o tile 'temp-hidden' antes de executar o cb (que chama renderBoardFromState)
+      const h = boardEl.querySelector('.temp-hidden');
+      if (h) h.remove();
       setTimeout(() => { proxy.remove(); if(cb) cb(); }, 10);
     }
   }
