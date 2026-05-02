@@ -199,24 +199,8 @@ function connectToHost() {
       }
       
       if (data.type === 'animate_play') {
-         if (data.pIdx === myPlayerIdx) {
-            // Eu sou o autor — se já previ localmente, não remove de novo
-            if (!client_predicted) {
-              STATE.hands[data.pIdx].splice(data.tIdx, 1);
-              STATE.handSize[data.pIdx]--;
-            }
-         } else {
-            // BUG CORRIGIDO: remover pelo índice correto recebido do host,
-            // não sempre o último elemento (pop). Se o índice não existe
-            // (estado dessincronizado), remove o primeiro como fallback.
-            const removeIdx = data.tIdx < STATE.hands[data.pIdx].length ? data.tIdx : 0;
-            STATE.hands[data.pIdx].splice(removeIdx, 1);
-            STATE.handSize[data.pIdx]--;
-         }
-         
          client_predicted = false;
-         renderHands();
-
+         
          // Adiciona a posição localmente para garantir consistência visual imediata
          const alreadyExists = STATE.positions.some(p => p.x === data.nP.x && p.y === data.nP.y);
          if (!alreadyExists) {
