@@ -141,7 +141,7 @@ function renderHands(reveal = false) {
     tilesContainer.className = 'tiles-row';
     c.appendChild(tilesContainer);
 
-    STATE.hands[i].forEach((t, idx) => {
+    STATE.hands[i]?.forEach((t, idx) => {
       const el = document.createElement('div');
       const hidden = !reveal && i !== myPlayerIdx;
       el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${t[0] === t[1] ? 'tile-double' : ''}`;
@@ -150,7 +150,7 @@ function renderHands(reveal = false) {
       tilesContainer.appendChild(el);
     });
 
-    if (STATE.hands[i].length > 0 && !STATE.isOver) {
+    if (STATE.hands[i]?.length > 0 && !STATE.isOver) {
       const ind = document.createElement('div');
       ind.className = 'hand-indicators';
 
