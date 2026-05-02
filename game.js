@@ -10,6 +10,7 @@ function startRound() {
   STATE.playerMemory = [[], [], [], []];
   STATE.passCount = 0;
   STATE.playerPassed = [false, false, false, false];
+  STATE.lastPlayed = null;
 
   const resArea = document.getElementById('result-area');
   if (resArea) resArea.style.display = 'none';
@@ -195,16 +196,17 @@ function endRound(reason, winnerIdx) {
     } else if (sumB < sumA) {
       winTeam = 1; STATE.scores[1]++; STATE.roundWinner = 1;
     } else {
-      // BUG CORRIGIDO: empate não deve definir roundWinner, mantém null
+      // Empate: quem colocou a última peça inicia a próxima rodada
       winTeam = -1;
-      STATE.roundWinner = null;
+      STATE.roundWinner = STATE.lastPlayed !== null ? STATE.lastPlayed : null;
     }
 
     if (winTeam !== -1) {
       const isMyTeam = (myPlayerIdx % 2 === winTeam);
       msg = `JOGO TRANCADO! (${sumA}x${sumB})\n${isMyTeam ? 'Sua dupla vence' : 'Oponentes vencem'}`;
     } else {
-      msg = `JOGO TRANCADO! (${sumA}x${sumB})\nEmpate — sem pontos`;
+      const starterName = STATE.roundWinner !== null ? NameManager.get(STATE.roundWinner) : '?';
+      msg = `JOGO TRANCADO! (${sumA}x${sumB})\nEmpate — ${starterName} começa`;
     }
   }
 
@@ -243,12 +245,12 @@ function play(pIdx, tIdx, side) {
 
   STATE.playerPassed.fill(false);
   STATE.passCount = 0;
+  STATE.lastPlayed = pIdx; // Registra quem jogou a última peça
 
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
   renderHands();
 
-  // BUG CORRIGIDO: normaliza 'any' para 0 antes de calcular posicionamento
   const normalizedSide = (side === 'any') ? 0 : side;
   const placement = calculateTilePlacement(tile, normalizedSide);
 
