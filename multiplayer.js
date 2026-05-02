@@ -10,10 +10,18 @@ function generateShortID() {
 }
 
 function initializeHost() {
+  console.log("initializeHost called");
   if (myPeer) myPeer.destroy();
   const roomCode = generateShortID();
+  
+  // Exibe o código logo após gerar, antes da inicialização do Peer
   const codeEl = document.getElementById('host-code-display');
-  if (codeEl) codeEl.innerText = roomCode.split('-')[1];
+  if (codeEl) {
+      codeEl.innerText = roomCode.split('-')[1];
+      console.log("Code displayed:", codeEl.innerText);
+  } else {
+      console.error("host-code-display element NOT FOUND");
+  }
   
   // O Peer ID deve ser o código completo (DOMINO-XXXXX)
   myPeer = new Peer(roomCode);
@@ -56,13 +64,14 @@ function initializeHost() {
     conn.on('data', (data) => {
       if (data.type === 'set_name') {
           NAMES[conn.assignedIdx] = data.name;
-          broadcastState();
+          broadcastToClients({ type: 'sync_names', names: NAMES });
       }
       if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
       }
       if (data.type === 'next_round_request' && STATE.isOver) startRound();
     });
+
     
     conn.on('close', () => {
       const disconnectedIdx = conn.assignedIdx;
@@ -137,11 +146,12 @@ function connectToHost() {
     });
     
     myConnToHost.on('data', (data) => {
+      if (data.type === 'sync_names') {
+          data.names.forEach((name, i) => { NAMES[i] = name; });
+          renderHands(STATE.isOver); // Re-renderiza para atualizar os nomes na tela
+      }
       if (data.type === 'welcome') {
         myPlayerIdx = data.yourIdx;
-        if (data.names) {
-            data.names.forEach((name, i) => { NAMES[i] = name; });
-        }
       }
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;

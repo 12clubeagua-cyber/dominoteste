@@ -33,9 +33,9 @@ function changeName() {
   updateScoreDisplay();
 }
 
-function exitGame() {
-    if (confirm("Deseja mesmo sair da partida?")) {
-        window.location.reload(); // Recarrega para resetar estado de forma simples e segura
+function checkAndPromptName() {
+    if (!localStorage.getItem('userName')) {
+        changeName();
     }
 }
 
