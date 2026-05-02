@@ -41,14 +41,25 @@ function initializeHost() {
       conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.' });
     });
     conn.on('data', (data) => {
-      if (data.type === 'play_request' && !STATE.isBlocked && STATE.current === conn.assignedIdx) {
+      // REMOVIDO !STATE.isBlocked: O host fica bloqueado esperando o cliente, 
+      // mas deve aceitar a jogada assim mesmo.
+      if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
       }
       if (data.type === 'next_round_request' && STATE.isOver) startRound();
     });
     conn.on('close', () => {
+      const disconnectedIdx = conn.assignedIdx;
       connectedClients = connectedClients.filter(c => c.peer !== conn.peer);
       updateHostLobbyUI();
+      
+      // Se caiu durante o jogo, o Host assume como BOT imediatamente
+      if (netMode === 'host' && !STATE.isOver) {
+        broadcastState();
+        if (STATE.current === disconnectedIdx) {
+          processTurn();
+        }
+      }
     });
   });
 }
@@ -126,17 +137,31 @@ function connectToHost() {
       }
       
       if (data.type === 'animate_play') {
-         if (data.pIdx === myPlayerIdx && !client_predicted) {
-            STATE.hands[data.pIdx].splice(data.tIdx, 1);
-            STATE.handSize[data.pIdx]--;
-            renderHands();
-         } else if (data.pIdx !== myPlayerIdx) {
+         // Se eu sou o autor da jogada e já previ ela localmente, não preciso tirar da mão de novo
+         if (data.pIdx === myPlayerIdx) {
+            if (!client_predicted) {
+              STATE.hands[data.pIdx].splice(data.tIdx, 1);
+              STATE.handSize[data.pIdx]--;
+            }
+         } else {
+            // Outro jogador jogou. Remove uma peça genérica da mão dele (pop)
             STATE.hands[data.pIdx].pop(); 
             STATE.handSize[data.pIdx]--;
-            renderHands();
          }
+         
          client_predicted = false;
-         animateTile(data.pIdx, data.nP, () => {});
+         renderHands();
+
+         // Adiciona a posição localmente para garantir consistência visual imediata
+         // Verificamos se já não existe (para evitar duplicatas em latência zero)
+         const alreadyExists = STATE.positions.some(p => p.x === data.nP.x && p.y === data.nP.y);
+         if (!alreadyExists) {
+            STATE.positions.push(data.nP);
+         }
+         
+         animateTile(data.pIdx, data.nP, () => {
+            renderBoardFromState(); 
+         });
       }
       
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
@@ -149,6 +174,14 @@ function connectToHost() {
       if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
     });
     
-    myConnToHost.on('close', () => window.location.reload());
+    myConnToHost.on('close', () => {
+      alert("Conexão com o Host perdida.");
+      window.location.reload();
+    });
+
+    myPeer.on('error', (err) => {
+      console.error("PeerJS Error:", err);
+      if (statusEl) statusEl.innerText = "Erro na conexão.";
+    });
   });
 }
