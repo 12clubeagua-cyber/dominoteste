@@ -58,7 +58,7 @@ function initializeHost() {
       
       connectedClients.push(conn);
       updateHostLobbyUI();
-      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx, names: NAMES });
+      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx, names: PLAYER_NAMES });
     });
     
     conn.on('data', (data) => {
@@ -137,7 +137,7 @@ function connectToHost() {
     myConnToHost.on('open', () => {
         console.log("Connection opened!");
         if (statusEl) statusEl.innerText = "Aguardando início...";
-        myConnToHost.send({ type: 'set_name', name: NAMES[0] });
+        myConnToHost.send({ type: 'set_name', name: PLAYER_NAMES[0] });
     });
 
     myConnToHost.on('error', (err) => {
