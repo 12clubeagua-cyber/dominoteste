@@ -65,7 +65,7 @@ function calculateTilePlacement(tile, side) {
   /*
    * Fórmula Universal de Posicionamento:
    * Para evitar sobreposição (peça "em cima" da outra), calculamos o deslocamento
-   * em dois eixos: o eixo da peça anterior (oldD) e o eixo da nova peça (D).
+   * em dois eixos: o eixo da peça anterior (oldD) e o eixo da new peça (D).
    * Isso funciona tanto para curvas quanto para trechos retos.
    */
   const stepOut  = (e.wasDouble ? TW / 2 : TL / 2) + (TW / 2);
@@ -80,7 +80,6 @@ function calculateTilePlacement(tile, side) {
     v2: (e.dir === 180 || e.dir === 270) ? vMatch : vOther,
     isV: isVertFlow ? !isD : isD
   };
-
 
   e.hscX = nx;
   e.hscY = ny;

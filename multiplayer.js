@@ -48,13 +48,8 @@ function initializeHost() {
     }
     
     conn.on('open', () => {
-      const taken = connectedClients.map(c => c.assignedIdx);
-      for (let i = 1; i <= 3; i++) {
-          if (!taken.includes(i)) {
-              conn.assignedIdx = i;
-              break;
-          }
-      }
+      // Assentos: Host=0, 1º cliente=2 (parceiro), 2º cliente=1, 3º cliente=3
+      conn.assignedIdx = connectedClients.length === 0 ? 2 : connectedClients.length === 1 ? 1 : 3;
       
       connectedClients.push(conn);
       updateHostLobbyUI();
@@ -64,6 +59,8 @@ function initializeHost() {
     conn.on('data', (data) => {
       if (data.type === 'set_name') {
           NameManager.set(conn.assignedIdx, data.name);
+          // BUG CORRIGIDO: atualiza lobby UI com nome recebido
+          updateHostLobbyUI();
           broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
       }
       if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
@@ -93,11 +90,15 @@ function updateHostLobbyUI() {
   if (countEl) countEl.innerText = `Jogadores: ${connectedClients.length}/3`;
   const list = document.getElementById('host-player-list');
   if (!list) return;
-  list.innerHTML = '<div class="player-item">Você (Host)</div>';
-  connectedClients.forEach(() => {
+  list.innerHTML = `<div class="player-item">Você — ${NameManager.get(0)} (Host)</div>`;
+  connectedClients.forEach((conn) => {
     const el = document.createElement('div');
     el.className = 'player-item';
-    el.innerText = `Jogador conectado`;
+    // BUG CORRIGIDO: mostra o nome real do cliente se já foi recebido
+    const playerName = NameManager.get(conn.assignedIdx);
+    el.innerText = playerName && playerName !== `JOGADOR ${conn.assignedIdx + 1}` && !playerName.startsWith('ROBO')
+      ? playerName
+      : `Aguardando jogador...`;
     list.appendChild(el);
   });
 }
@@ -171,38 +172,46 @@ function connectToHost() {
         if (data.names) {
             NameManager.updateAll(data.names);
         }
-        // Correção: Verifica se a mão local é consistente com o servidor
-        const isConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
         
-        if (!client_predicted && !isConsistent) {
-            Object.assign(STATE, data.state);
-        } else {
-            // Apenas atualiza o resto, mantendo a mão local se a previsão estiver em curso
-            const { hands, ...others } = data.state;
-            Object.assign(STATE, others);
+        // Sincronização robusta do estado
+        // Se a mão do jogador local divergir, sobrescreve com o estado do servidor (Host)
+        const isHandsConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
+        
+        if (!isHandsConsistent) {
+             console.warn("Divergência detectada, sincronizando mão com Host.");
+             STATE.hands = data.state.hands;
+             STATE.handSize = data.state.handSize;
+             client_predicted = false;
         }
+
+        // Atualiza o estado geral
+        const { hands, handSize, ...others } = data.state;
+        Object.assign(STATE, others);
 
         updateScoreDisplay();
         renderBoardFromState(); 
         renderHands(STATE.isOver); 
         updateSnakeScale();
 
-        // Dispara o processTurn no cliente para garantir que o jogo comece/continue
+        // Dispara o processTurn no cliente após um curto delay para garantir renderização
         if (!STATE.isOver) {
-            processTurn();
+            setTimeout(processTurn, 100);
         }
       }
       
       if (data.type === 'animate_play') {
-         // Se eu sou o autor da jogada e já previ ela localmente, não preciso tirar da mão de novo
          if (data.pIdx === myPlayerIdx) {
+            // Eu sou o autor — se já previ localmente, não remove de novo
             if (!client_predicted) {
               STATE.hands[data.pIdx].splice(data.tIdx, 1);
               STATE.handSize[data.pIdx]--;
             }
          } else {
-            // Outro jogador jogou. Remove uma peça genérica da mão dele (pop)
-            STATE.hands[data.pIdx].pop(); 
+            // BUG CORRIGIDO: remover pelo índice correto recebido do host,
+            // não sempre o último elemento (pop). Se o índice não existe
+            // (estado dessincronizado), remove o primeiro como fallback.
+            const removeIdx = data.tIdx < STATE.hands[data.pIdx].length ? data.tIdx : 0;
+            STATE.hands[data.pIdx].splice(removeIdx, 1);
             STATE.handSize[data.pIdx]--;
          }
          
@@ -210,7 +219,6 @@ function connectToHost() {
          renderHands();
 
          // Adiciona a posição localmente para garantir consistência visual imediata
-         // Verificamos se já não existe (para evitar duplicatas em latência zero)
          const alreadyExists = STATE.positions.some(p => p.x === data.nP.x && p.y === data.nP.y);
          if (!alreadyExists) {
             STATE.positions.push(data.nP);
@@ -224,7 +232,7 @@ function connectToHost() {
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
       
       if (data.type === 'animate_pass') {
-          playPass(); // CORREÇÃO: Som toca agora no cliente também
+          playPass();
           triggerPassVisual(data.pIdx);
       }
       
