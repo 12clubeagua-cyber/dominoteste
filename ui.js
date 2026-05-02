@@ -13,11 +13,30 @@ function updateScoreDisplay() {
   document.getElementById('label-team-b').innerText = teamLabels[1];
 }
 
-function startRoundBtn() {
-    const btn = document.getElementById('next-btn');
-    if (btn) btn.disabled = true;
-    if (netMode === 'client') myConnToHost.send({ type: 'next_round_request' });
-    else startRound();
+function changeName() {
+  let name = "";
+  let valid = false;
+  
+  while (!valid) {
+    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", localStorage.getItem('userName') || "");
+    if (input === null) return; // Cancelou
+    
+    const cleaned = input.trim().toUpperCase();
+    if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-Z]+$/.test(cleaned)) {
+      name = cleaned;
+      valid = true;
+    }
+  }
+
+  localStorage.setItem('userName', name);
+  NAMES[0] = name;
+  updateScoreDisplay();
+}
+
+function checkAndPromptName() {
+    if (!localStorage.getItem('userName')) {
+        changeName();
+    }
 }
 
 function triggerPassVisual(pIdx) {

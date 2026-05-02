@@ -9,7 +9,7 @@
 
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body onload="checkAndPromptName()">
 
 <div id="start-screen">
   <div class="start-logo">Dominó</div>
@@ -27,6 +27,7 @@
       <button class="start-btn" onclick="selectMode('client')">
         Entrar na Sala <span>Conectar Wi-Fi</span>
       </button>
+      <button class="start-btn" onclick="changeName()">Alterar Nome</button>
     </div>
   </div>
 
