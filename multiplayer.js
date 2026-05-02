@@ -58,13 +58,13 @@ function initializeHost() {
       
       connectedClients.push(conn);
       updateHostLobbyUI();
-      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx, names: PLAYER_NAMES });
+      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx, names: NameManager.getAll() });
     });
     
     conn.on('data', (data) => {
       if (data.type === 'set_name') {
-          PLAYER_NAMES[conn.assignedIdx] = data.name;
-          broadcastToClients({ type: 'sync_names', names: PLAYER_NAMES });
+          NameManager.set(conn.assignedIdx, data.name);
+          broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
       }
       if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
@@ -117,7 +117,7 @@ function broadcastToClients(payload) {
 }
 
 function broadcastState() {
-  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: PLAYER_NAMES });
+  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: NameManager.getAll() });
 }
 
 function connectToHost() {
@@ -137,7 +137,7 @@ function connectToHost() {
     myConnToHost.on('open', () => {
         console.log("Connection opened!");
         if (statusEl) statusEl.innerText = "Aguardando início...";
-        myConnToHost.send({ type: 'set_name', name: PLAYER_NAMES[0] });
+        myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
     });
 
     myConnToHost.on('error', (err) => {
@@ -147,13 +147,13 @@ function connectToHost() {
     
     myConnToHost.on('data', (data) => {
       if (data.type === 'sync_names') {
-          PLAYER_NAMES = data.names;
-          renderHands(STATE.isOver); // Re-renderiza para atualizar os nomes na tela
+          NameManager.updateAll(data.names);
+          renderHands(STATE.isOver); 
       }
       if (data.type === 'welcome') {
         myPlayerIdx = data.yourIdx;
         if (data.names) {
-            PLAYER_NAMES = data.names;
+            NameManager.updateAll(data.names);
         }
       }
       if (data.type === 'game_start') {
@@ -166,7 +166,7 @@ function connectToHost() {
       
       if (data.type === 'sync_state') {
         if (data.names) {
-            PLAYER_NAMES = data.names;
+            NameManager.updateAll(data.names);
         }
         // Correção: Verifica se a mão local é consistente com o servidor
         const isConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);

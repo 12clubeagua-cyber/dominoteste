@@ -18,7 +18,7 @@ function changeName() {
   let valid = false;
   
   while (!valid) {
-    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", localStorage.getItem('userName') || "");
+    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", NameManager.get(0) || "");
     if (input === null) return; // Cancelou
     
     const cleaned = input.trim().toUpperCase();
@@ -28,8 +28,7 @@ function changeName() {
     }
   }
 
-  localStorage.setItem('userName', name);
-  NAMES[0] = name;
+  NameManager.set(0, name);
   updateScoreDisplay();
 }
 
@@ -59,10 +58,11 @@ function updateStatusLocal(text, cls) {
   
   // Substitui JOGADOR X pelo nome correspondente, se existir
   let displayMsg = text;
-  Object.keys(PLAYER_NAMES).forEach(idx => {
+  const allNames = NameManager.getAll();
+  Object.keys(allNames).forEach(idx => {
       const genericName = `JOGADOR ${parseInt(idx) + 1}`;
       if (displayMsg.includes(genericName)) {
-          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCÊ" : PLAYER_NAMES[idx]));
+          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCÊ" : allNames[idx]));
       }
   });
   
@@ -130,7 +130,7 @@ function renderHands(reveal = false) {
     // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
-    nameEl.innerText = PLAYER_NAMES[i] || `JOGADOR ${i+1}`;
+    nameEl.innerText = NameManager.get(i);
     c.appendChild(nameEl);
 
     const tilesContainer = document.createElement('div');
