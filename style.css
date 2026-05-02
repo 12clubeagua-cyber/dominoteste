@@ -142,7 +142,7 @@ body {
   user-select: all;
   text-shadow: 0 0 20px rgba(76,175,117,0.3);
 }
-.player-list { width: 100%; margin-bottom: 24px; display: flex; flex-direction: column; gap: 6px; }
+.player-list { width: 100%; display: flex; flex-direction: column; gap: 6px; }
 .player-item { 
   background: var(--surface2); 
   padding: 12px; 
@@ -152,6 +152,140 @@ body {
   text-align: center; 
   letter-spacing: 1px;
   border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ── MESA VISUAL DO LOBBY ── */
+.table-preview {
+  position: relative;
+  width: 220px;
+  height: 160px;
+  margin: 4px auto 8px;
+  flex-shrink: 0;
+}
+.table-felt {
+  position: absolute;
+  inset: 28px 28px 28px 28px;
+  background: radial-gradient(ellipse at center, var(--board-light), var(--board-dark));
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+}
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.seat-top    { top: 0;   left: 50%; transform: translateX(-50%); }
+.seat-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+.seat-left   { left: 0;  top: 50%; transform: translateY(-50%); }
+.seat-right  { right: 0; top: 50%; transform: translateY(-50%); }
+
+.seat-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  transition: all 0.3s;
+}
+.seat-badge {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.seat-badge.partner {
+  background: rgba(255, 204, 51, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(255,204,51,0.3);
+}
+.seat-badge.opponent {
+  background: rgba(192, 57, 43, 0.15);
+  color: #e07060;
+  border: 1px solid rgba(192,57,43,0.3);
+}
+
+/* Assento com parceiro selecionado — destaque verde */
+.seat.is-partner .seat-name {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgba(255,204,51,0.2);
+}
+
+/* ── LISTA DE JOGADORES NO LOBBY (com botão de escolha) ── */
+.lobby-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface2);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: border-color 0.3s;
+}
+.lobby-player-row.is-partner {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(255,204,51,0.15);
+}
+.lobby-player-row.is-host {
+  border-color: rgba(76,175,117,0.4);
+}
+.lobby-player-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+.lobby-player-tag {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.tag-host    { background: rgba(76,175,117,0.2); color: #4caf75; border: 1px solid rgba(76,175,117,0.3); }
+.tag-partner { background: rgba(255,204,51,0.2); color: var(--gold); border: 1px solid rgba(255,204,51,0.3); }
+.tag-waiting { background: rgba(138,148,136,0.2); color: var(--text-dim); border: 1px solid rgba(138,148,136,0.2); }
+
+.btn-pick-partner {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-pick-partner:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,204,51,0.08);
+}
+.btn-pick-partner.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,204,51,0.12);
 }
 
 /* ── HEADER ── */
@@ -229,7 +363,7 @@ body {
 .hand { 
     position: relative; 
     display: flex; 
-    flex-direction: column; /* Organiza nome e tiles verticalmente */
+    flex-direction: column;
     gap: 4px; 
     justify-content: center; 
     align-items: center;
@@ -241,7 +375,7 @@ body {
     transition: background .3s, box-shadow .3s;
 }
 .player-name-label {
-    order: -1; /* Força o nome a aparecer antes dos tiles */
+    order: -1;
     font-size: 10px;
     color: var(--gold);
     text-transform: uppercase;

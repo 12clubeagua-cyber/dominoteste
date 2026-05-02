@@ -59,9 +59,42 @@
     <div class="start-options">
       <div class="start-label">Sala Criada! Passe o código:</div>
       <div class="code-display" id="host-code-display">GERANDO...</div>
-      <div class="player-list" id="host-player-list">
-        <div class="player-item">Você (Host)</div>
+
+      <!-- Mesa visual das duplas -->
+      <div class="table-preview" id="table-preview">
+        <div class="table-felt"></div>
+
+        <!-- Topo (assento 2 — parceiro do host) -->
+        <div class="seat seat-top" id="seat-2">
+          <div class="seat-name" id="seat-2-name">Aguardando...</div>
+          <div class="seat-badge partner">Sua Dupla</div>
+        </div>
+
+        <!-- Esquerda (assento 1) -->
+        <div class="seat seat-left" id="seat-1">
+          <div class="seat-name" id="seat-1-name">Aguardando...</div>
+          <div class="seat-badge opponent">Oponente</div>
+        </div>
+
+        <!-- Direita (assento 3) -->
+        <div class="seat seat-right" id="seat-3">
+          <div class="seat-name" id="seat-3-name">Aguardando...</div>
+          <div class="seat-badge opponent">Oponente</div>
+        </div>
+
+        <!-- Baixo (assento 0 — host, fixo) -->
+        <div class="seat seat-bottom" id="seat-0">
+          <div class="seat-name" id="seat-0-name">Você (Host)</div>
+          <div class="seat-badge partner">Sua Dupla</div>
+        </div>
       </div>
+
+      <!-- Lista de conectados com botão de escolha de parceiro -->
+      <div class="start-label" style="margin-top:12px;" id="partner-label" style="display:none;">
+        Escolha seu parceiro:
+      </div>
+      <div class="player-list" id="host-player-list"></div>
+
       <div class="start-sub" id="host-status">Aguardando conexões... (0/3)</div>
       <button class="start-btn" onclick="startMatch()" id="btn-start-multi" style="justify-content:center; background:var(--gold); color:var(--bg); border:none; display:none;">
         INICIAR JOGO
