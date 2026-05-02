@@ -195,7 +195,9 @@ function endRound(reason, winnerIdx) {
     } else if (sumB < sumA) {
       winTeam = 1; STATE.scores[1]++; STATE.roundWinner = 1;
     } else {
+      // BUG CORRIGIDO: empate não deve definir roundWinner, mantém null
       winTeam = -1;
+      STATE.roundWinner = null;
     }
 
     if (winTeam !== -1) {
@@ -246,7 +248,9 @@ function play(pIdx, tIdx, side) {
   STATE.handSize[pIdx]--;
   renderHands();
 
-  const placement = calculateTilePlacement(tile, side === 'any' ? 0 : side);
+  // BUG CORRIGIDO: normaliza 'any' para 0 antes de calcular posicionamento
+  const normalizedSide = (side === 'any') ? 0 : side;
+  const placement = calculateTilePlacement(tile, normalizedSide);
 
   if (!STATE.positions.length) {
     if (tile[0] === tile[1]) {
@@ -255,7 +259,7 @@ function play(pIdx, tIdx, side) {
       STATE.extremes = [tile[0], tile[1]];
     }
   } else {
-    STATE.extremes[side] = placement.vOther;
+    STATE.extremes[normalizedSide] = placement.vOther;
   }
 
   STATE.positions.push(placement.nP);
