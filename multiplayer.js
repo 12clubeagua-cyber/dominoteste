@@ -117,7 +117,7 @@ function broadcastToClients(payload) {
 }
 
 function broadcastState() {
-  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE });
+  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: NAMES });
 }
 
 function connectToHost() {
@@ -162,6 +162,9 @@ function connectToHost() {
       if (data.type === 'shuffle_start') runShuffleAnimation();
       
       if (data.type === 'sync_state') {
+        if (data.names) {
+            data.names.forEach((name, i) => { NAMES[i] = name; });
+        }
         // Correção: Verifica se a mão local é consistente com o servidor
         const isConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
         
