@@ -19,7 +19,7 @@ function changeName() {
   let valid = false;
 
   while (!valid) {
-    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", NameManager.get(0) || "");
+    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", "seunome");
     if (input === null) return; // Cancelou — sai imediatamente
 
     const cleaned = input.trim().toUpperCase();
