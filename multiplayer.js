@@ -116,6 +116,12 @@ function connectToHost() {
         renderBoardFromState(); 
         renderHands(STATE.isOver); 
         updateSnakeScale();
+
+        // Se for a vez deste cliente após o sync, habilita as jogadas
+        if (STATE.current === myPlayerIdx && !STATE.isOver) {
+           const moves = getMoves(STATE.hands[myPlayerIdx]);
+           if (moves.length > 0) highlight(moves);
+        }
       }
       
       if (data.type === 'animate_play') {

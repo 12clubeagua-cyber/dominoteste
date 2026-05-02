@@ -74,8 +74,21 @@ function processTurn() {
   const moves = getMoves(STATE.hands[cur]);
 
   // É BOT (ou cliente remoto)?
-  if (cur !== myPlayerIdx || netMode === 'client') {
+  // No Host, só joga como BOT se o índice não for o dele E não for de um cliente conectado.
+  let isHuman = false;
+  if (netMode === 'offline') {
+    isHuman = (cur === myPlayerIdx);
+  } else if (netMode === 'host') {
+    isHuman = (cur === myPlayerIdx || connectedClients.some(c => c.assignedIdx === cur));
+  } else {
+    // No cliente, apenas o próprio cliente é "humano" localmente
+    isHuman = (cur === myPlayerIdx);
+  }
+
+  if (!isHuman) {
     STATE.isBlocked = true;
+    const playerName = NAMES[cur];
+    updateStatus(`${playerName} JOGANDO...`);
 
     if (moves.length === 0) {
       const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
@@ -94,6 +107,13 @@ function processTurn() {
   }
 
   // É O JOGADOR HUMANO LOCAL
+  if (netMode === 'host' && cur !== myPlayerIdx) {
+    // É um cliente humano. Host apenas aguarda o sinal.
+    STATE.isBlocked = true;
+    updateStatus(`${NAMES[cur]} JOGANDO...`);
+    return;
+  }
+
   STATE.isBlocked = false;
   if (moves.length === 0) {
     STATE.isBlocked = true;
@@ -101,6 +121,9 @@ function processTurn() {
   } else {
     updateStatus('SUA VEZ', 'active');
     renderHands();
+    if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) {
+      highlight(moves);
+    }
   }
 }
 
@@ -175,9 +198,9 @@ function endRound(reason, winnerIdx) {
 
     if (winTeam !== -1) {
       const isMyTeam = (myPlayerIdx % 2 === winTeam);
-      msg = `JOGO TRANCADO!\n${isMyTeam ? 'Sua dupla vence' : 'Oponentes vencem'}`;
+      msg = `JOGO TRANCADO! (${sumA}x${sumB})\n${isMyTeam ? 'Sua dupla vence' : 'Oponentes vencem'}`;
     } else {
-      msg = 'JOGO TRANCADO!\nEmpate — sem pontos';
+      msg = `JOGO TRANCADO! (${sumA}x${sumB})\nEmpate — sem pontos`;
     }
   }
 

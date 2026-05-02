@@ -37,8 +37,21 @@ function updateStatus(text, cls = '') {
 function updateStatusLocal(text, cls) {
   const el = document.getElementById('game-status');
   if (!el) return;
-  el.innerText = text;
-  el.className = cls ? `active` : (text.includes('PAS') ? 'pass' : '');
+  
+  let displayMsg = text;
+  if (myPlayerIdx !== undefined && NAMES[myPlayerIdx] && text.includes(NAMES[myPlayerIdx])) {
+    displayMsg = text.replace(NAMES[myPlayerIdx], "VOCÊ");
+  }
+  
+  el.innerText = displayMsg;
+  
+  if (cls === 'active') {
+    el.className = 'active';
+  } else if (displayMsg.includes('PASSA') || displayMsg.includes('PASSOU')) {
+    el.className = 'pass';
+  } else {
+    el.className = '';
+  }
 }
 
 function renderBoardFromState() {
@@ -89,15 +102,20 @@ function renderHands(reveal = false) {
     if (STATE.hands[i].length > 0 && !STATE.isOver) {
       const ind = document.createElement('div');
       ind.className = 'hand-indicators';
+
+      // Badge (Contador) primeiro
+      const badge = document.createElement('div');
+      badge.className = 'tile-count';
+      badge.innerText = STATE.hands[i].length;
+      ind.appendChild(badge);
+
+      // X (Passou) depois, "do outro lado"
       if (isBlinking) {
         const x = document.createElement('div');
         x.className = 'pass-x'; x.innerText = '✕';
         ind.appendChild(x);
       }
-      const badge = document.createElement('div');
-      badge.className = 'tile-count';
-      badge.innerText = STATE.hands[i].length;
-      ind.appendChild(badge);
+
       c.appendChild(ind);
     }
   }

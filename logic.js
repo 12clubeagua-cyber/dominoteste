@@ -39,8 +39,11 @@ function calculateTilePlacement(tile, side) {
   let isVertFlow = (e.dir === 90 || e.dir === 270);
   const maxInLine = isVertFlow ? CONFIG.GAME.MAX_VERT : CONFIG.GAME.MAX_HORIZ;
 
+  // Direção anterior para cálculo de offset na curva
+  const oldDX = e.dir === 0 ? 1 : e.dir === 180 ? -1 : 0;
+  const oldDY = e.dir === 90 ? 1 : e.dir === 270 ? -1 : 0;
+
   // Detecta mudança de direção (curva)
-  let dirChanged = false;
   if (e.lineCount >= maxInLine && !isD && !e.wasDouble) {
     if (isVertFlow) {
       e.lastVDir = e.dir;
@@ -48,11 +51,7 @@ function calculateTilePlacement(tile, side) {
     } else {
       e.dir = (e.lastVDir === 90 ? 270 : 90);
     }
-    // Reset para 0: o incremento abaixo sobe para 1,
-    // garantindo que MAX_HORIZ=2 exija realmente 2 peças horizontais
-    // antes de voltar ao vertical.
     e.lineCount = 0;
-    dirChanged = true;
     isVertFlow = (e.dir === 90 || e.dir === 270);
   }
   e.lineCount++;
@@ -64,31 +63,16 @@ function calculateTilePlacement(tile, side) {
   const TL = CONFIG.GAME.TILE_L; // 36 — lado longo
 
   /*
-   * step = halfPrev + halfNew
-   *
-   * Na CURVA (dirChanged=true):
-   *   A peça anterior estava perpendicular ao novo movimento,
-   *   portanto contribui apenas com TW/2 (seu lado curto).
-   *   Isso vale tanto na virada vert→horiz quanto horiz→vert.
-   *
-   * No RETO (dirChanged=false):
-   *   Ambas as peças estão paralelas ao movimento.
-   *   Dupla é quadrada (TW×TW), normal é comprida (TL).
+   * Fórmula Universal de Posicionamento:
+   * Para evitar sobreposição (peça "em cima" da outra), calculamos o deslocamento
+   * em dois eixos: o eixo da peça anterior (oldD) e o eixo da nova peça (D).
+   * Isso funciona tanto para curvas quanto para trechos retos.
    */
-  let halfPrev, halfNew;
+  const stepOut  = (e.wasDouble ? TW / 2 : TL / 2) + (TW / 2);
+  const stepSide = (isD ? TW / 2 : TL / 2) - (TW / 2);
 
-  if (dirChanged) {
-    halfPrev = TW / 2;                  // peça anterior perpendicular
-    halfNew  = isD ? TW / 2 : TL / 2;  // nova peça na nova direção
-  } else {
-    halfPrev = e.wasDouble ? TW / 2 : TL / 2;
-    halfNew  = isD         ? TW / 2 : TL / 2;
-  }
-
-  const step = halfPrev + halfNew;
-
-  const nx = e.hscX + (step * dx);
-  const ny = e.hscY + (step * dy);
+  const nx = e.hscX + (stepOut * oldDX) + (stepSide * dx);
+  const ny = e.hscY + (stepOut * oldDY) + (stepSide * dy);
 
   const nP = {
     x: nx, y: ny,
@@ -96,6 +80,7 @@ function calculateTilePlacement(tile, side) {
     v2: (e.dir === 180 || e.dir === 270) ? vMatch : vOther,
     isV: isVertFlow ? !isD : isD
   };
+
 
   e.hscX = nx;
   e.hscY = ny;
