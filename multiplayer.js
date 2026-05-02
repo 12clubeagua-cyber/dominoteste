@@ -122,15 +122,19 @@ function broadcastState() {
     // Cria uma cópia profunda para não modificar o estado do Host
     const anonymizedState = JSON.parse(JSON.stringify(STATE));
     
-    // Oculta as mãos de todos, exceto a do cliente, para segurança e evitar corrupção de estado
+    // Oculta o CONTEÚDO das mãos de todos, exceto a do cliente.
+    // Mas preserva o tamanho da mão (handSize) e a estrutura para que o cliente possa renderizar.
     connectedClients.forEach(conn => {
         const clientIdx = conn.assignedIdx;
-        const hiddenHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
         
-        // Envia o estado com mãos ocultas
+        // Substitui apenas o conteúdo das mãos por arrays vazios para outros jogadores,
+        // mas o STATE já contém o handSize que o cliente usará.
+        const filteredHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
+        
+        // Envia o estado
         conn.send({ 
             type: 'sync_state', 
-            state: { ...anonymizedState, hands: hiddenHands }, 
+            state: { ...anonymizedState, hands: filteredHands }, 
             names: NameManager.getAll() 
         });
     });
