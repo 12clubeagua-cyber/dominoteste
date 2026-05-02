@@ -130,7 +130,11 @@ function renderHands(reveal = false) {
     // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
-    nameEl.innerText = NameManager.get(i);
+    // i é o índice da mão no DOM (0-3), mapeado pela função de renderização. 
+    // Precisamos identificar qual é o assento absoluto (ID 0-3) que esta mão representa.
+    // Como viewPos = (i - myPlayerIdx + 4) % 4, então i = (viewPos + myPlayerIdx) % 4.
+    const absoluteSeat = (viewPos + myPlayerIdx) % 4;
+    nameEl.innerText = NameManager.get(absoluteSeat);
     c.appendChild(nameEl);
 
     const tilesContainer = document.createElement('div');

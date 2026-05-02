@@ -158,6 +158,9 @@ function connectToHost() {
       }
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;
+        if (data.names) {
+            NameManager.updateAll(data.names);
+        }
         const startScreen = document.getElementById('start-screen');
         if (startScreen) startScreen.style.display = 'none';
         updateScoreDisplay(); 
