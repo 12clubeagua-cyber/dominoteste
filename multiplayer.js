@@ -173,19 +173,25 @@ function connectToHost() {
             NameManager.updateAll(data.names);
         }
         
-        // Sincronização robusta: Compara as mãos antes de aplicar alterações para evitar flicker
-        const isHandsConsistent = JSON.stringify(STATE.hands) === JSON.stringify(data.state.hands);
+        // Sincronização robusta usando deep copy (JSON parsing) para garantir integridade
+        const hostState = data.state;
         
-        if (!isHandsConsistent) {
-             console.log("Sincronizando estado do jogo com Host.");
-             STATE.hands = [...data.state.hands];
-             STATE.handSize = [...data.state.handSize];
-             client_predicted = false;
-        }
+        // Atualiza profundamente a mão e tamanho
+        STATE.hands = JSON.parse(JSON.stringify(hostState.hands));
+        STATE.handSize = [...hostState.handSize];
+        
+        // Atualiza outras propriedades, garantindo que objetos complexos como `ends` ou `extremes` também sejam limpos
+        STATE.extremes = [...hostState.extremes];
+        STATE.current = hostState.current;
+        STATE.scores = [...hostState.scores];
+        STATE.isOver = hostState.isOver;
+        STATE.isBlocked = hostState.isBlocked;
+        STATE.positions = JSON.parse(JSON.stringify(hostState.positions));
+        STATE.playerPassed = [...hostState.playerPassed];
+        STATE.passCount = hostState.passCount;
+        STATE.ends = JSON.parse(JSON.stringify(hostState.ends));
 
-        // Atualiza o restante do estado, excluindo mãos que já tratamos acima
-        const { hands, handSize, ...others } = data.state;
-        Object.assign(STATE, others);
+        client_predicted = false;
 
         updateScoreDisplay();
         renderBoardFromState(); 
