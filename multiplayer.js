@@ -166,7 +166,7 @@ function connectToHost() {
       
       if (data.type === 'sync_state') {
         if (data.names) {
-            data.names.forEach((name, i) => { NAMES[i] = name; });
+            PLAYER_NAMES = data.names;
         }
         // Correção: Verifica se a mão local é consistente com o servidor
         const isConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
