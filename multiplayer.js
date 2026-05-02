@@ -63,8 +63,8 @@ function initializeHost() {
     
     conn.on('data', (data) => {
       if (data.type === 'set_name') {
-          NAMES[conn.assignedIdx] = data.name;
-          broadcastToClients({ type: 'sync_names', names: NAMES });
+          PLAYER_NAMES[conn.assignedIdx] = data.name;
+          broadcastToClients({ type: 'sync_names', names: PLAYER_NAMES });
       }
       if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
@@ -147,11 +147,14 @@ function connectToHost() {
     
     myConnToHost.on('data', (data) => {
       if (data.type === 'sync_names') {
-          data.names.forEach((name, i) => { NAMES[i] = name; });
+          PLAYER_NAMES = data.names;
           renderHands(STATE.isOver); // Re-renderiza para atualizar os nomes na tela
       }
       if (data.type === 'welcome') {
         myPlayerIdx = data.yourIdx;
+        if (data.names) {
+            PLAYER_NAMES = data.names;
+        }
       }
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;

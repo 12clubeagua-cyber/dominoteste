@@ -59,10 +59,10 @@ function updateStatusLocal(text, cls) {
   
   // Substitui JOGADOR X pelo nome correspondente, se existir
   let displayMsg = text;
-  NAMES.forEach((name, idx) => {
-      const genericName = `JOGADOR ${idx + 1}`;
+  Object.keys(PLAYER_NAMES).forEach(idx => {
+      const genericName = `JOGADOR ${parseInt(idx) + 1}`;
       if (displayMsg.includes(genericName)) {
-          displayMsg = displayMsg.replace(genericName, (idx === myPlayerIdx ? "VOCÊ" : name));
+          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCÊ" : PLAYER_NAMES[idx]));
       }
   });
   
@@ -130,9 +130,7 @@ function renderHands(reveal = false) {
     // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
-    // O índice i representa a posição absoluta na mesa (0, 1, 2, 3), 
-    // e o array NAMES agora está sincronizado para ser consistente em todos os clientes.
-    nameEl.innerText = NAMES[i];
+    nameEl.innerText = PLAYER_NAMES[i] || `JOGADOR ${i+1}`;
     c.appendChild(nameEl);
 
     const tilesContainer = document.createElement('div');
