@@ -101,7 +101,7 @@ function processTurn() {
       setTimeout(() => {
         const move = chooseBotMove(cur, moves);
         if (!move) {
-            console.warn("Bot falhou ao encontrar jogada, forçando passe.");
+            console.warn("Bot falhou ao encontrar jogada. Moves available:", moves, "State hand:", STATE.hands[cur], "Extremes:", STATE.extremes);
             doPass(cur);
             return;
         }

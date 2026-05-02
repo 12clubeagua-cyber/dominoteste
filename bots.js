@@ -5,7 +5,8 @@
 
 function chooseBotMove(botIdx, moves) {
     if (STATE.difficulty === 'hard') {
-        let bestMove = null; let bestScore = -Infinity;
+        let bestMove = moves[0]; 
+        let bestScore = -Infinity;
         moves.forEach(move => {
             const tile = STATE.hands[botIdx][move.idx];
             if (!tile) return;
