@@ -87,7 +87,7 @@ function processTurn() {
 
   if (!isHuman) {
     STATE.isBlocked = true;
-    const playerName = NAMES[cur];
+    const playerName = PLAYER_NAMES[cur] || `JOGADOR ${cur + 1}`;
     updateStatus(`${playerName} JOGANDO...`);
 
     if (moves.length === 0) {
@@ -109,7 +109,7 @@ function processTurn() {
   // É O JOGADOR HUMANO LOCAL
   if (moves.length === 0) {
     STATE.isBlocked = true;
-    updateStatus(`${NAMES[cur]} NÃO TEM PEÇA`, 'pass');
+    updateStatus(`${PLAYER_NAMES[cur] || 'JOGADOR ' + (cur+1)} NÃO TEM PEÇA`, 'pass');
     setTimeout(() => doPass(cur), 1500);
     return;
   }
@@ -117,7 +117,7 @@ function processTurn() {
   if (netMode === 'host' && cur !== myPlayerIdx) {
     // É um cliente humano com jogadas. Host apenas aguarda o sinal.
     STATE.isBlocked = true;
-    updateStatus(`${NAMES[cur]} JOGANDO...`);
+    updateStatus(`${PLAYER_NAMES[cur] || 'JOGADOR ' + (cur+1)} JOGANDO...`);
     return;
   }
 
@@ -173,7 +173,7 @@ function endRound(reason, winnerIdx) {
 
   if (reason === 'win') {
     winTeam = (winnerIdx % 2 === 0) ? 0 : 1;
-    const winnerName = NAMES[winnerIdx];
+    const winnerName = PLAYER_NAMES[winnerIdx] || `JOGADOR ${winnerIdx + 1}`;
     STATE.scores[winTeam]++;
     STATE.roundWinner = winnerIdx;
 

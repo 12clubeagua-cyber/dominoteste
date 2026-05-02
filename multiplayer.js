@@ -184,11 +184,9 @@ function connectToHost() {
         renderHands(STATE.isOver); 
         updateSnakeScale();
 
-        // Se for a vez deste cliente após o sync, habilita as jogadas
-        if (STATE.current === myPlayerIdx && !STATE.isOver) {
-           STATE.isBlocked = false; 
-           const moves = getMoves(STATE.hands[myPlayerIdx]);
-           if (moves.length > 0) highlight(moves);
+        // Dispara o processTurn no cliente para garantir que o jogo comece/continue
+        if (!STATE.isOver) {
+            processTurn();
         }
       }
       

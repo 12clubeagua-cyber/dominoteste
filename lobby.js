@@ -44,15 +44,17 @@ function startMatch() {
   STATE.roundWinner = null;
   STATE.isOver = false;
   document.getElementById('start-screen').style.display = 'none';
-  
+
   if (netMode === 'host') {
     const seatOrder = [2, 1, 3];
     connectedClients.forEach((conn, index) => {
        conn.assignedIdx = seatOrder[index];
        conn.send({ type: 'game_start', yourIdx: conn.assignedIdx });
     });
+    // O Host também precisa chamar startRound()
+    startRound();
+  } else if (netMode === 'offline') {
+    startRound();
   }
-  
-  updateScoreDisplay();
-  if (netMode !== 'client') startRound();
 }
+

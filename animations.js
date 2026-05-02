@@ -4,11 +4,14 @@
 
 function runShuffleAnimation(cb) {
   const snake = document.getElementById('snake');
-  if (!snake) return;
+  if (!snake) {
+      if (cb) cb();
+      return;
+  }
 
-  // CORREÇÃO: Limpeza imediata antes de iniciar
+  // Limpa animações anteriores caso existam
   snake.innerHTML = '';
-  
+
   window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
   window.currentSnakeScale = window.minScaleReached;
   window.currentSnakeCx = 0;
@@ -32,11 +35,12 @@ function runShuffleAnimation(cb) {
     playClack(400 + Math.random() * 200, 0.04);
     if (++shuffles >= 8) {
       clearInterval(si);
+      // Remove elementos de animação
+      fakes.forEach(el => el.remove());
       setTimeout(() => { if (cb) cb(); }, 300);
     }
   }, 150);
 }
-
 function scatter(el) {
   const rx = (Math.random() - .5) * 120;
   const ry = (Math.random() - .5) * 120;
