@@ -100,6 +100,11 @@ function processTurn() {
       updateStatus(CONFIG.BOT.THINKING_MSG);
       setTimeout(() => {
         const move = chooseBotMove(cur, moves);
+        if (!move) {
+            console.warn("Bot falhou ao encontrar jogada, forçando passe.");
+            doPass(cur);
+            return;
+        }
         const side = move.side === 'both' ? 0 : (move.side === 'any' ? 0 : move.side);
         play(cur, move.idx, side);
       }, delay);
