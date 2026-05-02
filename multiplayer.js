@@ -118,7 +118,23 @@ function broadcastToClients(payload) {
 }
 
 function broadcastState() {
-  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: NameManager.getAll() });
+  if (netMode === 'host') {
+    // Cria uma cópia profunda para não modificar o estado do Host
+    const anonymizedState = JSON.parse(JSON.stringify(STATE));
+    
+    // Oculta as mãos de todos, exceto a do cliente, para segurança e evitar corrupção de estado
+    connectedClients.forEach(conn => {
+        const clientIdx = conn.assignedIdx;
+        const hiddenHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
+        
+        // Envia o estado com mãos ocultas
+        conn.send({ 
+            type: 'sync_state', 
+            state: { ...anonymizedState, hands: hiddenHands }, 
+            names: NameManager.getAll() 
+        });
+    });
+  }
 }
 
 function connectToHost() {
