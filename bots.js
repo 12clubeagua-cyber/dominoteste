@@ -8,6 +8,7 @@ function chooseBotMove(botIdx, moves) {
         let bestMove = null; let bestScore = -Infinity;
         moves.forEach(move => {
             const tile = STATE.hands[botIdx][move.idx];
+            if (!tile) return;
             const side = move.side === 'both' ? 0 : (move.side === 'any' ? 1 : move.side);
             let score = calculateWeight(botIdx, tile, side);
             const nextOpponent = (botIdx + 1) % 4;
@@ -20,13 +21,15 @@ function chooseBotMove(botIdx, moves) {
     }
     const scored = moves.map(m => {
         const side = m.side === 'both' ? 0 : (m.side === 'any' ? 1 : m.side);
-        return { ...m, weight: calculateWeight(botIdx, STATE.hands[botIdx][m.idx], side) };
+        const tile = STATE.hands[botIdx][m.idx];
+        return { ...m, weight: tile ? calculateWeight(botIdx, tile, side) : -1 };
     });
     scored.sort((a, b) => b.weight - a.weight);
     return scored[0];
 }
 
 function calculateWeight(botIdx, tile, side) {
+    if (!tile || !STATE.extremes[side]) return 0;
     const partner = (botIdx + 2) % 4, opp1 = (botIdx + 1) % 4, opp2 = (botIdx + 3) % 4;
     const nextExtreme = (tile[0] === STATE.extremes[side]) ? tile[1] : tile[0];
     let w = (tile[0] + tile[1]);
