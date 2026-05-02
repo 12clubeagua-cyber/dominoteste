@@ -119,6 +119,7 @@ function connectToHost() {
 
         // Se for a vez deste cliente após o sync, habilita as jogadas
         if (STATE.current === myPlayerIdx && !STATE.isOver) {
+           STATE.isBlocked = false; // DESBLOQUEIA para o cliente poder clicar
            const moves = getMoves(STATE.hands[myPlayerIdx]);
            if (moves.length > 0) highlight(moves);
         }
