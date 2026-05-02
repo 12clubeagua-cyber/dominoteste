@@ -48,13 +48,9 @@ function initializeHost() {
     }
     
     conn.on('open', () => {
-      const taken = connectedClients.map(c => c.assignedIdx);
-      for (let i = 1; i <= 3; i++) {
-          if (!taken.includes(i)) {
-              conn.assignedIdx = i;
-              break;
-          }
-      }
+      // Forçar que o primeiro jogador conectado (parceiro) seja o assento 2 (index 1 no array/object keys)
+      // O assento 1 é o que você chama de "ROBO B"
+      conn.assignedIdx = 1; 
       
       connectedClients.push(conn);
       updateHostLobbyUI();
