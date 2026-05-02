@@ -130,8 +130,9 @@ function renderHands(reveal = false) {
     // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
-    // Mapeia o índice do jogador para a posição correta na tela, baseando-se no meu índice local
-    nameEl.innerText = NAMES[(myPlayerIdx + viewPos) % 4];
+    // O índice i representa a posição absoluta na mesa (0, 1, 2, 3), 
+    // e o array NAMES agora está sincronizado para ser consistente em todos os clientes.
+    nameEl.innerText = NAMES[i];
     c.appendChild(nameEl);
 
     const tilesContainer = document.createElement('div');
