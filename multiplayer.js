@@ -232,8 +232,9 @@ function connectToHost() {
       if (data.type === 'status') updateStatusLocal(data.text, data.cls);
       
       if (data.type === 'animate_pass') {
-          playPass();
+          // Apenas visual: não altera o estado do jogo (STATE), pois isso é tarefa do Host.
           triggerPassVisual(data.pIdx);
+          playPass();
       }
       
       if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
