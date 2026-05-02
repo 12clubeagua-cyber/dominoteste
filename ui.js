@@ -33,9 +33,9 @@ function changeName() {
   updateScoreDisplay();
 }
 
-function checkAndPromptName() {
-    if (!localStorage.getItem('userName')) {
-        changeName();
+function exitGame() {
+    if (confirm("Deseja mesmo sair da partida?")) {
+        window.location.reload(); // Recarrega para resetar estado de forma simples e segura
     }
 }
 
@@ -57,10 +57,14 @@ function updateStatusLocal(text, cls) {
   const el = document.getElementById('game-status');
   if (!el) return;
   
+  // Substitui JOGADOR X pelo nome correspondente, se existir
   let displayMsg = text;
-  if (myPlayerIdx !== undefined && NAMES[myPlayerIdx] && text.includes(NAMES[myPlayerIdx])) {
-    displayMsg = text.replace(NAMES[myPlayerIdx], "VOCÊ");
-  }
+  NAMES.forEach((name, idx) => {
+      const genericName = `JOGADOR ${idx + 1}`;
+      if (displayMsg.includes(genericName)) {
+          displayMsg = displayMsg.replace(genericName, (idx === myPlayerIdx ? "VOCÊ" : name));
+      }
+  });
   
   el.innerText = displayMsg;
   
@@ -123,13 +127,24 @@ function renderHands(reveal = false) {
     c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
     if (isBlinking) c.classList.add('hand-pass-blink');
 
+    // Adiciona o nome do jogador
+    const nameEl = document.createElement('div');
+    nameEl.className = 'player-name-label';
+    // O índice da mão i varia de 0 a 3.
+    nameEl.innerText = NAMES[i];
+    c.appendChild(nameEl);
+
+    const tilesContainer = document.createElement('div');
+    tilesContainer.className = 'tiles-row';
+    c.appendChild(tilesContainer);
+
     STATE.hands[i].forEach((t, idx) => {
       const el = document.createElement('div');
       const hidden = !reveal && i !== myPlayerIdx;
       el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${t[0] === t[1] ? 'tile-double' : ''}`;
       el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
       if (i === myPlayerIdx) el.id = `my-tile-${idx}`;
-      c.appendChild(el);
+      tilesContainer.appendChild(el);
     });
 
     if (STATE.hands[i].length > 0 && !STATE.isOver) {

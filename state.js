@@ -23,7 +23,12 @@ let STATE = {
   autoNextInterval: null    // Timer para iniciar a próxima rodada automaticamente
 };
 
-const NAMES = [localStorage.getItem('userName') || "JOGADOR 1", "JOGADOR 2", "JOGADOR 3", "JOGADOR 4"];
+const NAMES = [
+    localStorage.getItem('userName') || "VOCÊ", 
+    "ROBO A", 
+    "ROBO B", 
+    "ROBO C"
+];
 
 // Contexto de áudio (iniciado após o primeiro clique do usuário)
 let audioCtx = null;

@@ -47,11 +47,17 @@ function initializeHost() {
       
       connectedClients.push(conn);
       updateHostLobbyUI();
-      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx });
+      // Envia o nome do Host e o índice atribuído
+      conn.send({ type: 'welcome', msg: 'Conectado! Aguarde o host.', yourIdx: conn.assignedIdx, names: NAMES });
+      // Atualiza outros jogadores sobre o novo nome/lista se necessário (opcional)
     });
+    myPeer.on('connection', (conn) => {
+    // ... lógica de conexão ...
     conn.on('data', (data) => {
-      // REMOVIDO !STATE.isBlocked: O host fica bloqueado esperando o cliente, 
-      // mas deve aceitar a jogada assim mesmo.
+      if (data.type === 'set_name') {
+          NAMES[conn.assignedIdx] = data.name;
+          broadcastState(); // Atualiza todos com os novos nomes
+      }
       if (data.type === 'play_request' && STATE.current === conn.assignedIdx) {
           play(conn.assignedIdx, data.tIdx, data.side);
       }
@@ -119,11 +125,15 @@ function connectToHost() {
     myConnToHost = myPeer.connect('DOMINO-' + input);
     myConnToHost.on('open', () => {
         if (statusEl) statusEl.innerText = "Aguardando início...";
+        myConnToHost.send({ type: 'set_name', name: NAMES[0] });
     });
     
     myConnToHost.on('data', (data) => {
       if (data.type === 'welcome') {
         myPlayerIdx = data.yourIdx;
+        if (data.names) {
+            data.names.forEach((name, i) => { NAMES[i] = name; });
+        }
       }
       if (data.type === 'game_start') {
         myPlayerIdx = data.yourIdx;
