@@ -173,18 +173,17 @@ function connectToHost() {
             NameManager.updateAll(data.names);
         }
         
-        // Sincronização robusta do estado
-        // Se a mão do jogador local divergir, sobrescreve com o estado do servidor (Host)
-        const isHandsConsistent = JSON.stringify(STATE.hands[myPlayerIdx]) === JSON.stringify(data.state.hands[myPlayerIdx]);
+        // Sincronização robusta: Compara as mãos antes de aplicar alterações para evitar flicker
+        const isHandsConsistent = JSON.stringify(STATE.hands) === JSON.stringify(data.state.hands);
         
         if (!isHandsConsistent) {
-             console.warn("Divergência detectada, sincronizando mão com Host.");
-             STATE.hands = data.state.hands;
-             STATE.handSize = data.state.handSize;
+             console.log("Sincronizando estado do jogo com Host.");
+             STATE.hands = [...data.state.hands];
+             STATE.handSize = [...data.state.handSize];
              client_predicted = false;
         }
 
-        // Atualiza o estado geral
+        // Atualiza o restante do estado, excluindo mãos que já tratamos acima
         const { hands, handSize, ...others } = data.state;
         Object.assign(STATE, others);
 
