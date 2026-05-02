@@ -46,11 +46,26 @@ function startMatch() {
   document.getElementById('start-screen').style.display = 'none';
 
   if (netMode === 'host') {
-    const seatOrder = [2, 1, 3];
+    // 1. Mapeia os jogadores conectados aos seus assentos
+    // O Host é sempre o 0
+    const seatOrder = [2, 1, 3]; // Ordem de distribuição de assentos
     connectedClients.forEach((conn, index) => {
        conn.assignedIdx = seatOrder[index];
-       conn.send({ type: 'game_start', yourIdx: conn.assignedIdx });
     });
+
+    // 2. Constrói o mapa final de nomes
+    // Já temos o nome do Host no NameManager (index 0)
+    // Agora pegamos o nome de cada cliente conectado
+    connectedClients.forEach(conn => {
+        // Nome já foi setado via 'set_name' anteriormente pelo cliente
+    });
+
+    // 3. Broadcast final do mapa de nomes para todos
+    const finalNames = NameManager.getAll();
+    connectedClients.forEach((conn) => {
+       conn.send({ type: 'game_start', yourIdx: conn.assignedIdx, names: finalNames });
+    });
+    
     // O Host também precisa chamar startRound()
     startRound();
   } else if (netMode === 'offline') {
