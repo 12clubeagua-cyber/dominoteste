@@ -217,5 +217,11 @@ function executeEndRoundUI(winTeam, idx, msg) {
             startRoundBtn(); // Começa a próxima rodada
         }
     }, 1000);
-  }
-}
+    }
+    }
+
+    function exitGame() {
+    if (confirm("Deseja mesmo sair da partida?")) {
+        window.location.href = window.location.origin + window.location.pathname;
+    }
+    }
