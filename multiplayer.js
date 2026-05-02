@@ -117,7 +117,7 @@ function broadcastToClients(payload) {
 }
 
 function broadcastState() {
-  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: NAMES });
+  if (netMode === 'host') broadcastToClients({ type: 'sync_state', state: STATE, names: PLAYER_NAMES });
 }
 
 function connectToHost() {
