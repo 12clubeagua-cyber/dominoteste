@@ -14,20 +14,17 @@ function updateScoreDisplay() {
 }
 
 function changeName() {
-  // BUG CORRIGIDO: loop não tinha saída se o usuário cancelava dentro dele
   let name = "";
   let valid = false;
-
+  
   while (!valid) {
     const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", NameManager.get(0) || "");
-    if (input === null) return; // Cancelou — sai imediatamente
-
+    if (input === null) return; // Cancelou
+    
     const cleaned = input.trim().toUpperCase();
     if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-Z]+$/.test(cleaned)) {
       name = cleaned;
       valid = true;
-    } else {
-      alert("Nome inválido. Use apenas letras (A-Z), entre 1 e 10 caracteres.");
     }
   }
 
@@ -133,6 +130,10 @@ function renderHands(reveal = false) {
     // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
+    // O hand-0 é a sua mão (myPlayerIdx), hand-1 a direita, hand-2 o topo, hand-3 a esquerda.
+    // Vamos corrigir: Se o DOM hand-0 é sua mão, o assento absoluto deve ser myPlayerIdx.
+    // Se viewPos é 0, o assento absoluto é myPlayerIdx.
+    // viewPos 1 = (myPlayerIdx + 1) % 4, etc.
     const absoluteSeat = (myPlayerIdx + viewPos) % 4;
     nameEl.innerText = NameManager.get(absoluteSeat);
     c.appendChild(nameEl);
@@ -190,40 +191,42 @@ function executeEndRoundUI(winTeam, idx, msg) {
     });
   }
 
+  // 1. COMENTADO: Isso impede a tela gigante de aparecer sobre as peças
+  // const resArea = document.getElementById('result-area');
+  // if (resArea) resArea.style.setProperty('display', 'block', 'important');
+  
+  // 2. NOVA LÓGICA (Sem depender do botão next-btn do HTML)
   if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
     // Alguém atingiu os pontos para vencer a partida inteira
-    const isMyTeamWinner = (STATE.scores[0] >= STATE.targetScore)
-      ? (myPlayerIdx % 2 === 0)
-      : (myPlayerIdx % 2 === 1);
-    const finalMsg = isMyTeamWinner ? "🏆 SUA DUPLA É CAMPEÃ!" : "🏆 OPONENTES SÃO CAMPEÕES!";
-    updateStatusLocal(`${finalMsg} Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
+    const finalMsg = STATE.scores[0] >= STATE.targetScore ? "🏆 EQUIPE A CAMPEÃ!" : "🏆 EQUIPE B CAMPEÃ!";
+    updateStatusLocal(`${finalMsg} - Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
     
-    // Reinicia o jogo automaticamente após 6 segundos
+    // Como não há botão, reinicia o jogo automaticamente após 6 segundos
     setTimeout(() => window.location.reload(), 6000);
     
   } else {
     // Apenas acabou a rodada. Prepara a próxima automaticamente.
     if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
     
-    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME;
+    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME; // Pega o tempo do seu config.js
     
+    // Atualiza a barra de status com a mensagem e o tempo restante
     updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
     
     STATE.autoNextInterval = setInterval(() => {
         timeLeft--;
-        if (timeLeft > 0) {
+        if(timeLeft > 0) {
              updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
-        } else {
-            clearInterval(STATE.autoNextInterval);
-            // BUG CORRIGIDO: era 'startRoundBtn()' que não existe — corrigido para 'startRound()'
-            startRound();
+        } else { 
+            clearInterval(STATE.autoNextInterval); 
+            startRoundBtn(); // Começa a próxima rodada
         }
     }, 1000);
-  }
-}
+    }
+    }
 
-function exitGame() {
-  if (confirm("Deseja mesmo sair da partida?")) {
-      window.location.href = window.location.origin + window.location.pathname;
-  }
-}
+    function exitGame() {
+    if (confirm("Deseja mesmo sair da partida?")) {
+        window.location.href = window.location.origin + window.location.pathname;
+    }
+    }

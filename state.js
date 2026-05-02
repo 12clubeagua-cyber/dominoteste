@@ -12,7 +12,6 @@ let STATE = {
   isOver: false,            // Indica se a rodada atual acabou
   isShuffling: false,       // Trava para evitar múltiplos embaralhamentos simultâneos
   roundWinner: null,        // Quem venceu a última rodada
-  lastPlayed: null,         // Último jogador a colocar uma peça no tabuleiro
   positions: [],            // Coordenadas de cada peça no tabuleiro
   passCount: 0,             // Contador de passes seguidos (4 = trancado)
   playerPassed: [false, false, false, false],

@@ -46,8 +46,12 @@ function startMatch() {
   document.getElementById('start-screen').style.display = 'none';
 
   if (netMode === 'host') {
-    // Assentos já foram atribuídos na conexão (initializeHost):
-    // 1º cliente = assento 2 (parceiro do host), 2º = assento 1, 3º = assento 3
+    // 1. Mapeia os jogadores conectados aos seus assentos
+    // O Host é sempre o 0
+    const seatOrder = [2, 1, 3]; // Ordem de distribuição de assentos
+    connectedClients.forEach((conn, index) => {
+       conn.assignedIdx = seatOrder[index];
+    });
 
     // 2. Constrói o mapa final de nomes
     // Já temos o nome do Host no NameManager (index 0)
