@@ -107,23 +107,25 @@ function processTurn() {
   }
 
   // É O JOGADOR HUMANO LOCAL
+  if (moves.length === 0) {
+    STATE.isBlocked = true;
+    updateStatus(`${NAMES[cur]} NÃO TEM PEÇA`, 'pass');
+    setTimeout(() => doPass(cur), 1500);
+    return;
+  }
+
   if (netMode === 'host' && cur !== myPlayerIdx) {
-    // É um cliente humano. Host apenas aguarda o sinal.
+    // É um cliente humano com jogadas. Host apenas aguarda o sinal.
     STATE.isBlocked = true;
     updateStatus(`${NAMES[cur]} JOGANDO...`);
     return;
   }
 
   STATE.isBlocked = false;
-  if (moves.length === 0) {
-    STATE.isBlocked = true;
-    setTimeout(() => doPass(cur), 600);
-  } else {
-    updateStatus('SUA VEZ', 'active');
-    renderHands();
-    if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) {
-      highlight(moves);
-    }
+  updateStatus('SUA VEZ', 'active');
+  renderHands();
+  if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) {
+    highlight(moves);
   }
 }
 
