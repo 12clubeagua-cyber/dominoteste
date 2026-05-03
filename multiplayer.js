@@ -302,3 +302,11 @@ function showReconnectFailed() { hideReconnectOverlay(); const el = document.get
 function cancelReconnect() { clearTimeout(reconnectTimer); isReconnecting = false; hideReconnectOverlay(); window.location.reload(); }
 function tentarReconectarManual() { const el = document.getElementById('reconnect-failed'); if (el) el.style.display = 'none'; reconnectAttempts = 0; isReconnecting = false; tentarReconectar(); }
 
+function broadcastToClients(data) {
+    connectedClients.forEach(client => {
+        if (client.open) {
+            client.send(data);
+        }
+    });
+}
+
