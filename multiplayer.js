@@ -141,8 +141,16 @@ function updateHostLobbyUI() {
 }
 
 function handleClientData(data) {
-  if (data.type === 'sync_names') { NameManager.updateAll(data.names); renderHands(STATE.isOver); }
-  if (data.type === 'welcome') { myPlayerIdx = data.yourIdx; if (data.names) NameManager.updateAll(data.names); }
+  if (data.type === 'sync_names') { 
+      NameManager.updateAll(data.names); 
+      renderHands(STATE.isOver); 
+      if (netMode === 'client' && typeof SeatManager !== 'undefined') SeatManager.renderSelectionUI();
+  }
+  if (data.type === 'welcome') { 
+      myPlayerIdx = data.yourIdx; 
+      if (data.names) NameManager.updateAll(data.names); 
+      if (netMode === 'client' && typeof SeatManager !== 'undefined') SeatManager.renderSelectionUI();
+  }
   
   if (data.type === 'game_start') { 
     myPlayerIdx = data.yourIdx; 

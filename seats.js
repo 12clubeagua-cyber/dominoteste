@@ -19,13 +19,15 @@ const SeatManager = {
 
     // Gera o HTML para a interface de escolha de assentos
     renderSelectionUI: () => {
-        const container = document.getElementById('host-player-list');
-        if (!container) return;
+        const hostContainer = document.getElementById('host-player-list');
+        const clientContainer = document.getElementById('client-player-list');
+        
+        if (!hostContainer && !clientContainer) return;
 
         // Dupla 1: Host (0) e Jogador 2
         // Dupla 2: Jogador 1 e Jogador 3
         
-        let html = `
+        const html = `
             <div class="seat-selection-grid">
                 <div class="team-column">
                     <div class="team-label">DUPLA 1 (Com Host)</div>
@@ -40,7 +42,9 @@ const SeatManager = {
                 </div>
             </div>
         `;
-        container.innerHTML = html;
+
+        if (hostContainer) hostContainer.innerHTML = html;
+        if (clientContainer) clientContainer.innerHTML = html;
     },
 
     getSeatHTML: (idx) => {
