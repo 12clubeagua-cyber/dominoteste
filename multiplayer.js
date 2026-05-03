@@ -99,7 +99,7 @@ function initializeHost() {
     });
 
     conn.on('close', () => {
-        console.log(`[HOST] Jogador ${conn.assignedIdx} desconectou.`);
+        console.log(`[HOST] Jogador ${conn.assignedIdx} desconectou. ID: ${conn.peer}`);
         connectedClients = connectedClients.filter(c => c !== conn);
         NameManager.set(conn.assignedIdx, 'Aguardando...');
         updateHostLobbyUI();
@@ -108,6 +108,9 @@ function initializeHost() {
              updateStatus(`Jogador ${conn.assignedIdx} desconectou. Jogo pausado.`, 'pass');
              broadcastToClients({ type: 'status', text: 'Jogador desconectou. Aguardando...', cls: 'pass' });
         }
+    });
+    conn.on('error', (err) => {
+        console.error(`[HOST] Erro na conexão com jogador ${conn.assignedIdx}:`, err);
     });
   });
 }
@@ -260,7 +263,11 @@ function connectToHost() {
     });
     myConnToHost.on('data', handleClientData);
     myConnToHost.on('close', () => {
+        console.log("[CLIENT] Conexão com host fechada.");
         tentarReconectar();
+    });
+    myConnToHost.on('error', (err) => {
+        console.error("[CLIENT] Erro na conexão com host:", err);
     });
     myPeer.on('error', (err) => { console.error("PeerJS Error:", err); });
   });
