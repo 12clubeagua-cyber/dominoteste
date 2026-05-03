@@ -1,33 +1,38 @@
-/* ═══════════════════════════════════════════════════════
+/* 
    INTERFACE VISUAL (ui.js)
-═══════════════════════════════════════════════════════ */
+ */
 
 function updateScoreDisplay() {
-  document.getElementById('scoreA').textContent = STATE.scores[0];
-  document.getElementById('scoreB').textContent = STATE.scores[1];
-  document.getElementById('scoreA').classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
-  document.getElementById('scoreB').classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
+  const scoreA = document.getElementById('scoreA');
+  const scoreB = document.getElementById('scoreB');
+  const labelA = document.getElementById('label-team-a');
+  const labelB = document.getElementById('label-team-b');
+  if (!scoreA || !scoreB || !labelA || !labelB) return;
+
+  scoreA.textContent = STATE.scores[0];
+  scoreB.textContent = STATE.scores[1];
+  scoreA.classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
+  scoreB.classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
 
   const teamLabels = (myPlayerIdx === 1 || myPlayerIdx === 3) ? ["Oponentes", "Sua Dupla"] : ["Sua Dupla", "Oponentes"];
-  document.getElementById('label-team-a').innerText = teamLabels[0];
-  document.getElementById('label-team-b').innerText = teamLabels[1];
+  labelA.innerText = teamLabels[0];
+  labelB.innerText = teamLabels[1];
 }
 
 function changeName() {
-  // BUG CORRIGIDO: loop não tinha saída se o usuário cancelava dentro dele
   let name = "";
   let valid = false;
 
   while (!valid) {
-    const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", "seunome");
-    if (input === null) return; // Cancelou — sai imediatamente
+    const input = prompt("Digite seu apelido (ate 10 letras, apenas A-Z):", "SEUNOME");
+    if (input === null) return; 
 
     const cleaned = input.trim().toUpperCase();
     if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-Z]+$/.test(cleaned)) {
       name = cleaned;
       valid = true;
     } else {
-      alert("Nome inválido. Use apenas letras (A-Z), entre 1 e 10 caracteres.");
+      alert("Nome invalido. Use apenas letras (A-Z), entre 1 e 10 caracteres.");
     }
   }
 
@@ -42,12 +47,14 @@ function checkAndPromptName() {
 }
 
 function triggerPassVisual(pIdx) {
+    if (!window.visualPass) window.visualPass = [false, false, false, false];
+    
     window.visualPass[pIdx] = true;
     renderHands(STATE.isOver); 
     setTimeout(() => {
         window.visualPass[pIdx] = false;
         renderHands(STATE.isOver); 
-    }, CONFIG.GAME.PASS_DISPLAY_TIME);
+    }, CONFIG?.GAME?.PASS_DISPLAY_TIME ?? 1500);
 }
 
 function updateStatus(text, cls = '') {
@@ -59,42 +66,32 @@ function updateStatusLocal(text, cls) {
   const el = document.getElementById('game-status');
   if (!el) return;
   
-  // Substitui JOGADOR X pelo nome correspondente, se existir
   let displayMsg = text;
   const allNames = NameManager.getAll();
   Object.keys(allNames).forEach(idx => {
       const genericName = `JOGADOR ${parseInt(idx) + 1}`;
       if (displayMsg.includes(genericName)) {
-          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCÊ" : allNames[idx]));
+          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCE" : allNames[idx]));
       }
   });
   
   el.innerText = displayMsg;
-  
-  if (cls === 'active') {
-    el.className = 'active';
-  } else if (displayMsg.includes('PASSA') || displayMsg.includes('PASSOU')) {
-    el.className = 'pass';
-  } else {
-    el.className = '';
-  }
+  el.className = (cls === 'active' || displayMsg.includes('PASSA') || displayMsg.includes('PASSOU')) ? cls : '';
 }
 
 function renderBoardFromState() {
   const s = document.getElementById('snake');
   if (!s) return;
   
-  // Limpa apenas os tiles que não são 'temp-hidden' (tiles que estão em animação)
   const children = Array.from(s.children);
   children.forEach(child => {
       if (!child.classList.contains('temp-hidden')) child.remove();
   });
   
-  const W = CONFIG.GAME.TILE_W;
-  const L = CONFIG.GAME.TILE_L;
+  const W = CONFIG?.GAME?.TILE_W ?? 18;
+  const L = CONFIG?.GAME?.TILE_L ?? 36;
 
   STATE.positions.forEach((nP, i) => {
-    // Verifica se este tile já está em animação (temp-hidden)
     const isAlreadyAnimating = Array.from(s.children).some(child => 
         child.classList.contains('temp-hidden') && 
         parseInt(child.dataset.x) === nP.x && 
@@ -105,8 +102,6 @@ function renderBoardFromState() {
 
     const el = document.createElement('div');
     el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
-    
-    // Centralização perfeita baseada nos eixos X e Y
     const offsetX = nP.isV ? (W / 2) : (L / 2);
     const offsetY = nP.isV ? (L / 2) : (W / 2);
 
@@ -120,7 +115,10 @@ function renderBoardFromState() {
 }
 
 function renderHands(reveal = false) {
-  // 1. Reset total: limpa todas as mãos antes de renderizar
+  // ✅ ESCONDER PICKER QUANDO RENDERIZAR MÃOS
+  const picker = document.getElementById('side-picker');
+  if (picker) picker.style.display = 'none';
+
   for (let i = 0; i < 4; i++) {
     const c = document.getElementById(`hand-${(i - myPlayerIdx + 4) % 4}`);
     if (c) c.innerHTML = '';
@@ -132,24 +130,25 @@ function renderHands(reveal = false) {
     const c = document.getElementById(`hand-${viewPos}`);
     if (!c) continue;
     
-    // ... restante da renderização ...
-
     const isBlinking = window.visualPass && window.visualPass[i];
-    c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
-    if (isBlinking) c.classList.add('hand-pass-blink');
+    c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver && !STATE.isBlocked ? 'active-turn' : ''} ${isBlinking ? 'hand-passed' : ''}`;
+    
+    // Adiciona marcador de vez
+    if (!c.querySelector('.turn-indicator')) {
+        const ind = document.createElement('div');
+        ind.className = 'turn-indicator';
+        c.appendChild(ind);
+    }
 
-    // Adiciona o nome do jogador
     const nameEl = document.createElement('div');
     nameEl.className = 'player-name-label';
-    const absoluteSeat = (myPlayerIdx + viewPos) % 4;
-    nameEl.innerText = NameManager.get(absoluteSeat);
+    nameEl.innerText = NameManager.get((myPlayerIdx + viewPos) % 4);
     c.appendChild(nameEl);
 
     const tilesContainer = document.createElement('div');
     tilesContainer.className = 'tiles-row';
     c.appendChild(tilesContainer);
 
-    // 2. Lógica corrigida de reveal para todos os jogadores
     const isMyHand = (i === myPlayerIdx);
     if (isMyHand || reveal) {
       (STATE.hands[i] || []).forEach((t, idx) => {
@@ -169,27 +168,23 @@ function renderHands(reveal = false) {
       }
     }
     
-    // ... restante da renderização dos indicadores (mantido)
     const displayCount = (i === myPlayerIdx) ? (STATE.hands[i]?.length || 0) : (STATE.handSize[i] || 0);
-
     if (displayCount > 0 && !STATE.isOver) {
       const ind = document.createElement('div');
       ind.className = 'hand-indicators';
-
       const badge = document.createElement('div');
       badge.className = 'tile-count';
       badge.innerText = displayCount;
       ind.appendChild(badge);
-
       if (isBlinking) {
         const x = document.createElement('div');
-        x.className = 'pass-x'; x.innerText = '✕';
+        x.className = 'pass-x'; x.innerText = '';
         ind.appendChild(x);
       }
       c.appendChild(ind);
     }
   }
-  if (STATE.current === myPlayerIdx && !STATE.isOver) {
+  if (STATE.current === myPlayerIdx && !STATE.isOver && !STATE.isBlocked) {
      STATE.isBlocked = false;
      const moves = getMoves(STATE.hands[myPlayerIdx]);
      if (moves.length > 0) highlight(moves);
@@ -201,7 +196,6 @@ function executeEndRoundUI(winTeam, idx, msg) {
   updateScoreDisplay();
   
   if (winTeam === 0 || winTeam === 1) playVictory();
-
   if (winTeam === 0 || winTeam === 1) {
     const teamA = [0, 2], teamB = [1, 3];
     (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
@@ -210,39 +204,24 @@ function executeEndRoundUI(winTeam, idx, msg) {
     });
   }
 
-  if (STATE.matchOver) {
-    console.log(`[UI] Fim da partida detectado via matchOver. ScoreA: ${STATE.scores[0]}, ScoreB: ${STATE.scores[1]}`);
-    
-    const isMyTeamWinner = (STATE.scores[0] >= STATE.targetScore)
-      ? (myPlayerIdx % 2 === 0)
-      : (myPlayerIdx % 2 === 1);
-    const finalMsg = isMyTeamWinner ? "🏆 SUA DUPLA É CAMPEÃ!" : "🏆 OPONENTES SÃO CAMPEÕES!";
-    updateStatusLocal(`${finalMsg} Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
-    
-    // Reinicia o jogo automaticamente após 6 segundos
+  const isMatchOver = STATE.matchOver || STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore;
+  if (isMatchOver) {
+    STATE.matchOver = true;
+    if (netMode === 'host') broadcastState();
+    const isMyTeamWinner = (STATE.scores[0] >= STATE.targetScore) ? (myPlayerIdx % 2 === 0) : (myPlayerIdx % 2 === 1);
+    updateStatusLocal(`${isMyTeamWinner ? "SUA DUPLA E CAMPEAO!" : "OPONENTES SAO CAMPEOES!"} Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
     setTimeout(() => window.location.reload(), 6000);
-    
-  } else if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
-      STATE.matchOver = true;
-      if (netMode === 'host') broadcastState();
-      // Recurse to execute the end-of-match logic above
-      executeEndRoundUI(winTeam, idx, msg);
   } else {
-    // Apenas acabou a rodada. Prepara a próxima automaticamente.
     if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
-    
-    let timeLeft = CONFIG.GAME.RESULT_DISPLAY_TIME;
-    
-    updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
-    
+    let timeLeft = CONFIG?.GAME?.RESULT_DISPLAY_TIME ?? 7;
+    updateStatusLocal(`${msg} (Proxima em ${timeLeft}s)`, 'active');
     STATE.autoNextInterval = setInterval(() => {
         timeLeft--;
         if (timeLeft > 0) {
-             updateStatusLocal(`${msg} (Próxima em ${timeLeft}s)`, 'active');
+             updateStatusLocal(`${msg} (Proxima em ${timeLeft}s)`, 'active');
         } else {
             clearInterval(STATE.autoNextInterval);
-            // BUG CORRIGIDO: era 'startRoundBtn()' que não existe — corrigido para 'startRound()'
-            startRound();
+            if (typeof startRound === 'function') startRound();
         }
     }, 1000);
   }
@@ -253,3 +232,5 @@ function exitGame() {
       window.location.href = window.location.origin + window.location.pathname;
   }
 }
+
+

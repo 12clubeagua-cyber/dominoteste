@@ -1,10 +1,10 @@
-/* ═══════════════════════════════════════════════════════
-   CONTROLE DE ENTRADA DO USUÁRIO (input.js)
-═══════════════════════════════════════════════════════ */
+/* 
+   CONTROLE DE ENTRADA DO USUARIO (input.js)
+ */
 
 // Sensor de redimensionamento de mesa
 const handleResize = () => {
-  if (STATE.positions && STATE.positions.length > 0) {
+  if (STATE?.positions?.length > 0) {
     updateSnakeScale();
     renderBoardFromState();
   }
@@ -12,7 +12,10 @@ const handleResize = () => {
 window.addEventListener('resize', handleResize);
 
 function removePlayableListeners() {
-    STATE.hands[myPlayerIdx].forEach((_, idx) => {
+    const hand = STATE?.hands?.[myPlayerIdx];
+    if (!Array.isArray(hand)) return;
+
+    hand.forEach((_, idx) => {
         const el = document.getElementById(`my-tile-${idx}`);
         if (el) {
             el.classList.remove('playable');
@@ -22,7 +25,6 @@ function removePlayableListeners() {
 }
 
 function highlight(moves) {
-  // Limpa agressivamente qualquer destaque persistente na tela inteira
   document.querySelectorAll('.tile').forEach(el => el.classList.remove('playable'));
   removePlayableListeners();
 
@@ -31,27 +33,41 @@ function highlight(moves) {
     if (!el) return;
     el.classList.add('playable');
     el.onclick = () => {
-      safeAudioInit();
+      if (typeof safeAudioInit === 'function') safeAudioInit();
       if (STATE.isBlocked) return;
-      
-      removePlayableListeners(); // Remove assim que clica
 
-      // BUG CORRIGIDO: Se as duas extremidades são iguais, a peça encaixa igual
-      // dos dois lados — não precisa mostrar o picker. Só mostra quando as
-      // pontas são diferentes E a peça realmente pode ir nos dois lados.
-      const extremesAreDifferent = STATE.extremes[0] !== STATE.extremes[1];
-      const needsPicker = x.side === 'both' && extremesAreDifferent && STATE.positions.length > 0;
+      STATE.isBlocked = true;
 
-      if (needsPicker) {
-        STATE.pendingIdx = x.idx;
-        document.getElementById('side-picker').style.display = 'flex';
-        STATE.isBlocked = true;
-      } else {
-        STATE.isBlocked = true;
-        // Para 'both' sem picker e 'any', usa lado 0 (padrão)
-        const side = (x.side === 'both' || x.side === 'any') ? 0 : x.side;
-        play(myPlayerIdx, x.idx, side);
-      }
+      // Remove o visual de "vez" e highlights imediatamente de TODOS os tiles
+      document.querySelectorAll('.tile.playable').forEach(tile => tile.classList.remove('playable'));
+      const hand0 = document.getElementById('hand-0');
+      if (hand0) hand0.classList.remove('active-turn');
+
+      // Remove listeners e garante limpeza visual
+      removePlayableListeners();
+
+      // Força atualização visual
+      void document.body.offsetHeight; 
+
+      // Processa a jogada
+      requestAnimationFrame(() => {
+          const extremesAreDifferent = STATE?.extremes?.[0] !== STATE?.extremes?.[1];
+          const needsPicker = x.side === 'both' && extremesAreDifferent && STATE.positions?.length > 0;
+
+          // Esconde qualquer picker anterior antes de decidir
+          const picker = document.getElementById('side-picker');
+          if (picker) picker.style.display = 'none';
+
+          if (needsPicker) {
+            STATE.pendingIdx = x.idx;
+            if (picker) {
+                picker.style.display = 'flex';
+            }
+          } else {
+            const side = (x.side === 'both' || x.side === 'any') ? 0 : x.side;
+            play(myPlayerIdx, x.idx, side);
+          }
+      });
     };
   });
 }
@@ -73,7 +89,11 @@ function cancelMove() {
   STATE.pendingIdx = null;
   STATE.isBlocked = false;
   
-  // Re-habilita a seleção das peças
-  const moves = getMoves(STATE.hands[myPlayerIdx]);
-  if (moves.length > 0) highlight(moves);
+  const hand = STATE?.hands?.[myPlayerIdx];
+  if (Array.isArray(hand)) {
+    const moves = getMoves(hand);
+    if (moves.length > 0) highlight(moves);
+  }
 }
+
+

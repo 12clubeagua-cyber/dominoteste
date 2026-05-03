@@ -1,13 +1,14 @@
-/* ═══════════════════════════════════════════════════════
+/* 
    GERENCIAMENTO DE MENUS (lobby.js)
-═══════════════════════════════════════════════════════ */
+ */
 function hideAllSteps() {
   document.querySelectorAll('.start-step').forEach(el => el.classList.remove('active'));
 }
 
 function goToStep(stepId) {
   hideAllSteps();
-  document.getElementById(stepId).classList.add('active');
+  const el = document.getElementById(stepId);
+  if (el) el.classList.add('active');
 }
 
 function selectMode(mode) {
@@ -21,10 +22,13 @@ function selectMode(mode) {
 
 function selectDiff(diff) {
   STATE.difficulty = diff;
-  document.getElementById('btn-easy').classList.remove('selected');
-  document.getElementById('btn-normal').classList.remove('selected');
-  document.getElementById('btn-hard').classList.remove('selected');
-  document.getElementById(`btn-${diff}`).classList.add('selected');
+  const ids = ['btn-easy', 'btn-normal', 'btn-hard'];
+  ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('selected');
+  });
+  const activeEl = document.getElementById(`btn-${diff}`);
+  if (activeEl) activeEl.classList.add('selected');
   goToStep('step-goal');
 }
 
@@ -39,14 +43,21 @@ function selectGoal(limit) {
 }
 
 function startMatch() {
-  safeAudioInit();
+  if (typeof safeAudioInit === 'function') safeAudioInit();
   STATE.scores = [0, 0];
   STATE.roundWinner = null;
   STATE.isOver = false;
-  document.getElementById('start-screen').style.display = 'none';
+  
+  const startScreen = document.getElementById('start-screen');
+  if (startScreen) startScreen.style.display = 'none';
+
+  const doStartRound = () => {
+      if (typeof startRound === 'function') startRound();
+      else console.error('startRound nao esta definido');
+  };
 
   if (netMode === 'host') {
-    // Verifica se todas as conexões estão abertas
+    if (!Array.isArray(connectedClients)) return;
     const allReady = connectedClients.every(c => c && c.open);
     if (!allReady) {
       alert("Aguardando jogadores conectarem...");
@@ -54,21 +65,15 @@ function startMatch() {
     }
 
     const finalNames = NameManager.getAll();
-    
-    // Envia game_start para todos
     connectedClients.forEach((conn) => {
-       if (conn.open) {
-         conn.send({ type: 'game_start', yourIdx: conn.assignedIdx, names: finalNames });
+       if (conn && conn.open) {
+         try { conn.send({ type: 'game_start', yourIdx: conn.assignedIdx, names: finalNames }); } catch(e) {}
        }
     });
-    
-    // Aguarda 500ms para garantir que clientes processaram o game_start
-    setTimeout(() => {
-      startRound();
-    }, 500);
+    setTimeout(doStartRound, 500);
     
   } else if (netMode === 'offline') {
-    startRound();
+    doStartRound();
   }
 }
 
@@ -81,4 +86,6 @@ function cancelHosting() {
     netMode = 'offline';
     goToStep('step-mode');
 }
+
+
 

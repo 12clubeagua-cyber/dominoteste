@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Dominó Master</title>
+  <title>domino Master</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body onload="checkAndPromptName()">
 
 <div id="start-screen">
-  <div class="start-logo">Dominó</div>
+  <div class="start-logo">domino</div>
   <div class="start-sub">Master</div>
 
   <div class="start-step active" id="step-mode">
@@ -33,51 +33,51 @@
     <div class="start-options">
       <div class="start-label">Dificuldade dos bots</div>
       <button class="start-btn" id="btn-easy" onclick="selectDiff('easy')">
-        Fácil <span>nivel 1</span>
+        Facil <span>nivel 1</span>
       </button>
       <button class="start-btn selected" id="btn-normal" onclick="selectDiff('normal')">
         Normal <span>nivel 2</span>
       </button>
       <button class="start-btn" id="btn-hard" onclick="selectDiff('hard')">
-        Difícil <span>nivel 3</span>
+        Dificil <span>nivel 3</span>
       </button>
     </div>
-    <button class="step-back" onclick="goToStep('step-mode')">← Voltar</button>
+    <button class="step-back" onclick="goToStep('step-mode')"> Voltar</button>
   </div>
 
   <div class="start-step" id="step-goal">
     <div class="start-options">
       <div class="start-label">Objetivo da partida</div>
-      <button class="start-btn" onclick="selectGoal(3)">Meta: 3 Vitórias</button>
-      <button class="start-btn" onclick="selectGoal(5)">Meta: 5 Vitórias</button>
-      <button class="start-btn" onclick="selectGoal(10)">Meta: 10 Vitórias</button>
+      <button class="start-btn" onclick="selectGoal(3)">Meta: 3 Vitorias</button>
+      <button class="start-btn" onclick="selectGoal(5)">Meta: 5 Vitorias</button>
+      <button class="start-btn" onclick="selectGoal(10)">Meta: 10 Vitorias</button>
     </div>
-    <button class="step-back" onclick="goToStep('step-diff')">← Voltar</button>
+    <button class="step-back" onclick="goToStep('step-diff')"> Voltar</button>
   </div>
 
   <div class="start-step" id="step-lobby-host">
     <div class="start-options">
-      <div class="start-label">Sala Criada! Passe o código:</div>
+      <div class="start-label">Sala Criada! Passe o codigo:</div>
       <div class="code-display" id="host-code-display">GERANDO...</div>
       <div class="player-list" id="host-player-list">
-        <div class="player-item">Você (Host)</div>
+        <div class="player-item">Voce (Host)</div>
       </div>
-      <div class="start-sub" id="host-status">Aguardando conexões... (0/3)</div>
+      <div class="start-sub" id="host-status">Aguardando conexoes... (0/3)</div>
       <button class="start-btn" onclick="startMatch()" id="btn-start-multi" style="justify-content:center; background:var(--gold); color:var(--bg); border:none; display:none;">
         INICIAR JOGO
       </button>
     </div>
-    <button class="step-back" onclick="cancelHosting()">← Cancelar e Voltar</button>
+    <button class="step-back" onclick="cancelHosting()"> Cancelar e Voltar</button>
   </div>
 
   <div class="start-step" id="step-lobby-client">
     <div class="start-options">
       <div class="start-label">Entrar em uma Sala</div>
-      <input type="text" id="join-code-input" class="input-code" placeholder="CÓDIGO">
+      <input type="text" id="join-code-input" class="input-code" placeholder="CODIGO">
       <button class="start-btn" onclick="connectToHost()" id="btn-connect" style="justify-content:center;">CONECTAR</button>
       <div class="start-sub" id="client-status" style="margin-top:10px; color:var(--gold);"></div>
     </div>
-    <button class="step-back" onclick="goToStep('step-mode')">← Voltar</button>
+    <button class="step-back" onclick="goToStep('step-mode')"> Voltar</button>
   </div>
 </div>
 
@@ -86,7 +86,7 @@
     <span class="score-name" id="label-team-a">Sua dupla</span>
     <span class="score-val" id="scoreA">0</span>
   </div>
-  <div id="game-status">Dominó Master</div>
+  <div id="game-status">domino Master</div>
   <div class="score-block right">
     <span class="score-name" id="label-team-b">Oponentes</span>
     <span class="score-val" id="scoreB">0</span>
@@ -106,16 +106,16 @@
   <div id="hand-0" class="hand"></div> 
   
   <div id="side-picker">
-    <button class="btn-side" onclick="executeMove(0)">↑ Cima</button>
-    <button class="btn-side btn-cancel" onclick="cancelMove()">✕ Cancelar</button>
-    <button class="btn-side" onclick="executeMove(1)">Baixo ↓</button>
+    <button class="btn-side" onclick="executeMove(0)"> Cima</button>
+    <button class="btn-side btn-cancel" onclick="cancelMove()"> Cancelar</button>
+    <button class="btn-side" onclick="executeMove(1)">Baixo </button>
   </div>
 </div>
 
 <div id="reconnect-overlay" style="display:none">
     <div id="reconnect-box">
         <div class="reconnect-spinner"></div>
-        <div id="reconnect-title">Conexão perdida</div>
+        <div id="reconnect-title">conexao perdida</div>
         <div id="reconnect-msg">Tentando reconectar... (1/5)</div>
         <button onclick="cancelReconnect()">Desistir</button>
     </div>
@@ -123,26 +123,28 @@
 
 <div id="reconnect-failed" style="display:none">
     <div id="reconnect-box">
-        <div id="reconnect-title">❌ Não foi possível reconectar</div>
+        <div id="reconnect-title"> Nao foi possivel reconectar</div>
         <div id="reconnect-msg">O host pode ter encerrado a sala.</div>
-        <button onclick="window.location.reload()">Voltar ao início</button>
+        <button onclick="window.location.reload()">Voltar ao inicio</button>
         <button onclick="tentarReconectarManual()">Tentar novamente</button>
     </div>
 </div>
 
-  <script src="names.js"></script>
+  <script src="names.js" defer></script>
 
-  <script src="config.js"></script>
-  <script src="state.js"></script>
-  <script src="utils.js"></script>
-  <script src="audio.js"></script>
-  <script src="logic.js"></script>
-  <script src="animations.js"></script>
-  <script src="bots.js"></script>
-  <script src="multiplayer.js"></script>
-  <script src="ui.js"></script>
-  <script src="input.js"></script>
-  <script src="lobby.js"></script>
-  <script src="game.js"></script>
+  <script src="config.js" defer></script>
+  <script src="state.js" defer></script>
+  <script src="utils.js" defer></script>
+  <script src="audio.js" defer></script>
+  <script src="logic.js" defer></script>
+  <script src="animations.js" defer></script>
+  <script src="bots.js" defer></script>
+  <script src="multiplayer.js" defer></script>
+  <script src="ui.js" defer></script>
+  <script src="input.js" defer></script>
+  <script src="lobby.js" defer></script>
+  <script src="game.js" defer></script>
 </body>
 </html>
+
+

@@ -1,8 +1,10 @@
-/* ═══════════════════════════════════════════════════════
+/* 
    FLUXO DE JOGO (game.js)
-═══════════════════════════════════════════════════════ */
+ */
 
-// ── INICIA UMA NOVA RODADA (embaralha + distribui) ──────────────────────────
+let turnRetryCount = 0;
+const MAX_TURN_RETRIES = 10;
+
 function startRound() {
   STATE.isOver = false;
   STATE.isBlocked = true;
@@ -15,7 +17,6 @@ function startRound() {
   const resArea = document.getElementById('result-area');
   if (resArea) resArea.style.display = 'none';
 
-  // Limpa animações de vitória das mãos
   for (let v = 0; v < 4; v++) {
     const el = document.getElementById(`hand-${v}`);
     if (el) el.classList.remove('hand-win-blink');
@@ -26,12 +27,11 @@ function startRound() {
   runShuffleAnimation(() => dealAndStart());
 }
 
-// ── DISTRIBUI AS PEÇAS E COMEÇA O TURNO ────────────────────────────────────
 function dealAndStart() {
   const s = document.getElementById('snake');
   if (s) s.innerHTML = '';
 
-  window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
+  window.minScaleReached = CONFIG?.GAME?.SNAKE_MAX_SCALE ?? 0.3;
   window.currentSnakeScale = window.minScaleReached;
 
   const deck = [];
@@ -47,7 +47,6 @@ function dealAndStart() {
     { hscX: 0, hscY: 0, dir: 90,  lineCount: 1, lastVDir: 90,  wasDouble: false },
   ];
 
-  // Determina quem começa: vencedor anterior ou quem tem o [6,6]
   if (STATE.roundWinner !== null) {
     STATE.current = STATE.roundWinner;
   } else {
@@ -61,50 +60,45 @@ function dealAndStart() {
   STATE.isBlocked = false;
   STATE.isShuffling = false;
 
-  // Sincroniza imediatamente no modo host
-  if (netMode === 'host') {
-    broadcastState();
-  }
+  if (netMode === 'host') broadcastState();
   
   renderHands();
   renderBoardFromState();
   
-  // Pequeno delay antes do primeiro turno para garantir renderização
-  setTimeout(() => {
-    processTurn();
-  }, 100);
+  setTimeout(() => processTurn(), CONFIG?.GAME?.START_DELAY ?? 1200);
 }
 
-// ── PROCESSA O TURNO DO JOGADOR ATUAL ──────────────────────────────────────
 function processTurn() {
   if (STATE.isOver) return;
 
+  // Garante que o estado seja desbloqueado no inicio do turno
+  STATE.isBlocked = false;
+
   const cur = STATE.current;
-  
-  // Verificação de segurança: se não tem mão definida, aguarda
+
   if (!STATE.hands[cur]) {
-    console.warn(`Mão do jogador ${cur} não definida, aguardando sync...`);
-    if (netMode === 'client' && cur !== myPlayerIdx) {
-      updateStatus(`${NameManager.get(cur)} JOGANDO...`);
+    turnRetryCount++;
+    if (turnRetryCount >= MAX_TURN_RETRIES) {
+        STATE.hands[cur] = [];
+        turnRetryCount = 0;
     }
-    setTimeout(processTurn, 500); // Tenta novamente em 500ms
+    setTimeout(processTurn, 500);
     return;
   }
+  turnRetryCount = 0;
+
 
   const moves = getMoves(STATE.hands[cur]);
-
   let isHuman = false;
   if (netMode === 'offline') {
     isHuman = (cur === myPlayerIdx);
   } else if (netMode === 'host') {
     isHuman = (cur === myPlayerIdx || connectedClients.some(c => c.assignedIdx === cur));
   } else if (netMode === 'client') {
-    // ✅ FIX: No cliente, NUNCA rodar bot. Só habilitar UI se for a vez do jogador local.
     if (cur !== myPlayerIdx) {
-      // Apenas mostrar status — o host controla tudo
       STATE.isBlocked = true;
       updateStatus(`${NameManager.get(cur)} JOGANDO...`);
-      return;  // ← SAIR AQUI, não fazer nada mais
+      return;
     }
     isHuman = true;
   }
@@ -114,39 +108,29 @@ function processTurn() {
     const playerName = NameManager.get(cur);
     updateStatus(`${playerName} JOGANDO...`);
 
-    if (moves.length === 0) {
-      const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
-      updateStatus(CONFIG.BOT.THINKING_MSG);
-      if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
-      STATE.turnTimer = setTimeout(() => doPass(cur), delay);
-    } else {
-      const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
-      updateStatus(CONFIG.BOT.THINKING_MSG);
-      if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
-      STATE.turnTimer = setTimeout(() => {
-        const move = chooseBotMove(cur, moves);
-        if (!move) {
-            doPass(cur);
-            return;
+    const delay = (CONFIG?.BOT?.MIN_DELAY ?? 500) + Math.random() * ((CONFIG?.BOT?.MAX_DELAY ?? 1500) - (CONFIG?.BOT?.MIN_DELAY ?? 500));
+    updateStatus(CONFIG?.BOT?.THINKING_MSG ?? "PENSANDO...");
+    clearTurnTimer();
+    STATE.turnTimer = setTimeout(() => {
+        if (moves.length === 0) doPass(cur);
+        else {
+            const move = chooseBotMove(cur, moves);
+            if (!move) doPass(cur);
+            else play(cur, move.idx, move.side === 'both' ? 0 : (move.side === 'any' ? 0 : move.side));
         }
-        const side = move.side === 'both' ? 0 : (move.side === 'any' ? 0 : move.side);
-        play(cur, move.idx, side);
-      }, delay);
-    }
+    }, delay);
     return;
   }
 
-  // É O JOGADOR HUMANO LOCAL
   if (moves.length === 0) {
     STATE.isBlocked = true;
-    updateStatus(`${NameManager.get(cur)} NÃO TEM PEÇA`, 'pass');
-    if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+    updateStatus(`${NameManager.get(cur)} NAO TEM PECA`, 'pass');
+    clearTurnTimer();
     STATE.turnTimer = setTimeout(() => doPass(cur), 1500);
     return;
   }
 
   if (netMode === 'host' && cur !== myPlayerIdx) {
-    // É um cliente humano com jogadas. Host apenas aguarda o sinal.
     STATE.isBlocked = true;
     updateStatus(`${NameManager.get(cur)} JOGANDO...`);
     return;
@@ -155,21 +139,15 @@ function processTurn() {
   STATE.isBlocked = false;
   updateStatus('SUA VEZ', 'active');
   renderHands();
-  if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) {
-    highlight(moves);
-  }
+  if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) highlight(moves);
 }
 
-// ── PASSA A VEZ ────────────────────────────────────────────────────────────
 function doPass(pIdx) {
   if (STATE.isOver) return;
 
-  // Registra na memória dos bots que este jogador não tem essas pontas
   if (STATE.extremes[0] !== null) {
-    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[0]))
-      STATE.playerMemory[pIdx].push(STATE.extremes[0]);
-    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[1]))
-      STATE.playerMemory[pIdx].push(STATE.extremes[1]);
+    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[0])) STATE.playerMemory[pIdx].push(STATE.extremes[0]);
+    if (!STATE.playerMemory[pIdx].includes(STATE.extremes[1])) STATE.playerMemory[pIdx].push(STATE.extremes[1]);
   }
 
   STATE.playerPassed[pIdx] = true;
@@ -180,7 +158,6 @@ function doPass(pIdx) {
 
   if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx });
 
-  // 4 passes seguidos = jogo trancado
   if (STATE.passCount >= 4) {
     endRound('block', -1);
     return;
@@ -189,85 +166,56 @@ function doPass(pIdx) {
   STATE.current = (STATE.current + 1) % 4;
   broadcastState();
 
-  if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
-  STATE.turnTimer = setTimeout(() => processTurn(), CONFIG.GAME.PASS_DISPLAY_TIME);
+  clearTurnTimer();
+  STATE.turnTimer = setTimeout(() => processTurn(), CONFIG?.GAME?.PASS_DISPLAY_TIME ?? 1500);
 }
 
-// ── ENCERRA A RODADA ───────────────────────────────────────────────────────
 function endRound(reason, winnerIdx) {
   if (STATE.isOver) return;
   STATE.isOver = true;
   STATE.isBlocked = true;
 
-  let winTeam = -1;
-  let msg = '';
-  let detail = '';
+  let winTeam = -1, msg = '', detail = '';
 
   if (reason === 'win') {
     winTeam = (winnerIdx % 2 === 0) ? 0 : 1;
-    const winnerName = NameManager.get(winnerIdx);
     STATE.scores[winTeam]++;
     STATE.roundWinner = winnerIdx;
-
-    // Ajusta mensagem para perspectiva do jogador local
-    const isMyTeam = (myPlayerIdx % 2 === winnerIdx % 2);
-    msg = isMyTeam ? '🏆 SUA DUPLA VENCEU!' : '🏆 OPONENTES VENCERAM!';
-    detail = `${winnerName} fechou a mão! +1 ponto`;
-
+    msg = (myPlayerIdx % 2 === winnerIdx % 2) ? ' SUA DUPLA VENCEU!' : ' OPONENTES VENCERAM!';
+    detail = `${NameManager.get(winnerIdx)} fechou a mao! +1 ponto`;
   } else if (reason === 'block') {
-    const sumA = STATE.hands[0].reduce((s, t) => s + t[0] + t[1], 0)
-               + STATE.hands[2].reduce((s, t) => s + t[0] + t[1], 0);
-    const sumB = STATE.hands[1].reduce((s, t) => s + t[0] + t[1], 0)
-               + STATE.hands[3].reduce((s, t) => s + t[0] + t[1], 0);
-
-    detail = `Equipe A: ${sumA} pts · Equipe B: ${sumB} pts`;
-
-    if (sumA < sumB) {
-      winTeam = 0; STATE.scores[0]++; STATE.roundWinner = 0;
-    } else if (sumB < sumA) {
-      winTeam = 1; STATE.scores[1]++; STATE.roundWinner = 1;
-    } else {
-      // Empate: quem colocou a última peça inicia a próxima rodada
-      winTeam = -1;
-      STATE.roundWinner = STATE.lastPlayed !== null ? STATE.lastPlayed : null;
-    }
-
-    if (winTeam !== -1) {
-      const isMyTeam = (myPlayerIdx % 2 === winTeam);
-      msg = `JOGO TRANCADO! (${sumA}x${sumB})\n${isMyTeam ? 'Sua dupla vence' : 'Oponentes vencem'}`;
-    } else {
-      const starterName = STATE.roundWinner !== null ? NameManager.get(STATE.roundWinner) : '?';
-      msg = `JOGO TRANCADO! (${sumA}x${sumB})\nEmpate — ${starterName} começa`;
-    }
+    const sumA = STATE.hands[0].reduce((s, t) => s + t[0] + t[1], 0) + STATE.hands[2].reduce((s, t) => s + t[0] + t[1], 0);
+    const sumB = STATE.hands[1].reduce((s, t) => s + t[0] + t[1], 0) + STATE.hands[3].reduce((s, t) => s + t[0] + t[1], 0);
+    detail = `Equipe A: ${sumA} pts  Equipe B: ${sumB} pts`;
+    if (sumA < sumB) { winTeam = 0; STATE.scores[0]++; STATE.roundWinner = 0; }
+    else if (sumB < sumA) { winTeam = 1; STATE.scores[1]++; STATE.roundWinner = 1; }
+    else { winTeam = -1; STATE.roundWinner = STATE.lastPlayed ?? null; }
+    msg = `JOGO trancado! (${sumA}x${sumB})`;
   }
 
   const resDetail = document.getElementById('res-detail');
   if (resDetail) resDetail.textContent = detail;
 
   if (netMode === 'host') {
-    broadcastToClients({ type: 'end_round', winTeam, idx: winnerIdx, msg, hands: STATE.hands });
+    const safeHands = STATE.hands.map(h => Array.isArray(h) ? h : []);
+    broadcastToClients({ type: 'end_round', winTeam, idx: winnerIdx, msg, hands: safeHands });
     broadcastState();
   }
 
   executeEndRoundUI(winTeam, winnerIdx, msg);
 }
 
-// ── JOGADA ─────────────────────────────────────────────────────────────────
 function play(pIdx, tIdx, side) {
   if (STATE.isOver) return;
 
-  // Validação: Verificar se o jogador é o atual e se tIdx existe
-  if (STATE.current !== pIdx || !STATE.hands[pIdx][tIdx]) {
-      console.warn("Jogada inválida ignorada:", pIdx, tIdx);
+  const hand = STATE?.hands?.[pIdx];
+  if (STATE.current !== pIdx || !Array.isArray(hand) || !hand[tIdx]) {
+      console.warn("jogada invalida ignorada:", pIdx, tIdx);
       return;
   }
 
   if (netMode === 'client') {
-    // ✅ FIX: Cliente só pode jogar por si mesmo
-    if (pIdx !== myPlayerIdx) {
-      console.warn("Cliente tentou jogar pelo jogador", pIdx, "— ignorado");
-      return;
-    }
+    if (pIdx !== myPlayerIdx || !myConnToHost || !myConnToHost.open) return;
     const picker = document.getElementById('side-picker');
     if (picker) picker.style.display = 'none';
     STATE.isBlocked = true;
@@ -279,8 +227,8 @@ function play(pIdx, tIdx, side) {
     return;
   }
 
-  STATE.playerPassed.fill(false);  STATE.passCount = 0;
-  STATE.lastPlayed = pIdx; // Registra quem jogou a última peça
+  STATE.playerPassed.fill(false); STATE.passCount = 0;
+  STATE.lastPlayed = pIdx;
 
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];
   STATE.handSize[pIdx]--;
@@ -289,31 +237,27 @@ function play(pIdx, tIdx, side) {
   const normalizedSide = (side === 'any') ? 0 : side;
   const placement = calculateTilePlacement(tile, normalizedSide);
 
-  if (!STATE.positions.length) {
-    if (tile[0] === tile[1]) {
-      STATE.extremes = [tile[0], tile[0]];
-    } else {
-      STATE.extremes = [tile[0], tile[1]];
-    }
-  } else {
-    STATE.extremes[normalizedSide] = placement.vOther;
-  }
+  if (!STATE.positions.length) STATE.extremes = (tile[0] === tile[1]) ? [tile[0], tile[0]] : [tile[0], tile[1]];
+  else STATE.extremes[normalizedSide] = placement.vOther;
 
   STATE.positions.push(placement.nP);
-  try { updateSnakeScale(); } catch (err) {}
+  try { updateSnakeScale(); } catch (err) { console.error(err); }
 
   if (netMode === 'host') broadcastToClients({ type: 'animate_play', pIdx, nP: placement.nP, tIdx });
 
   animateTile(pIdx, placement.nP, () => {
+    STATE.isBlocked = false;
     renderBoardFromState();
-    broadcastState();
+    if (typeof broadcastState === 'function') broadcastState();
     if (STATE.hands[pIdx].length === 0) {
       STATE.roundWinner = pIdx;
       endRound('win', pIdx);
     } else {
       STATE.current = (STATE.current + 1) % 4;
-      broadcastState();
-      processTurn();
+      if (typeof broadcastState === 'function') broadcastState();
+      if (typeof processTurn === 'function') processTurn();
     }
   });
 }
+
+

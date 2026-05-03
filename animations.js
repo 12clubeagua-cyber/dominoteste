@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════════════════════
-   ANIMAÇÕES E CÂMERA (animations.js)
-═══════════════════════════════════════════════════════ */
+/* 
+   ANIMACOES E CAMERA (animations.js)
+ */
 
 function runShuffleAnimation(cb) {
   const snake = document.getElementById('snake');
@@ -9,10 +9,10 @@ function runShuffleAnimation(cb) {
       return;
   }
 
-  // Limpa animações anteriores caso existam
+  // Limpa animacoes anteriores caso existam
   snake.innerHTML = '';
 
-  window.minScaleReached = CONFIG.GAME.SNAKE_MAX_SCALE;
+  window.minScaleReached = CONFIG?.GAME?.SNAKE_MAX_SCALE ?? 0.3;
   window.currentSnakeScale = window.minScaleReached;
   window.currentSnakeCx = 0;
   window.currentSnakeCy = 0;
@@ -35,7 +35,7 @@ function runShuffleAnimation(cb) {
     playClack(400 + Math.random() * 200, 0.04);
     if (++shuffles >= 8) {
       clearInterval(si);
-      // Remove elementos de animação
+      // Remove elementos de animacao
       fakes.forEach(el => el.remove());
       setTimeout(() => { if (cb) cb(); }, 300);
     }
@@ -49,10 +49,11 @@ function scatter(el) {
 }
 
 function animateTile(pIdx, target, cb) {
-  // Adiciona o tile à board como 'temp-hidden' para que o renderBoardFromState o ignore
+  // Adiciona o tile ao board como 'temp-hidden' para que o renderBoardFromState o ignore
   const boardEl = document.getElementById('snake');
+  let hiddenTile = null;
   if (boardEl) {
-    const hiddenTile = document.createElement('div');
+    hiddenTile = document.createElement('div');
     hiddenTile.className = 'temp-hidden';
     hiddenTile.dataset.x = target.x;
     hiddenTile.dataset.y = target.y;
@@ -65,16 +66,26 @@ function animateTile(pIdx, target, cb) {
   proxy.style.transition = 'none';
   document.body.appendChild(proxy);
 
-  const viewPos = (pIdx - myPlayerIdx + 4) % 4;
+  const viewPos = (pIdx - (myPlayerIdx ?? 0) + 4) % 4;
   const handEl = document.getElementById(`hand-${viewPos}`);
-  if (!handEl) { proxy.remove(); if(cb) cb(); return; }
+  if (!handEl) { 
+      if (hiddenTile) hiddenTile.remove();
+      proxy.remove(); 
+      if(cb) cb(); 
+      return; 
+  }
   
   const hRect = handEl.getBoundingClientRect();
   const startX = hRect.left + hRect.width/2;
   const startY = hRect.top  + hRect.height/2;
 
   const boardContainer = document.getElementById('board-container');
-  if (!boardContainer) { proxy.remove(); if(cb) cb(); return; }
+  if (!boardContainer) { 
+      if (hiddenTile) hiddenTile.remove();
+      proxy.remove(); 
+      if(cb) cb(); 
+      return; 
+  }
   
   const bRect = boardContainer.getBoundingClientRect();
   const bCX = bRect.left + bRect.width/2;
@@ -96,8 +107,10 @@ function animateTile(pIdx, target, cb) {
     else {
       playClack();
       // Remove o tile 'temp-hidden' antes de executar o cb (que chama renderBoardFromState)
-      const h = boardEl.querySelector('.temp-hidden');
-      if (h) h.remove();
+      if (boardEl) {
+        const h = boardEl.querySelector('.temp-hidden');
+        if (h) h.remove();
+      }
       setTimeout(() => { proxy.remove(); if(cb) cb(); }, 10);
     }
   }
@@ -107,7 +120,7 @@ function animateTile(pIdx, target, cb) {
 function updateSnakeScale() {
   const s = document.getElementById('snake');
   const b = document.getElementById('board-container');
-  if (!STATE.positions.length || !s || !b) return;
+  if (!STATE?.positions?.length || !s || !b) return;
 
   let minX=0, maxX=0, minY=0, maxY=0;
   STATE.positions.forEach(p => {
@@ -119,7 +132,7 @@ function updateSnakeScale() {
   const pad = 60;
   const scX = b.clientWidth  / ((maxX-minX) + pad || 1);
   const scY = b.clientHeight / ((maxY-minY) + pad || 1);
-  const target = Math.min(scX, scY, CONFIG.GAME.SNAKE_MAX_SCALE);
+  const target = Math.min(scX, scY, CONFIG?.GAME?.SNAKE_MAX_SCALE ?? 0.3);
 
   if (target < window.minScaleReached) window.minScaleReached = target;
 
@@ -130,3 +143,5 @@ function updateSnakeScale() {
   window.currentSnakeCx = cx;
   window.currentSnakeCy = cy;
 }
+
+

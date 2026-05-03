@@ -1,18 +1,22 @@
-/* ═══════════════════════════════════════════════════════
-   LÓGICA MATEMÁTICA DO JOGO (logic.js)
-═══════════════════════════════════════════════════════ */
+/* 
+   LOGICA MATEMATICA DO JOGO (logic.js)
+ */
 
 function getMoves(hand) {
-  if (!STATE.positions.length) {
-    if (STATE.roundWinner === null) {
+  if (!Array.isArray(hand)) return [];
+  if (!STATE?.positions?.length) {
+    if (STATE?.roundWinner === null) {
       const idx = hand.findIndex(t => t[0] === 6 && t[1] === 6);
       return idx !== -1 ? [{ idx, side: 'any' }] : hand.map((_, i) => ({ idx: i, side: 'any' }));
     }
     return hand.map((_, i) => ({ idx: i, side: 'any' }));
   }
+  const extremes = STATE?.extremes;
+  if (!extremes || extremes.length < 2) return [];
+
   return hand.map((t, i) => {
-    const L = t[0] === STATE.extremes[0] || t[1] === STATE.extremes[0];
-    const R = t[0] === STATE.extremes[1] || t[1] === STATE.extremes[1];
+    const L = t[0] === extremes[0] || t[1] === extremes[0];
+    const R = t[0] === extremes[1] || t[1] === extremes[1];
     if (L && R) return { idx: i, side: 'both' };
     if (L) return { idx: i, side: 0 };
     if (R) return { idx: i, side: 1 };
@@ -23,7 +27,13 @@ function getMoves(hand) {
 function calculateTilePlacement(tile, side) {
   const isD = tile[0] === tile[1];
 
-  // Primeira peça do jogo
+  if (!STATE.ends || STATE.ends.length < 2) {
+    STATE.ends = [
+      { hscX: 0, hscY: 0, dir: 0, lineCount: 0, wasDouble: false, lastVDir: 90 },
+      { hscX: 0, hscY: 0, dir: 180, lineCount: 0, wasDouble: false, lastVDir: 270 }
+    ];
+  }
+
   if (!STATE.positions.length) {
     const nP = { x: 0, y: 0, v1: tile[0], v2: tile[1], isV: !isD };
     STATE.ends[0].hscX = 0; STATE.ends[0].hscY = 0; STATE.ends[0].wasDouble = isD;
@@ -36,14 +46,17 @@ function calculateTilePlacement(tile, side) {
   const vOther = tile[0] === c ? tile[1] : tile[0];
 
   const e = STATE.ends[side];
-  let isVertFlow = (e.dir === 90 || e.dir === 270);
-  const maxInLine = isVertFlow ? CONFIG.GAME.MAX_VERT : CONFIG.GAME.MAX_HORIZ;
+  if (typeof e.dir !== 'number') e.dir = side === 0 ? 0 : 180;
+  if (typeof e.lineCount !== 'number') e.lineCount = 0;
+  if (typeof e.wasDouble !== 'boolean') e.wasDouble = false;
+  if (typeof e.lastVDir !== 'number') e.lastVDir = side === 0 ? 90 : 270;
 
-  // Direção anterior para cálculo de offset na curva
+  let isVertFlow = (e.dir === 90 || e.dir === 270);
+  const maxInLine = isVertFlow ? (CONFIG?.GAME?.MAX_VERT ?? 6) : (CONFIG?.GAME?.MAX_HORIZ ?? 6);
+
   const oldDX = e.dir === 0 ? 1 : e.dir === 180 ? -1 : 0;
   const oldDY = e.dir === 90 ? 1 : e.dir === 270 ? -1 : 0;
 
-  // Detecta mudança de direção (curva)
   if (e.lineCount >= maxInLine && !isD && !e.wasDouble) {
     if (isVertFlow) {
       e.lastVDir = e.dir;
@@ -59,15 +72,9 @@ function calculateTilePlacement(tile, side) {
   const dx = e.dir === 0 ? 1 : e.dir === 180 ? -1 : 0;
   const dy = e.dir === 90 ? 1 : e.dir === 270 ? -1 : 0;
 
-  const TW = CONFIG.GAME.TILE_W; // 18 — lado curto
-  const TL = CONFIG.GAME.TILE_L; // 36 — lado longo
+  const TW = CONFIG?.GAME?.TILE_W ?? 18;
+  const TL = CONFIG?.GAME?.TILE_L ?? 36;
 
-  /*
-   * Fórmula Universal de Posicionamento:
-   * Para evitar sobreposição (peça "em cima" da outra), calculamos o deslocamento
-   * em dois eixos: o eixo da peça anterior (oldD) e o eixo da new peça (D).
-   * Isso funciona tanto para curvas quanto para trechos retos.
-   */
   const stepOut  = (e.wasDouble ? TW / 2 : TL / 2) + (TW / 2);
   const stepSide = (isD ? TW / 2 : TL / 2) - (TW / 2);
 
@@ -87,3 +94,5 @@ function calculateTilePlacement(tile, side) {
 
   return { nP, vOther };
 }
+
+

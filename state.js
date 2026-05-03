@@ -1,9 +1,9 @@
-/* ═══════════════════════════════════════════════════════
-   ESTADO GLOBAL E CONFIGURAÇÕES (state.js)
-═══════════════════════════════════════════════════════ */
+/* 
+   ESTADO GLOBAL E CONFIGURACOES (state.js)
+ */
 
 let STATE = {
-  hands: [],                
+  hands: [[], [], [], []],                
   extremes: [null, null],   
   current: 0,               
   scores: [0, 0],           
@@ -26,25 +26,39 @@ let STATE = {
   turnTimer: null    // Timer for pending turn execution
 };
 
-// Contexto de áudio (iniciado após o primeiro clique do usuário)
+// Contexto de audio (iniciado apos o primeiro clique do usuario)
 let audioCtx = null;
 
-// Variáveis de Rede / Multiplayer
+// Variaveis de Rede / Multiplayer
 let netMode = 'offline';      // 'offline', 'host' ou 'client'
-let myPlayerIdx = 0;          // Sua posição na mesa (Host é sempre 0)
+let myPlayerIdx = 0;          // Sua posicao na mesa (Host  sempre 0)
 let myPeer = null;            // Objeto PeerJS
-let myConnToHost = null;      // Conexão do Cliente com o Host
-let connectedClients = [];    // Lista de conexões que o Host mantém
-let client_predicted = false; // Controle de latência para jogadas locais
+let myConnToHost = null;      // conexao do Cliente com o Host
+let connectedClients = [];    // Lista de conexoes que o Host mantem
+let client_predicted = false; // Controle de latencia para jogadas locais
 
-// Reconexão
+// Reconexao
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY_MS = 3000; // 3s entre tentativas
 let reconnectTimer = null;
-let lastRoomCode = null;     // Guarda o código da sala para reconectar
-let lastPlayerIdx = null;    // Guarda o índice do jogador para restaurar
+let lastRoomCode = null;     // Guarda o codigo da sala para reconectar
+let lastPlayerIdx = null;    // Guarda o indice do jogador para restaurar
 let isReconnecting = false;
 
 window.visualPass = [false, false, false, false];
+
+function clearTurnTimer() {
+    if (STATE.turnTimer) {
+        clearTimeout(STATE.turnTimer);
+        STATE.turnTimer = null;
+    }
+}
+
+function resetReconnect() {
+    reconnectAttempts = 0;
+    isReconnecting = false;
+}
+
+
 
