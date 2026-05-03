@@ -233,4 +233,9 @@ function exitGame() {
   }
 }
 
+// Inicializacao
+document.addEventListener('DOMContentLoaded', () => {
+    checkAndPromptName();
+});
+
 

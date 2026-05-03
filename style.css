@@ -272,4 +272,21 @@ body {
   background: rgba(192,57,43,.2);
   color: var(--red);
 }
+
+.seat-selection-grid { display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 15px; width: 100%; }
+.team-column { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 140px; }
+.team-label { font-size: 11px; color: var(--gold); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+.team-divider { font-weight: 800; color: var(--gold); opacity: 0.5; font-size: 18px; }
+.seat-item { 
+    padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; text-align: center; font-size: 14px; color: white;
+    min-height: 45px; display: flex; align-items: center; justify-content: center;
+}
+.seat-item.occupied { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); font-weight: bold; }
+.seat-item.empty { color: rgba(255,255,255,0.3); font-style: italic; }
+.seat-item.empty.clickable { 
+    cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.1); 
+    border-style: dashed; color: var(--gold); font-style: normal;
+}
+.seat-item.empty.clickable:hover { background: var(--gold); color: var(--bg); border-style: solid; }
 \

@@ -32,10 +32,10 @@ function initializeHost() {
   });
 
   myPeer.on('connection', (conn) => {
-    const takenIdx = connectedClients.map(c => c.assignedIdx);
+    // Inicialmente não atribui índice, aguarda escolha ou atribui o primeiro livre
     let freeIdx = -1;
     for(let i=1; i<=3; i++) {
-        if (!takenIdx.includes(i)) { freeIdx = i; break; }
+        if (!connectedClients.some(c => c.assignedIdx === i)) { freeIdx = i; break; }
     }
 
     if (freeIdx === -1) {
@@ -47,8 +47,8 @@ function initializeHost() {
     connectedClients.push(conn);
 
     conn.on('open', () => {
-        conn.send({ type: 'welcome', yourIdx: freeIdx, names: NameManager.getAll() });
-        NameManager.set(freeIdx, `Jogador ${freeIdx}`);
+        conn.send({ type: 'welcome', yourIdx: conn.assignedIdx, names: NameManager.getAll() });
+        NameManager.set(conn.assignedIdx, `Jogador ${conn.assignedIdx}`);
         updateHostLobbyUI();
         broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
     });
@@ -58,6 +58,28 @@ function initializeHost() {
           NameManager.set(conn.assignedIdx, data.name);
           updateHostLobbyUI();
           broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
+      }
+
+      if (data.type === 'request_seat') {
+          const requestedIdx = data.seatIdx;
+          const isAvailable = (requestedIdx !== 0) && !connectedClients.some(c => c.assignedIdx === requestedIdx);
+          
+          if (isAvailable) {
+              const oldIdx = conn.assignedIdx;
+              conn.assignedIdx = requestedIdx;
+              
+              // Se o nome era o padrão, atualiza para o novo índice
+              if (NameManager.get(oldIdx) === `Jogador ${oldIdx}`) {
+                  NameManager.set(requestedIdx, `Jogador ${requestedIdx}`);
+              } else {
+                  NameManager.set(requestedIdx, NameManager.get(oldIdx));
+              }
+              
+              NameManager.set(oldIdx, 'Aguardando...');
+              conn.send({ type: 'welcome', yourIdx: requestedIdx, names: NameManager.getAll() });
+              updateHostLobbyUI();
+              broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
+          }
       }
       
       if (data.type === 'reconnect') {
@@ -108,16 +130,11 @@ function broadcastState() {
 }
 
 function updateHostLobbyUI() {
-  const listEl = document.getElementById('host-player-list');
+  if (typeof SeatManager !== 'undefined' && SeatManager.renderSelectionUI) {
+      SeatManager.renderSelectionUI();
+  }
+  
   const statusEl = document.getElementById('host-status');
-  if (!listEl) return;
-
-  let html = `<div class="player-item">Voce (Host) - ${NameManager.get(0)}</div>`;
-  connectedClients.forEach(conn => {
-    if (conn.assignedIdx) html += `<div class="player-item">Jogador ${conn.assignedIdx} - ${NameManager.get(conn.assignedIdx)}</div>`;
-  });
-
-  listEl.innerHTML = html;
   if (statusEl) statusEl.innerText = `Aguardando conexoes... (${connectedClients.length + 1}/4)`;
   const btnStart = document.getElementById('btn-start-multi');
   if (btnStart) btnStart.style.display = (connectedClients.length >= 1) ? 'flex' : 'none'; 
