@@ -141,23 +141,44 @@ function renderHands(reveal = false) {
     tilesContainer.className = 'tiles-row';
     c.appendChild(tilesContainer);
 
-    STATE.hands[i]?.forEach((t, idx) => {
-      const el = document.createElement('div');
-      const hidden = !reveal && i !== myPlayerIdx;
-      el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${hidden ? 'hidden' : ''} ${t[0] === t[1] ? 'tile-double' : ''}`;
-      el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
-      if (i === myPlayerIdx) el.id = `my-tile-${idx}`;
-      tilesContainer.appendChild(el);
-    });
+    const isMyHand = (i === myPlayerIdx);
+    if (isMyHand) {
+      (STATE.hands[i] || []).forEach((t, idx) => {
+        const el = document.createElement('div');
+        el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${t[0] === t[1] ? 'tile-double' : ''}`;
+        el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
+        el.id = `my-tile-${idx}`;
+        tilesContainer.appendChild(el);
+      });
+    } else {
+      const count = reveal
+        ? (STATE.hands[i] || []).length
+        : (STATE.handSize[i] || 0);
+      for (let k = 0; k < count; k++) {
+        const el = document.createElement('div');
+        if (reveal && STATE.hands[i]?.[k]) {
+          const t = STATE.hands[i][k];
+          el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${t[0] === t[1] ? 'tile-double' : ''}`;
+          el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
+        } else {
+          el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} hidden`;
+          el.innerHTML = `<div class="half"></div><div class="half"></div>`;
+        }
+        tilesContainer.appendChild(el);
+      }
+    }
 
-    if (STATE.hands[i]?.length > 0 && !STATE.isOver) {
+    const displayCount = (i === myPlayerIdx)
+      ? (STATE.hands[i]?.length || 0)
+      : (STATE.handSize[i] || 0);
+
+    if (displayCount > 0 && !STATE.isOver) {
       const ind = document.createElement('div');
       ind.className = 'hand-indicators';
 
-      // Badge (Contador) primeiro
       const badge = document.createElement('div');
       badge.className = 'tile-count';
-      badge.innerText = STATE.hands[i].length;
+      badge.innerText = displayCount;
       ind.appendChild(badge);
 
       // X (Passou) depois, "do outro lado"

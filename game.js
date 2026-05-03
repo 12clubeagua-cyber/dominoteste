@@ -219,7 +219,7 @@ function endRound(reason, winnerIdx) {
   if (resDetail) resDetail.textContent = detail;
 
   if (netMode === 'host') {
-    broadcastToClients({ type: 'end_round', winTeam, idx: winnerIdx, msg });
+    broadcastToClients({ type: 'end_round', winTeam, idx: winnerIdx, msg, hands: STATE.hands });
     broadcastState();
   }
 

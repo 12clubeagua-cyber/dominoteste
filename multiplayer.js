@@ -246,8 +246,10 @@ function connectToHost() {
           playPass();
       }
       
-      if (data.type === 'end_round') executeEndRoundUI(data.winTeam, data.idx, data.msg);
-    });
+      if (data.type === 'end_round') {
+        if (data.hands) STATE.hands = data.hands;
+        executeEndRoundUI(data.winTeam, data.idx, data.msg);
+      }    });
     
     myConnToHost.on('close', () => {
       alert("Conexão com o Host perdida.");
