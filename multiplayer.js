@@ -17,7 +17,6 @@ function initializeHost() {
   const codeEl = document.getElementById('host-code-display');
   if (codeEl) {
       codeEl.innerText = roomCode.split('-')[1];
-      console.log("Code displayed:", codeEl.innerText);
   }
   
   myPeer = new Peer(roomCode);
@@ -37,8 +36,36 @@ function initializeHost() {
   });
 
   myPeer.on('connection', (conn) => {
+    const takenIdx = connectedClients.map(c => c.assignedIdx);
+    let freeIdx = -1;
+    for(let i=1; i<=3; i++) {
+        if (!takenIdx.includes(i)) {
+            freeIdx = i;
+            break;
+        }
+    }
+
+    if (freeIdx === -1) {
+        conn.on('open', () => {
+            conn.send({ type: 'error', msg: 'Sala cheia!' });
+            setTimeout(() => conn.close(), 100);
+        });
+        return;
+    }
+
+    conn.assignedIdx = freeIdx;
+    connectedClients.push(conn);
+    console.log(`[HOST] Jogador conectado no assento ${freeIdx}`);
+
     conn.on('open', () => {
-        // ... Lógica mantida
+        conn.send({ 
+            type: 'welcome', 
+            yourIdx: freeIdx, 
+            names: NameManager.getAll() 
+        });
+        NameManager.set(freeIdx, `Jogador ${freeIdx}`);
+        updateHostLobbyUI();
+        broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
     });
     
     conn.on('data', (data) => {
@@ -48,7 +75,6 @@ function initializeHost() {
           broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
       }
       
-      // ✅ NOVO: tratar reconexão
       if (data.type === 'reconnect') {
           const requestedIdx = data.playerIdx;
           const seatValid = [1, 2, 3].includes(requestedIdx);
@@ -73,32 +99,69 @@ function initializeHost() {
     });
 
     conn.on('close', () => {
-        // ... (lógica existente mantida)
+        console.log(`[HOST] Jogador ${conn.assignedIdx} desconectou.`);
+        connectedClients = connectedClients.filter(c => c !== conn);
+        NameManager.set(conn.assignedIdx, 'Aguardando...');
+        updateHostLobbyUI();
+        if (!STATE.isOver) {
+             STATE.isBlocked = true;
+             updateStatus(`Jogador ${conn.assignedIdx} desconectou. Jogo pausado.`, 'pass');
+             broadcastToClients({ type: 'status', text: 'Jogador desconectou. Aguardando...', cls: 'pass' });
+        }
     });
   });
 }
 
-// Handler de dados unificado
-function handleClientData(data) {
-    if (data.type === 'sync_names') {
-        NameManager.updateAll(data.names);
-        renderHands(STATE.isOver); 
-    }
-    if (data.type === 'welcome') {
-        myPlayerIdx = data.yourIdx;
-        if (data.names) NameManager.updateAll(data.names);
-    }
-    if (data.type === 'game_start') {
-        myPlayerIdx = data.yourIdx;
-        if (data.names) NameManager.updateAll(data.names);
-        const startScreen = document.getElementById('start-screen');
-        if (startScreen) startScreen.style.display = 'none';
-        updateScoreDisplay(); 
-    }
-    if (data.type === 'shuffle_start') runShuffleAnimation();
+function broadcastState() {
+  if (netMode === 'host') {
+    // Cria uma cópia profunda para não modificar o estado do Host
+    const anonymizedState = JSON.parse(JSON.stringify(STATE));
     
+    // Oculta o CONTEÚDO das mãos de todos, exceto a do cliente.
+    // Mas preserva o tamanho da mão (handSize) e a estrutura para que o cliente possa renderizar.
+    connectedClients.forEach(conn => {
+        const clientIdx = conn.assignedIdx;
+        
+        // Substitui apenas o conteúdo das mãos por arrays vazios para outros jogadores,
+        // mas o STATE já contém o handSize que o cliente usará.
+        const filteredHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
+        
+        // Envia o estado
+        conn.send({ 
+            type: 'sync_state', 
+            state: { ...anonymizedState, hands: filteredHands }, 
+            names: NameManager.getAll() 
+        });
+    });
+  }
+}
+
+function updateHostLobbyUI() {
+  const listEl = document.getElementById('host-player-list');
+  const statusEl = document.getElementById('host-status');
+  if (!listEl) return;
+
+  listEl.innerHTML = `<div class="player-item">Você (Host) - ${NameManager.get(0)}</div>`;
+  let count = 1;
+  connectedClients.forEach(conn => {
+    if (conn.assignedIdx) {
+      count++;
+      listEl.innerHTML += `<div class="player-item">Jogador ${conn.assignedIdx} - ${NameManager.get(conn.assignedIdx)}</div>`;
+    }
+  });
+
+  if (statusEl) statusEl.innerText = `Aguardando conexões... (${count}/4)`;
+  const btnStart = document.getElementById('btn-start-multi');
+  if (btnStart) btnStart.style.display = (count >= 2) ? 'flex' : 'none'; 
+}
+
+function handleClientData(data) {
+    // (Lógica mantida igual)
+    if (data.type === 'sync_names') { NameManager.updateAll(data.names); renderHands(STATE.isOver); }
+    if (data.type === 'welcome') { myPlayerIdx = data.yourIdx; if (data.names) NameManager.updateAll(data.names); }
+    if (data.type === 'game_start') { myPlayerIdx = data.yourIdx; if (data.names) NameManager.updateAll(data.names); const startScreen = document.getElementById('start-screen'); if (startScreen) startScreen.style.display = 'none'; updateScoreDisplay(); }
+    if (data.type === 'shuffle_start') runShuffleAnimation();
     if (data.type === 'sync_state') {
-        // ... (lógica existente sync_state mantida)
         if (data.names) NameManager.updateAll(data.names);
         const hostState = data.state;
         STATE.hands = JSON.parse(JSON.stringify(hostState.hands));
@@ -156,9 +219,6 @@ function connectToHost() {
         reconnectAttempts = 0;
         isReconnecting = false;
         myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
-        if (isReconnecting) {
-            myConnToHost.send({ type: 'reconnect', name: NameManager.get(0), playerIdx: lastPlayerIdx });
-        }
     });
     myConnToHost.on('data', handleClientData);
     myConnToHost.on('close', () => {

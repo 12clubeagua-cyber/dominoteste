@@ -44,3 +44,5 @@ let lastRoomCode = null;     // Guarda o código da sala para reconectar
 let lastPlayerIdx = null;    // Guarda o índice do jogador para restaurar
 let isReconnecting = false;
 
+window.visualPass = [false, false, false, false];
+
