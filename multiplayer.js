@@ -185,6 +185,9 @@ function handleClientData(data) {
   if (data.type === 'sync_state') {
     if (data.names) NameManager.updateAll(data.names);
     
+    // Esconde qualquer overlay de conexão se existir
+    hideReconnectOverlay();
+    
     // Só processa se já souber quem sou
     if (myPlayerIdx === undefined || myPlayerIdx === null) {
       console.warn("Recebi sync_state mas não sei meu índice ainda");
@@ -257,7 +260,6 @@ function connectToHost() {
     });
     myConnToHost.on('data', handleClientData);
     myConnToHost.on('close', () => {
-        if (STATE.isOver && STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) return;
         tentarReconectar();
     });
     myPeer.on('error', (err) => { console.error("PeerJS Error:", err); });
