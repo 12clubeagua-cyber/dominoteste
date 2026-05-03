@@ -61,10 +61,18 @@ function dealAndStart() {
   STATE.isBlocked = false;
   STATE.isShuffling = false;
 
-  broadcastState();
+  // Sincroniza imediatamente no modo host
+  if (netMode === 'host') {
+    broadcastState();
+  }
+  
   renderHands();
   renderBoardFromState();
-  processTurn();
+  
+  // Pequeno delay antes do primeiro turno para garantir renderização
+  setTimeout(() => {
+    processTurn();
+  }, 100);
 }
 
 // ── PROCESSA O TURNO DO JOGADOR ATUAL ──────────────────────────────────────
@@ -72,6 +80,17 @@ function processTurn() {
   if (STATE.isOver) return;
 
   const cur = STATE.current;
+  
+  // Verificação de segurança: se não tem mão definida, aguarda
+  if (!STATE.hands[cur]) {
+    console.warn(`Mão do jogador ${cur} não definida, aguardando sync...`);
+    if (netMode === 'client' && cur !== myPlayerIdx) {
+      updateStatus(`${NameManager.get(cur)} JOGANDO...`);
+    }
+    setTimeout(processTurn, 500); // Tenta novamente em 500ms
+    return;
+  }
+
   const moves = getMoves(STATE.hands[cur]);
 
   let isHuman = false;

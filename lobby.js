@@ -46,24 +46,27 @@ function startMatch() {
   document.getElementById('start-screen').style.display = 'none';
 
   if (netMode === 'host') {
-    // Assentos já foram atribuídos na conexão (initializeHost):
-    // 1º cliente = assento 2 (parceiro do host), 2º = assento 1, 3º = assento 3
+    // Verifica se todas as conexões estão abertas
+    const allReady = connectedClients.every(c => c && c.open);
+    if (!allReady) {
+      alert("Aguardando jogadores conectarem...");
+      return;
+    }
 
-    // 2. Constrói o mapa final de nomes
-    // Já temos o nome do Host no NameManager (index 0)
-    // Agora pegamos o nome de cada cliente conectado
-    connectedClients.forEach(conn => {
-        // Nome já foi setado via 'set_name' anteriormente pelo cliente
-    });
-
-    // 3. Broadcast final do mapa de nomes para todos
     const finalNames = NameManager.getAll();
+    
+    // Envia game_start para todos
     connectedClients.forEach((conn) => {
-       conn.send({ type: 'game_start', yourIdx: conn.assignedIdx, names: finalNames });
+       if (conn.open) {
+         conn.send({ type: 'game_start', yourIdx: conn.assignedIdx, names: finalNames });
+       }
     });
     
-    // O Host também precisa chamar startRound()
-    startRound();
+    // Aguarda 500ms para garantir que clientes processaram o game_start
+    setTimeout(() => {
+      startRound();
+    }, 500);
+    
   } else if (netMode === 'offline') {
     startRound();
   }

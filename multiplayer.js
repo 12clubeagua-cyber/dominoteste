@@ -114,24 +114,25 @@ function initializeHost() {
 
 function broadcastState() {
   if (netMode === 'host') {
-    // Cria uma cópia profunda para não modificar o estado do Host
     const anonymizedState = JSON.parse(JSON.stringify(STATE));
     
-    // Oculta o CONTEÚDO das mãos de todos, exceto a do cliente.
-    // Mas preserva o tamanho da mão (handSize) e a estrutura para que o cliente possa renderizar.
     connectedClients.forEach(conn => {
-        const clientIdx = conn.assignedIdx;
-        
-        // Substitui apenas o conteúdo das mãos por arrays vazios para outros jogadores,
-        // mas o STATE já contém o handSize que o cliente usará.
-        const filteredHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
-        
-        // Envia o estado
+      if (!conn || !conn.open || conn.assignedIdx === undefined) return;
+      
+      const clientIdx = conn.assignedIdx;
+      const filteredHands = anonymizedState.hands.map((hand, idx) => 
+        (idx === clientIdx ? hand : [])
+      );
+      
+      try {
         conn.send({ 
-            type: 'sync_state', 
-            state: { ...anonymizedState, hands: filteredHands }, 
-            names: NameManager.getAll() 
+          type: 'sync_state', 
+          state: { ...anonymizedState, hands: filteredHands }, 
+          names: NameManager.getAll() 
         });
+      } catch(e) {
+        console.error("Erro ao enviar estado:", e);
+      }
     });
   }
 }
@@ -156,49 +157,83 @@ function updateHostLobbyUI() {
 }
 
 function handleClientData(data) {
-    // (Lógica mantida igual)
-    if (data.type === 'sync_names') { NameManager.updateAll(data.names); renderHands(STATE.isOver); }
-    if (data.type === 'welcome') { myPlayerIdx = data.yourIdx; if (data.names) NameManager.updateAll(data.names); }
-    if (data.type === 'game_start') { myPlayerIdx = data.yourIdx; if (data.names) NameManager.updateAll(data.names); const startScreen = document.getElementById('start-screen'); if (startScreen) startScreen.style.display = 'none'; updateScoreDisplay(); }
-    if (data.type === 'shuffle_start') runShuffleAnimation();
-    if (data.type === 'sync_state') {
-        if (data.names) NameManager.updateAll(data.names);
-        const hostState = data.state;
-        STATE.hands = JSON.parse(JSON.stringify(hostState.hands));
-        STATE.handSize = [...hostState.handSize];
-        STATE.extremes = [...hostState.extremes];
-        STATE.current = hostState.current;
-        STATE.scores = [...hostState.scores];
-        STATE.isOver = hostState.isOver;
-        STATE.isBlocked = hostState.isBlocked;
-        STATE.positions = JSON.parse(JSON.stringify(hostState.positions));
-        STATE.playerPassed = [...hostState.playerPassed];
-        STATE.passCount = hostState.passCount;
-        STATE.ends = JSON.parse(JSON.stringify(hostState.ends));
-        client_predicted = false;
-        updateScoreDisplay();
-        renderBoardFromState();
-        renderHands(STATE.isOver);
-        updateSnakeScale();
-        if (!STATE.isOver && STATE.current === myPlayerIdx) {
-            setTimeout(processTurn, 100);
-        } else if (!STATE.isOver) {
-            STATE.isBlocked = true;
-            updateStatusLocal(`${NameManager.get(STATE.current)} JOGANDO...`);
-        }
-    }      
-    if (data.type === 'animate_play') {
-         client_predicted = false;
-         const alreadyExists = STATE.positions.some(p => p.x === data.nP.x && p.y === data.nP.y);
-         if (!alreadyExists) STATE.positions.push(data.nP);
-         animateTile(data.pIdx, data.nP, () => { renderBoardFromState(); });
+  if (data.type === 'sync_names') { 
+    NameManager.updateAll(data.names); 
+    renderHands(STATE.isOver); 
+  }
+  
+  if (data.type === 'welcome') { 
+    myPlayerIdx = data.yourIdx; 
+    if (data.names) NameManager.updateAll(data.names); 
+  }
+  
+  if (data.type === 'game_start') { 
+    myPlayerIdx = data.yourIdx; 
+    if (data.names) NameManager.updateAll(data.names); 
+    const startScreen = document.getElementById('start-screen'); 
+    if (startScreen) startScreen.style.display = 'none'; 
+    updateScoreDisplay();
+    // Limpa estado anterior para evitar conflitos
+    STATE.positions = [];
+    STATE.hands = [];
+  }
+  
+  if (data.type === 'shuffle_start') {
+    runShuffleAnimation();
+  }
+  
+  if (data.type === 'sync_state') {
+    if (data.names) NameManager.updateAll(data.names);
+    
+    // Só processa se já souber quem sou
+    if (myPlayerIdx === undefined || myPlayerIdx === null) {
+      console.warn("Recebi sync_state mas não sei meu índice ainda");
+      return;
     }
-    if (data.type === 'status') updateStatusLocal(data.text, data.cls);
-    if (data.type === 'animate_pass') { triggerPassVisual(data.pIdx); playPass(); }
-    if (data.type === 'end_round') {
-        if (data.hands) STATE.hands = data.hands;
-        executeEndRoundUI(data.winTeam, data.idx, data.msg);
+    
+    const hostState = data.state;
+    
+    // Atualiza estado preservando referências se necessário
+    STATE.hands = JSON.parse(JSON.stringify(hostState.hands));
+    STATE.handSize = [...hostState.handSize];
+    STATE.extremes = [...hostState.extremes];
+    STATE.current = hostState.current;
+    STATE.scores = [...hostState.scores];
+    STATE.isOver = hostState.isOver;
+    STATE.isBlocked = hostState.isBlocked;
+    STATE.positions = JSON.parse(JSON.stringify(hostState.positions || []));
+    STATE.playerPassed = [...(hostState.playerPassed || [false,false,false,false])];
+    STATE.passCount = hostState.passCount || 0;
+    STATE.ends = JSON.parse(JSON.stringify(hostState.ends || []));
+    
+    client_predicted = false;
+    updateScoreDisplay();
+    renderBoardFromState();
+    renderHands(STATE.isOver);
+    updateSnakeScale();
+    
+    if (!STATE.isOver && STATE.current === myPlayerIdx) {
+      // Remove bloqueio se for nossa vez
+      STATE.isBlocked = false;
+      setTimeout(processTurn, 100);
+    } else if (!STATE.isOver) {
+      STATE.isBlocked = true;
+      updateStatusLocal(`${NameManager.get(STATE.current)} JOGANDO...`);
     }
+  }
+  
+  if (data.type === 'animate_play') {
+       client_predicted = false;
+       const alreadyExists = STATE.positions.some(p => p.x === data.nP.x && p.y === data.nP.y);
+       if (!alreadyExists) STATE.positions.push(data.nP);
+       animateTile(data.pIdx, data.nP, () => { renderBoardFromState(); });
+  }
+  if (data.type === 'status') updateStatusLocal(data.text, data.cls);
+  if (data.type === 'animate_pass') { triggerPassVisual(data.pIdx); playPass(); }
+  if (data.type === 'end_round') {
+      if (data.hands) STATE.hands = data.hands;
+      executeEndRoundUI(data.winTeam, data.idx, data.msg);
+  }
 }
 
 function connectToHost() {
