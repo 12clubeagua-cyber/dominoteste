@@ -212,6 +212,7 @@ function executeEndRoundUI(winTeam, idx, msg) {
   }
 
   if (STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore) {
+    console.log(`[UI] Fim da partida. ScoreA: ${STATE.scores[0]}, ScoreB: ${STATE.scores[1]}, Target: ${STATE.targetScore}`);
     // Alguém atingiu os pontos para vencer a partida inteira
     const isMyTeamWinner = (STATE.scores[0] >= STATE.targetScore)
       ? (myPlayerIdx % 2 === 0)
