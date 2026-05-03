@@ -25,6 +25,16 @@ function getMoves(hand) {
 }
 
 function calculateTilePlacement(tile, side) {
+  if (!Array.isArray(tile) || tile.length < 2) {
+    console.warn('calculateTilePlacement: tile invalido', tile);
+    return null;
+  }
+  
+  if (typeof side !== 'number' || side < 0 || side > 1) {
+    console.warn('calculateTilePlacement: side invalido', side);
+    side = 0;  // Default seguro
+  }
+
   const isD = tile[0] === tile[1];
 
   if (!STATE.ends || STATE.ends.length < 2) {
@@ -50,7 +60,9 @@ function calculateTilePlacement(tile, side) {
   if (typeof e.lineCount !== 'number') e.lineCount = 0;
   if (typeof e.wasDouble !== 'boolean') e.wasDouble = false;
   if (typeof e.lastVDir !== 'number') e.lastVDir = side === 0 ? 90 : 270;
-
+  // ... resto do codigo ...
+  
+  // (Mantendo o resto da funcao original)
   let isVertFlow = (e.dir === 90 || e.dir === 270);
   const maxInLine = isVertFlow ? (CONFIG?.GAME?.MAX_VERT ?? 6) : (CONFIG?.GAME?.MAX_HORIZ ?? 6);
 

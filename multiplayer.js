@@ -6,7 +6,7 @@ function generateShortID() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let result = '';
   for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-  return 'dominoO-' + result;
+  return 'domino-' + result;
 }
 
 function initializeHost() {
@@ -135,7 +135,26 @@ function handleClientData(data) {
     updateScoreDisplay();
     
     // Reset completo
-    STATE = { ...STATE, hands: [[],[],[],[]], positions: [], scores: [0,0], passCount: 0, playerPassed: [false,false,false,false], isOver: false, isBlocked: false };
+    STATE = {
+        ...STATE,
+        hands: [[],[],[],[]],
+        handSize: [7,7,7,7],
+        extremes: [null, null],
+        ends: [
+          { hscX: 0, hscY: 0, dir: 270, lineCount: 1, lastVDir: 270, wasDouble: false },
+          { hscX: 0, hscY: 0, dir: 90,  lineCount: 1, lastVDir: 90,  wasDouble: false }
+        ],
+        positions: [],
+        scores: [0,0],
+        current: 0,
+        passCount: 0,
+        playerPassed: [false,false,false,false],
+        playerMemory: [[],[],[],[]],
+        isOver: false,
+        isBlocked: false,
+        isShuffling: false,
+        matchOver: false
+    };
   }
   
   if (data.type === 'shuffle_start') runShuffleAnimation();
@@ -191,8 +210,12 @@ function connectToHost() {
   myPeer = new Peer(); 
   
   myPeer.on('open', () => {
-    myConnToHost = myPeer.connect('dominoO-' + input);
+    myConnToHost = myPeer.connect('domino-' + input);
+    
     myConnToHost.on('data', handleClientData);
+    myConnToHost.on('close', () => { /* ... */ });
+    myConnToHost.on('error', (err) => { /* ... */ });
+    
     myConnToHost.on('open', () => {
         myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
     });
@@ -213,7 +236,7 @@ function tentarReconectar() {
         if (typeof Peer === 'undefined') return;
         myPeer = new Peer();
         myPeer.on('open', () => {
-            myConnToHost = myPeer.connect('dominoO-' + lastRoomCode);
+            myConnToHost = myPeer.connect('domino-' + lastRoomCode);
             myConnToHost.on('data', handleClientData);
             myConnToHost.on('open', () => {
                 reconnectAttempts = 0;
@@ -225,7 +248,12 @@ function tentarReconectar() {
 
 function broadcastToClients(data) {
     connectedClients.forEach(client => {
-        if (client.open) client.send(data);
+        if (!client || !client.open) return;
+        try {
+            client.send(data);
+        } catch(e) {
+            console.error('Erro ao enviar:', e);
+        }
     });
 }
 

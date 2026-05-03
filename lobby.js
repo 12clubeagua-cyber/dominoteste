@@ -12,6 +12,11 @@ function goToStep(stepId) {
 }
 
 function selectMode(mode) {
+  const VALID_MODES = ['offline', 'host', 'client'];
+  if (!VALID_MODES.includes(mode)) {
+    console.warn('selectMode: mode invalido', mode);
+    mode = 'offline';
+  }
   netMode = mode;
   if (mode === 'offline' || mode === 'host') {
     goToStep('step-diff');
@@ -33,6 +38,10 @@ function selectDiff(diff) {
 }
 
 function selectGoal(limit) {
+  if (typeof limit !== 'number' || limit < 1) {
+    console.warn('selectGoal: limit invalido', limit);
+    limit = 3;  // Default
+  }
   STATE.targetScore = limit;
   if (netMode === 'offline') {
     startMatch();

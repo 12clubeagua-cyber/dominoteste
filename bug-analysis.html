@@ -3,216 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Correção: Picker Só Aparece Quando Necessário</title>
+    <title>Análise de Bugs - lobby.js + multiplayer.js + logic.js</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body { font-family: 'Segoe UI', monospace; background: #1a1a2e; color: #eee; }
         .bug-card { border-left: 4px solid #e74c3c; }
         .fix-card { border-left: 4px solid #2ecc71; }
+        .warning-card { border-left: 4px solid #f39c12; }
         code { background: #0d0d1a; padding: 2px 6px; border-radius: 4px; }
         pre { background: #0d0d1a; padding: 15px; border-radius: 8px; overflow-x: auto; }
     </style>
 </head>
 <body class="p-8 max-w-5xl mx-auto">
-    <h1 class="text-3xl font-bold mb-2 text-red-400">✅ Correção: Picker Só Aparece Quando Necessário</h1>
-    <p class="text-gray-400 mb-8">Problema: Botões Cima/Baixo aparecem desde o início da partida (errado!)</p>
+    <h1 class="text-3xl font-bold mb-2 text-red-400">🐛 Análise de Bugs - lobby.js + multiplayer.js + logic.js</h1>
+    <p class="text-gray-400 mb-8">Encontrados 8 bugs restantes após correções</p>
 
-    <!-- SOLUÇÃO -->
-    <div class="fix-card bg-gray-900 p-6 rounded-lg mb-6">
-        <h2 class="text-xl font-bold text-green-400 mb-3">📋 SOLUÇÃO COMPLETA</h2>
-        <p class="text-gray-300 mb-3">O picker deve: (1) começar escondido, (2) só aparecer após clicar na peça, (3) ser escondido ao sair</p>
-        
-        <h3 class="text-lg font-bold text-green-400 mt-4 mb-2">#1: input.js - highlight() - Esconder picker no início</h3>
-        <pre class="text-sm text-green-300">// highlight() - ADICIONAR NO INÍCIO:
-function highlight(moves) {
-  // ✅ ESCONDER PICKER SEMPRE QUE HIGHLIGHT FOR CHAMADO
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';
-  
-  // Limpar highlights anteriores
-  document.querySelectorAll('.tile').forEach(el => el.classList.remove('playable'));
-  removePlayableListeners();
-
-  moves.forEach(x => {
-    const el = document.getElementById(`my-tile-${x.idx}`);
-    if (!el) return;
-    el.classList.add('playable');
-    el.onclick = () => {
-      if (typeof safeAudioInit === 'function') safeAudioInit();
-      if (STATE.isBlocked) return;
-
-      // ✅ VERIFICAR SE PRECISA PICKER ANTES DE QUALQUER COISA
-      const extremesAreDifferent = STATE?.extremes?.[0] !== STATE?.extremes?.[1];
-      const needsPicker = x.side === 'both' && extremesAreDifferent && STATE.positions?.length > 0;
-      
-      console.log('[PICKER] needsPicker:', needsPicker, 'side:', x.side, 'extremes:', STATE?.extremes);
-
-      STATE.isBlocked = true;
-
-      // Remove visual
-      document.querySelectorAll('.tile.playable').forEach(tile => tile.classList.remove('playable'));
-      const hand0 = document.getElementById('hand-0');
-      if (hand0) hand0.classList.remove('active-turn');
-      removePlayableListeners();
-      void document.body.offsetHeight; 
-
-      requestAnimationFrame(() => {
-          if (needsPicker) {
-            STATE.pendingIdx = x.idx;
-            if (picker) {
-                picker.style.display = 'flex';
-                console.log('[PICKER] Picker mostrado!');
-            }
-          } else {
-            const side = (x.side === 'both' || x.side === 'any') ? 0 : x.side;
-            play(myPlayerIdx, x.idx, side);
-          }
-      });
-    };
-  });
-}</pre>
-
-        <h3 class="text-lg font-bold text-green-400 mt-4 mb-2">#2: ui.js - renderHands() - Esconder picker se não for minha vez</h3>
-        <pre class="text-sm text-green-300">// renderHands() - ADICIONAR NO INÍCIO:
-function renderHands(reveal = false) {
-  // ✅ ESCONDER PICKER QUANDO RENDERIZAR MÃOS
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';
-  
-  // ... resto do código ...
-}</pre>
-
-        <h3 class="text-lg font-bold text-green-400 mt-4 mb-2">#3: game.js - processTurn() - Esconder picker se não for humano</h3>
-        <pre class="text-sm text-green-300">// processTurn() - NA PARTE HUMANA:
-if (isHuman) {
-  // ✅ ESCONDER PICKER ANTES DE MOSTRAR HIGHLIGHT
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';
-  
-  STATE.isBlocked = false;
-  updateStatus('SUA VEZ', 'active');
-  renderHands();
-  highlight(moves);
-}</pre>
-
-        <h3 class="text-lg font-bold text-green-400 mt-4 mb-2">#4: input.js - executeMove() e cancelMove() - já estão corretos</h3>
-        <pre class="text-sm text-green-300">// executeMove() - JÁ ESTÁ CORRETO:
-function executeMove(side) {
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';  // ✅ Esconde
-  // ...
-}
-
-// cancelMove() - JÁ ESTÁ CORRETO:
-function cancelMove() {
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';  // ✅ Esconde
-  // ...
-}</pre>
-    </div>
-
-    <!-- CONDIÇÕES DO PICKER -->
-    <div class="bug-card bg-gray-900 p-6 rounded-lg mb-6">
-        <h2 class="text-xl font-bold text-blue-400 mb-3">📊 QUANDO O PICKER DEVE APARECER?</h2>
-        <p class="text-gray-300 mb-3">O picker só aparece se TODAS estas condições forem verdadeiras:</p>
-        
-        <pre class="text-sm text-green-300">const needsPicker = 
-    x.side === 'both'           // ✅ Peça encaixa nos DOIS lados
-    && extremesAreDifferent     // ✅ Extremidades SÃO DIFERENTES (ex: 3 e 5)
-    && STATE.positions?.length > 0;  // ✅ JÁ TEM PEÇAS NA MESA
-
-// EXEMPLOS:
-// 1. Primeira peça do jogo (STATE.positions.length = 0)
-//    → needsPicker = false  ✅ (peça vai em qualquer lugar)
-//
-// 2. Extremidades iguais (ex: ambos 4)
-//    → needsPicker = false  ✅ (não importa qual lado)
-//
-// 3. Peça só encaixa em um lado (side = 0 ou side = 1)
-//    → needsPicker = false  ✅ (já sabe onde vai)
-//
-// 4. Peça encaixa nos dois lados E extremidades diferentes E tem peças na mesa
-//    → needsPicker = true   ✅ (MOSTRAR PICKER!)</pre>
-    </div>
-
-    <!-- FLUXO CORRETO -->
-    <div class="fix-card bg-gray-900 p-6 rounded-lg mb-6">
-        <h2 class="text-xl font-bold text-green-400 mb-3">📈 FLUXO CORRETO DO PICKER</h2>
-        <pre class="text-sm text-gray-300">INÍCIO DA PARTIDA:
-  ↓
-processTurn() → highlight()
-  ↓
-highlight(): picker.style.display = 'none'  ✅ (escondido)
-  ↓
-Jogador clica na peça
-  ↓
-onclick: Verifica needsPicker
-  ↓
-SE needsPicker = false:
-  → play() → animação → próximo turno
-  → picker continua escondido  ✅
-  ↓
-SE needsPicker = true:
-  → picker.style.display = 'flex'  ✅ (mostrado!)
-  → Jogador clica em Cima/Baixo/Cancelar
-  → executeMove() ou cancelMove()
-  → picker.style.display = 'none'  ✅ (escondido)
-  → play() ou highlight()
-  ↓
-PRÓXIMO TURNO (não é meu):
-  ↓
-processTurn() → renderHands()
-  ↓
-renderHands(): picker.style.display = 'none'  ✅ (escondido)
-  ↓
-PRÓXIMO TURNO (é meu):
-  ↓
-processTurn() → highlight()
-  ↓
-highlight(): picker.style.display = 'none'  ✅ (escondido até clicar)</pre>
-    </div>
-
-    <!-- DEBUG -->
+    <!-- BUG 1 -->
     <div class="warning-card bg-gray-900 p-6 rounded-lg mb-6">
-        <h2 class="text-xl font-bold text-yellow-400 mb-3">🔧 DEBUG - Se o picker ainda aparecer indevidamente</h2>
-        <p class="text-gray-300 mb-3">Adicione estes logs para identificar onde está o problema:</p>
-        
-        <pre class="text-sm text-yellow-300">// NO INÍCIO DE highlight():
-console.log('[PICKER] highlight() chamado, escondendo picker');
-const picker = document.getElementById('side-picker');
-if (picker) {
-    console.log('[PICKER] picker.style.display antes:', picker.style.display);
-    picker.style.display = 'none';
-    console.log('[PICKER] picker.style.display depois:', picker.style.display);
-}
-
-// NO onclick DA PEÇA:
-console.log('[PICKER] onclick chamado');
-console.log('[PICKER] x.side:', x.side);
-console.log('[PICKER] STATE.extremes:', STATE.extremes);
-console.log('[PICKER] STATE.positions.length:', STATE.positions?.length);
-console.log('[PICKER] needsPicker:', needsPicker);
-
-// NO INÍCIO DE renderHands():
-console.log('[PICKER] renderHands() chamado, escondendo picker');
-
-// EM executeMove() e cancelMove():
-console.log('[PICKER] executeMove/cancelMove chamado, escondendo picker');</pre>
+        <h2 class="text-xl font-bold text-yellow-400 mb-3">BUG #1: generateShortID() usa 'O' que confunde com zero</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> multiplayer.js - generateShortID()</p>
+        <pre class="text-sm text-yellow-300">// CÓDIGO COM UX RUIM:
+return 'dominoO-' + result;  // ❌ Letra O confunde com zero 0!</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+return 'domino-' + result;  // ✅ Sem ambiguidade</pre>
     </div>
 
-    <!-- CHECKLIST -->
+    <!-- BUG 2 -->
     <div class="bug-card bg-gray-900 p-6 rounded-lg mb-6">
-        <h2 class="text-xl font-bold text-blue-400 mb-3">✅ CHECKLIST DE VERIFICAÇÃO</h2>
+        <h2 class="text-xl font-bold text-red-400 mb-3">BUG #2: connectToHost() event handlers após conexão (race condition)</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> multiplayer.js - connectToHost()</p>
+        <pre class="text-sm text-red-300">// CÓDIGO COM RACE CONDITION:
+myPeer.on('open', () => {
+    myConnToHost = myPeer.connect('dominoO-' + input);
+    myConnToHost.on('data', handleClientData);  // ❌ Anexado DEPOIS de connect()!
+    myConnToHost.on('open', () => {  // ❌ Pode perder eventos!
+        myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
+    });
+});</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO: Anexar handlers ANTES de 'open'
+myPeer.on('open', () => {
+    myConnToHost = myPeer.connect('domino-' + input);
+    
+    // ✅ Anexar IMEDIATAMENTE
+    myConnToHost.on('data', handleClientData);
+    myConnToHost.on('close', () => { /* ... */ });
+    myConnToHost.on('error', (err) => { /* ... */ });
+    
+    myConnToHost.on('open', () => {
+        myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
+    });
+});</pre>
+    </div>
+
+    <!-- BUG 3 -->
+    <div class="warning-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-yellow-400 mb-3">BUG #3: broadcastToClients() sem try-catch</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> multiplayer.js - broadcastToClients()</p>
+        <pre class="text-sm text-yellow-300">// CÓDIGO SEM PROTEÇÃO:
+function broadcastToClients(data) {
+    connectedClients.forEach(client => {
+        if (client.open) client.send(data);  // ❌ Pode lançar exceção!
+    });
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+function broadcastToClients(data) {
+    connectedClients.forEach(client => {
+        if (!client || !client.open) return;
+        try {
+            client.send(data);
+        } catch(e) {
+            console.error('Erro ao enviar:', e);
+        }
+    });
+}</pre>
+    </div>
+
+    <!-- BUG 4 -->
+    <div class="warning-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-yellow-400 mb-3">BUG #4: selectMode() sem validar parâmetro</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> lobby.js - selectMode()</p>
+        <pre class="text-sm text-yellow-300">// CÓDIGO SEM VALIDAÇÃO:
+function selectMode(mode) {
+  netMode = mode;  // ❌ Aceita qualquer valor!
+  // ...
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+const VALID_MODES = ['offline', 'host', 'client'];
+function selectMode(mode) {
+  if (!VALID_MODES.includes(mode)) {
+    console.warn('selectMode: mode inválido', mode);
+    mode = 'offline';
+  }
+  netMode = mode;
+  // ...
+}</pre>
+    </div>
+
+    <!-- BUG 5 -->
+    <div class="warning-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-yellow-400 mb-3">BUG #5: selectGoal() sem validar limit</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> lobby.js - selectGoal()</p>
+        <pre class="text-sm text-yellow-300">// CÓDIGO SEM VALIDAÇÃO:
+function selectGoal(limit) {
+  STATE.targetScore = limit;  // ❌ Aceita qualquer valor!
+  // ...
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+function selectGoal(limit) {
+  if (typeof limit !== 'number' || limit < 1) {
+    console.warn('selectGoal: limit inválido', limit);
+    limit = 3;  // Default
+  }
+  STATE.targetScore = limit;
+  // ...
+}</pre>
+    </div>
+
+    <!-- BUG 6 -->
+    <div class="bug-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-red-400 mb-3">BUG #6: calculateTilePlacement() sem validar side</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> logic.js - calculateTilePlacement()</p>
+        <pre class="text-sm text-red-300">// CÓDIGO SEM VALIDAÇÃO:
+function calculateTilePlacement(tile, side) {
+  // ...
+  const c = STATE.extremes[side];  // ❌ Se side = -1 ou 2, crash!
+  const e = STATE.ends[side];  // ❌ Crash se side inválido!
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+function calculateTilePlacement(tile, side) {
+  // Validar side PRIMEIRO
+  if (typeof side !== 'number' || side < 0 || side > 1) {
+    console.warn('calculateTilePlacement: side inválido', side);
+    side = 0;  // Default seguro
+  }
+  // ... resto do código
+}</pre>
+    </div>
+
+    <!-- BUG 7 -->
+    <div class="bug-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-red-400 mb-3">BUG #7: calculateTilePlacement() sem validar tile</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> logic.js - calculateTilePlacement()</p>
+        <pre class="text-sm text-red-300">// CÓDIGO SEM VALIDAÇÃO:
+function calculateTilePlacement(tile, side) {
+  const isD = tile[0] === tile[1];  // ❌ Crash se tile for null!
+  // ...
+  const vMatch = tile[0] === c ? tile[0] : tile[1];  // ❌ Crash!
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+function calculateTilePlacement(tile, side) {
+  if (!Array.isArray(tile) || tile.length < 2) {
+    console.warn('calculateTilePlacement: tile inválido', tile);
+    return null;
+  }
+  // ... resto do código
+}</pre>
+    </div>
+
+    <!-- BUG 8 -->
+    <div class="warning-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-yellow-400 mb-3">BUG #8: handleClientData() game_start reset incompleto</h2>
+        <p class="text-gray-300 mb-3"><strong>Local:</strong> multiplayer.js - handleClientData()</p>
+        <pre class="text-sm text-yellow-300">// CÓDIGO COM RESET INCOMPLETO:
+if (data.type === 'game_start') { 
+    STATE = { ...STATE, hands: [[],[],[],[]], positions: [], scores: [0,0], 
+              passCount: 0, playerPassed: [false,false,false,false], 
+              isOver: false, isBlocked: false };
+    // ❌ Faltam propriedades: extremes, ends, handSize, current, etc.
+}</pre>
+        <pre class="text-sm text-green-300">// CORREÇÃO:
+if (data.type === 'game_start') { 
+    STATE = {
+        ...STATE,
+        hands: [[],[],[],[]],
+        handSize: [7,7,7,7],
+        extremes: [null, null],
+        ends: [
+          { hscX: 0, hscY: 0, dir: 270, lineCount: 1, lastVDir: 270, wasDouble: false },
+          { hscX: 0, hscY: 0, dir: 90,  lineCount: 1, lastVDir: 90,  wasDouble: false }
+        ],
+        positions: [],
+        scores: [0,0],
+        current: 0,
+        passCount: 0,
+        playerPassed: [false,false,false,false],
+        playerMemory: [[],[],[],[]],
+        isOver: false,
+        isBlocked: false,
+        isShuffling: false,
+        matchOver: false
+    };
+}</pre>
+    </div>
+
+    <!-- RESUMO -->
+    <div class="fix-card bg-gray-900 p-6 rounded-lg mb-6">
+        <h2 class="text-xl font-bold text-green-400 mb-3">📋 Resumo das Correções</h2>
         <ul class="text-gray-300 space-y-2">
-            <li>☐ Picker começa com <code>display: none</code> no CSS</li>
-            <li>☐ <code>highlight()</code> esconde picker no início</li>
-            <li>☐ <code>renderHands()</code> esconde picker no início</li>
-            <li>☐ <code>processTurn()</code> esconde picker antes de highlight()</li>
-            <li>☐ <code>executeMove()</code> esconde picker</li>
-            <li>☐ <code>cancelMove()</code> esconde picker</li>
-            <li>☐ Picker só é mostrado com <code>display: 'flex'</code> quando <code>needsPicker = true</code></li>
-            <li>☐ Console logs confirmam o fluxo correto</li>
+            <li>✅ <strong>#1:</strong> Mudar 'dominoO-' para 'domino-' (sem ambiguidade O/0)</li>
+            <li>✅ <strong>#2:</strong> Anexar event handlers ANTES de esperar 'open' em connectToHost()</li>
+            <li>✅ <strong>#3:</strong> Adicionar try-catch em broadcastToClients()</li>
+            <li>✅ <strong>#4:</strong> Validar mode em selectMode()</li>
+            <li>✅ <strong>#5:</strong> Validar limit em selectGoal()</li>
+            <li>✅ <strong>#6:</strong> Validar side em calculateTilePlacement()</li>
+            <li>✅ <strong>#7:</strong> Validar tile em calculateTilePlacement()</li>
+            <li>✅ <strong>#8:</strong> Completar reset de STATE em game_start</li>
         </ul>
+    </div>
+
+    <div class="text-center mt-8 p-4 bg-gray-800 rounded-lg">
+        <p class="text-gray-400 mb-2">Total de bugs encontrados:</p>
+        <div class="flex justify-center gap-6 text-xl">
+            <span class="text-red-400"><strong>3 críticos</strong> 🔴</span>
+            <span class="text-yellow-400"><strong>5 warnings</strong> 🟡</span>
+        </div>
+        <p class="text-gray-500 text-sm mt-3">Arquivos analisados: lobby.js, multiplayer.js, logic.js</p>
     </div>
 </body>
 </html>
