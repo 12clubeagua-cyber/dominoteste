@@ -191,7 +191,8 @@ function renderHands(reveal = false) {
       c.appendChild(ind);
     }
   }
-  if (STATE.current === myPlayerIdx && !STATE.isBlocked && !STATE.isOver) {
+  if (STATE.current === myPlayerIdx && !STATE.isOver) {
+     STATE.isBlocked = false; // Force block removal on turn
      const moves = getMoves(STATE.hands[myPlayerIdx]);
      if (moves.length > 0) highlight(moves);
   }
