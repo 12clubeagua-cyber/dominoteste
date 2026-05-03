@@ -117,14 +117,15 @@ function processTurn() {
     if (moves.length === 0) {
       const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
       updateStatus(CONFIG.BOT.THINKING_MSG);
-      setTimeout(() => doPass(cur), delay);
+      if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+      STATE.turnTimer = setTimeout(() => doPass(cur), delay);
     } else {
       const delay = CONFIG.BOT.MIN_DELAY + Math.random() * (CONFIG.BOT.MAX_DELAY - CONFIG.BOT.MIN_DELAY);
       updateStatus(CONFIG.BOT.THINKING_MSG);
-      setTimeout(() => {
+      if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+      STATE.turnTimer = setTimeout(() => {
         const move = chooseBotMove(cur, moves);
         if (!move) {
-            console.warn("Bot falhou ao encontrar jogada. Moves available:", moves, "State hand:", STATE.hands[cur], "Extremes:", STATE.extremes);
             doPass(cur);
             return;
         }
@@ -139,7 +140,8 @@ function processTurn() {
   if (moves.length === 0) {
     STATE.isBlocked = true;
     updateStatus(`${NameManager.get(cur)} NÃO TEM PEÇA`, 'pass');
-    setTimeout(() => doPass(cur), 1500);
+    if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+    STATE.turnTimer = setTimeout(() => doPass(cur), 1500);
     return;
   }
 
@@ -187,7 +189,8 @@ function doPass(pIdx) {
   STATE.current = (STATE.current + 1) % 4;
   broadcastState();
 
-  setTimeout(() => processTurn(), CONFIG.GAME.PASS_DISPLAY_TIME);
+  if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+  STATE.turnTimer = setTimeout(() => processTurn(), CONFIG.GAME.PASS_DISPLAY_TIME);
 }
 
 // ── ENCERRA A RODADA ───────────────────────────────────────────────────────

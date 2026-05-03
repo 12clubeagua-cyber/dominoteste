@@ -22,7 +22,8 @@ let STATE = {
   handSize: [7, 7, 7, 7],   
   targetScore: 1,           
   difficulty: 'normal',     
-  autoNextInterval: null    
+  autoNextInterval: null,
+  turnTimer: null    // Timer for pending turn execution
 };
 
 // Contexto de áudio (iniciado após o primeiro clique do usuário)

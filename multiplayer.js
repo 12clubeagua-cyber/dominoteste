@@ -191,6 +191,9 @@ function handleClientData(data) {
     // Esconde qualquer overlay de conexão se existir
     hideReconnectOverlay();
     
+    // Cancela timers de turno pendentes ao sincronizar
+    if (STATE.turnTimer) clearTimeout(STATE.turnTimer);
+
     // Só processa se já souber quem sou
     if (myPlayerIdx === undefined || myPlayerIdx === null) {
       console.warn("Recebi sync_state mas não sei meu índice ainda");
