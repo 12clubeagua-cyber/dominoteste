@@ -72,3 +72,13 @@ function startMatch() {
   }
 }
 
+function cancelHosting() {
+    if (myPeer) {
+        myPeer.destroy();
+        myPeer = null;
+    }
+    connectedClients = [];
+    netMode = 'offline';
+    goToStep('step-mode');
+}
+
