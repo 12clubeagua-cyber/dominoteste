@@ -120,20 +120,19 @@ function renderBoardFromState() {
 }
 
 function renderHands(reveal = false) {
+  // 1. Reset total: limpa todas as mãos antes de renderizar
+  for (let i = 0; i < 4; i++) {
+    const c = document.getElementById(`hand-${(i - myPlayerIdx + 4) % 4}`);
+    if (c) c.innerHTML = '';
+  }
+
   for (let i = 0; i < 4; i++) {
     const viewPos = (i - myPlayerIdx + 4) % 4;
     const isSide = (viewPos === 1 || viewPos === 3);
     const c = document.getElementById(`hand-${viewPos}`);
     if (!c) continue;
-    c.innerHTML = '';
     
-    // 1. Limpa destaque de jogada anterior antes de renderizar
-    if (i === myPlayerIdx) {
-       (STATE.hands[i] || []).forEach((_, idx) => {
-           const el = document.getElementById(`my-tile-${idx}`);
-           if (el) el.classList.remove('playable');
-       });
-    }
+    // ... restante da renderização ...
 
     const isBlinking = window.visualPass && window.visualPass[i];
     c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;

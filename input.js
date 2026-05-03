@@ -22,7 +22,8 @@ function removePlayableListeners() {
 }
 
 function highlight(moves) {
-  // Limpa ouvintes antigos primeiro
+  // Limpa agressivamente qualquer destaque persistente na tela inteira
+  document.querySelectorAll('.tile').forEach(el => el.classList.remove('playable'));
   removePlayableListeners();
 
   moves.forEach(x => {
