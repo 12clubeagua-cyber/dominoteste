@@ -1,14 +1,6 @@
 /* 
-   LOGICA PEERJS (multiplayer.js) - Versão Robusta Reestruturada
+   LOGICA PEERJS (multiplayer.js)
  */
-
-const MAX_PLAYERS = 4;
-const RECONNECT_DELAY_MS = 2000;
-const MAX_RECONNECT_ATTEMPTS = 5;
-
-let seatLock = false;
-
-/* ===================== ID ===================== */
 
 function generateShortID() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -17,243 +9,125 @@ function generateShortID() {
   return 'domino-' + result;
 }
 
-/* ===================== HOST ===================== */
-
 function initializeHost() {
   if (typeof Peer === 'undefined') return;
-
   if (myPeer) myPeer.destroy();
-
   const roomCode = generateShortID();
-  lastRoomCode = roomCode;
-
+  
   const codeEl = document.getElementById('host-code-display');
   if (codeEl) codeEl.innerText = roomCode.split('-')[1];
-
+  
   myPeer = new Peer(roomCode);
-
-  myPeer.on('open', () => {
-    const btn = document.getElementById('btn-start-multi');
-    if (btn) btn.style.display = 'flex';
-  });
-
-  myPeer.on('connection', (conn) => {
-    attachConnectionHandlers(conn);
+  
+  myPeer.on('open', (id) => {
+      const btn = document.getElementById('btn-start-multi');
+      if (btn) btn.style.display = 'flex';
   });
 
   myPeer.on('error', (err) => {
     if (err.type === 'unavailable-id') {
-      console.warn("ID indisponivel, tentando novamente...");
-      setTimeout(initializeHost, 500);
+        alert("Codigo de sala ja em uso.");
+        window.location.reload();
     }
   });
-}
 
-function attachConnectionHandlers(conn) {
-  conn.on('open', () => {
-    const idx = getFreeSeat();
-    if (idx === -1) {
-      conn.send({ type: 'error', msg: 'Sala cheia' });
-      setTimeout(() => conn.close(), 100);
-      return;
+  myPeer.on('connection', (conn) => {
+    // Inicialmente não atribui índice, aguarda escolha ou atribui o primeiro livre
+    let freeIdx = -1;
+    for(let i=1; i<=3; i++) {
+        if (!connectedClients.some(c => c.assignedIdx === i)) { freeIdx = i; break; }
     }
 
-    conn.assignedIdx = idx;
+    if (freeIdx === -1) {
+        conn.on('open', () => { conn.send({ type: 'error', msg: 'Sala cheia!' }); setTimeout(() => conn.close(), 100); });
+        return;
+    }
+
+    conn.assignedIdx = freeIdx;
     connectedClients.push(conn);
 
-    NameManager.set(idx, `Jogador ${idx}`);
-
-    conn.send({
-      type: 'welcome',
-      yourIdx: idx,
-      names: NameManager.getAll()
-    });
-
-    updateHostLobbyUI();
-    broadcastNames();
-  });
-
-  conn.on('data', (data) => handleHostMessage(conn, data));
-  conn.on('close', () => cleanupConnection(conn));
-  conn.on('error', () => cleanupConnection(conn));
-}
-
-function cleanupConnection(conn) {
-  connectedClients = connectedClients.filter(c => c !== conn);
-
-  if (conn.assignedIdx !== undefined) {
-    // Só reseta o nome se não houver outra conexão ocupando o mesmo índice (evita bugs de reconexão)
-    if (!connectedClients.some(c => c.assignedIdx === conn.assignedIdx)) {
-      NameManager.set(conn.assignedIdx, 'Aguardando...');
-    }
-  }
-
-  updateHostLobbyUI();
-
-  if (!STATE.isOver) {
-    STATE.isBlocked = true;
-    updateStatus(`Jogador ${conn.assignedIdx} desconectou. Jogo pausado.`, 'pass');
-  }
-}
-
-function getFreeSeat() {
-  for (let i = 1; i < MAX_PLAYERS; i++) {
-    if (!connectedClients.some(c => c.assignedIdx === i)) return i;
-  }
-  return -1;
-}
-
-/* ===================== HOST MESSAGES ===================== */
-
-function handleHostMessage(conn, data) {
-  if (!data || !data.type) return;
-
-  switch (data.type) {
-    case 'set_name':
-      if (typeof data.name === 'string') {
-        NameManager.set(conn.assignedIdx, data.name.slice(0, 15));
+    conn.on('open', () => {
+        conn.send({ type: 'welcome', yourIdx: conn.assignedIdx, names: NameManager.getAll() });
+        NameManager.set(conn.assignedIdx, `Jogador ${conn.assignedIdx}`);
         updateHostLobbyUI();
-        broadcastNames();
+        broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
+    });
+    
+    conn.on('data', (data) => {
+      if (data.type === 'set_name') {
+          NameManager.set(conn.assignedIdx, data.name);
+          updateHostLobbyUI();
+          broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
       }
-      break;
 
-    case 'request_seat':
-      handleSeatRequest(conn, data.seatIdx);
-      break;
-
-    case 'reconnect':
-      handleReconnect(conn, data);
-      break;
-
-    case 'play_request':
-      if (STATE.current === conn.assignedIdx && !STATE.isBlocked) {
-        play(conn.assignedIdx, data.tIdx, data.side);
+      if (data.type === 'request_seat') {
+          const requestedIdx = data.seatIdx;
+          const isAvailable = (requestedIdx !== 0) && !connectedClients.some(c => c.assignedIdx === requestedIdx);
+          
+          if (isAvailable) {
+              const oldIdx = conn.assignedIdx;
+              conn.assignedIdx = requestedIdx;
+              
+              // Se o nome era o padrão, atualiza para o novo índice
+              if (NameManager.get(oldIdx) === `Jogador ${oldIdx}`) {
+                  NameManager.set(requestedIdx, `Jogador ${requestedIdx}`);
+              } else {
+                  NameManager.set(requestedIdx, NameManager.get(oldIdx));
+              }
+              
+              NameManager.set(oldIdx, 'Aguardando...');
+              conn.send({ type: 'welcome', yourIdx: requestedIdx, names: NameManager.getAll() });
+              updateHostLobbyUI();
+              broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
+          }
       }
-      break;
-
-    case 'next_round_request':
-      if (STATE.isOver) startRound();
-      break;
-  }
-}
-
-/* ===================== SEATS ===================== */
-
-function handleSeatRequest(conn, requestedIdx) {
-  if (seatLock) return;
-  seatLock = true;
-
-  const valid = requestedIdx > 0 && requestedIdx < MAX_PLAYERS;
-  const free = !connectedClients.some(c => c.assignedIdx === requestedIdx);
-
-  if (valid && free) {
-    const oldIdx = conn.assignedIdx;
-    conn.assignedIdx = requestedIdx;
-
-    // Se o nome era o padrão, atualiza para o novo índice
-    if (NameManager.get(oldIdx) === `Jogador ${oldIdx}`) {
-        NameManager.set(requestedIdx, `Jogador ${requestedIdx}`);
-    } else {
-        NameManager.set(requestedIdx, NameManager.get(oldIdx));
-    }
-
-    if (!connectedClients.some(c => c.assignedIdx === oldIdx)) {
-      NameManager.set(oldIdx, 'Aguardando...');
-    }
-
-    conn.send({
-      type: 'welcome',
-      yourIdx: requestedIdx,
-      names: NameManager.getAll()
+      
+      if (data.type === 'reconnect') {
+          const requestedIdx = data.playerIdx;
+          const seatValid = [1, 2, 3].includes(requestedIdx);
+          const seatFree  = !connectedClients.some(c => c.assignedIdx === requestedIdx);
+          
+          if (seatValid && seatFree) {
+              conn.assignedIdx = requestedIdx;
+              NameManager.set(requestedIdx, data.name);
+              broadcastState();
+              updateStatus(`${data.name} reconectado!`, 'active');
+          } else {
+              conn.send({ type: 'error', msg: seatFree ? 'Assento invalido.' : 'Assento ja ocupado.' });
+          }
+      }
+      
+      if (data.type === 'play_request' && STATE.current === conn.assignedIdx) play(conn.assignedIdx, data.tIdx, data.side);
+      if (data.type === 'next_round_request' && STATE.isOver) startRound();
     });
 
-    broadcastNames();
-    updateHostLobbyUI();
-  }
-
-  seatLock = false;
-}
-
-/* ===================== RECONNECT ===================== */
-
-function handleReconnect(conn, data) {
-  const idx = data.playerIdx;
-  const name = data.name;
-
-  const valid = idx >= 1 && idx < MAX_PLAYERS;
-  const samePlayer = NameManager.get(idx) === name;
-  const free = !connectedClients.some(c => c.assignedIdx === idx);
-
-  if (valid && (free || samePlayer)) {
-    conn.assignedIdx = idx;
-    NameManager.set(idx, name);
-
-    // Se já estava na lista (ex: timeout curto), remove o antigo
-    connectedClients = connectedClients.filter(c => c !== conn);
-    connectedClients.push(conn);
-
-    conn.send({
-      type: 'welcome',
-      yourIdx: idx,
-      names: NameManager.getAll()
+    conn.on('close', () => {
+        connectedClients = connectedClients.filter(c => c !== conn);
+        NameManager.set(conn.assignedIdx, 'Aguardando...');
+        updateHostLobbyUI();
+        if (!STATE.isOver) {
+             STATE.isBlocked = true;
+             updateStatus(`Jogador ${conn.assignedIdx} desconectou. Jogo pausado.`, 'pass');
+        }
     });
-
-    broadcastState();
-    updateStatus(`${name} reconectado!`, 'active');
-  } else {
-    conn.send({ type: 'error', msg: 'Reconexao negada' });
-  }
-}
-
-/* ===================== BROADCAST ===================== */
-
-function broadcastNames() {
-  broadcastToClients({
-    type: 'sync_names',
-    names: NameManager.getAll()
-  });
-}
-
-function broadcastToClients(data) {
-  connectedClients.forEach(c => {
-    if (!c || !c.open) return;
-    try {
-        c.send(data);
-    } catch(e) {
-        console.error('Erro ao enviar:', e);
-    }
   });
 }
 
 function broadcastState() {
   if (netMode !== 'host') return;
-
-  const base = {
-    handSize: STATE.handSize,
-    extremes: STATE.extremes,
-    current: STATE.current,
-    scores: STATE.scores,
-    isOver: STATE.isOver,
-    positions: STATE.positions,
-    // Adicione outros campos necessários do STATE aqui
-  };
+  
+  let anonymizedState;
+  try {
+      anonymizedState = JSON.parse(JSON.stringify(STATE));
+  } catch (e) { return; }
 
   connectedClients.forEach(conn => {
     if (!conn || !conn.open || conn.assignedIdx === undefined) return;
-
-    const hands = STATE.hands.map((h, i) =>
-      i === conn.assignedIdx ? h : []
-    );
-
-    conn.send({
-      type: 'sync_state',
-      state: { ...base, hands },
-      names: NameManager.getAll()
-    });
+    const clientIdx = conn.assignedIdx;
+    const filteredHands = anonymizedState.hands.map((hand, idx) => (idx === clientIdx ? hand : []));
+    conn.send({ type: 'sync_state', state: { ...anonymizedState, hands: filteredHands }, names: NameManager.getAll() });
   });
 }
-
-/* ===================== UI & LOBBY ===================== */
 
 function updateHostLobbyUI() {
   if (typeof SeatManager !== 'undefined' && SeatManager.renderSelectionUI) {
@@ -265,8 +139,6 @@ function updateHostLobbyUI() {
   const btnStart = document.getElementById('btn-start-multi');
   if (btnStart) btnStart.style.display = (connectedClients.length >= 1) ? 'flex' : 'none'; 
 }
-
-/* ===================== CLIENT ===================== */
 
 function handleClientData(data) {
   if (data.type === 'sync_names') { 
@@ -287,9 +159,11 @@ function handleClientData(data) {
     if (startScreen) startScreen.style.display = 'none'; 
     updateScoreDisplay();
 
+    // Garante que o seletor de lado esteja escondido
     const picker = document.getElementById('side-picker');
     if (picker) picker.style.display = 'none';
     
+    // Reset completo
     STATE = {
         ...STATE,
         hands: [[],[],[],[]],
@@ -328,7 +202,6 @@ function handleClientData(data) {
     STATE.current = hostState.current ?? 0;
     STATE.scores = hostState.scores || [0, 0];
     STATE.isOver = hostState.isOver ?? false;
-    STATE.positions = hostState.positions || [];
     
     updateScoreDisplay();
     renderBoardFromState();
@@ -355,68 +228,58 @@ function handleClientData(data) {
       if (data.hands) STATE.hands = data.hands;
       executeEndRoundUI(data.winTeam, data.idx, data.msg);
   }
-  if (data.type === 'error') {
-      alert(data.msg);
-      window.location.reload();
-  }
 }
 
 function connectToHost() {
   if (typeof Peer === 'undefined') return;
   const input = document.getElementById('join-code-input').value.toUpperCase().trim();
-  const statusEl = document.getElementById('client-status');
-
-  if (input.length < 5) {
-      if (statusEl) statusEl.innerText = "Codigo invalido";
-      return;
-  }
+  if (input.length < 5) return;
   
+  const statusEl = document.getElementById('client-status');
   if (statusEl) statusEl.innerText = "Conectando...";
 
   if (myPeer) myPeer.destroy();
-  
-  lastRoomCode = 'domino-' + input;
   myPeer = new Peer(); 
   
   myPeer.on('error', (err) => {
     console.error("Peer error:", err);
     if (statusEl) statusEl.innerText = "Erro: " + (err.type === 'peer-unavailable' ? "Sala nao encontrada" : err.type);
-    tentarReconectar();
   });
 
   myPeer.on('open', () => {
-    myConnToHost = myPeer.connect(lastRoomCode);
+    myConnToHost = myPeer.connect('domino-' + input);
     
     myConnToHost.on('data', handleClientData);
+    myConnToHost.on('close', () => { 
+        if (statusEl) statusEl.innerText = "Conexao fechada.";
+        setTimeout(() => window.location.reload(), 2000);
+    });
+    myConnToHost.on('error', (err) => { 
+        if (statusEl) statusEl.innerText = "Erro na conexao.";
+    });
     
     myConnToHost.on('open', () => {
-        if (statusEl) statusEl.innerText = "Conectado";
+        if (statusEl) statusEl.innerText = "Conectado! Aguardando host...";
         myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
     });
-
-    myConnToHost.on('close', tentarReconectar);
-    myConnToHost.on('error', tentarReconectar);
   });
 }
 
 function tentarReconectar() {
-    if (reconnectTimer) return;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
     
     reconnectAttempts++;
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-        console.warn("Maximo de tentativas de reconexao atingido.");
+        reconnectAttempts = 0;
         return;
     }
     
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         if (typeof Peer === 'undefined') return;
-        
-        if (myPeer) myPeer.destroy();
         myPeer = new Peer();
-        
         myPeer.on('open', () => {
-            myConnToHost = myPeer.connect(lastRoomCode);
+            myConnToHost = myPeer.connect('domino-' + lastRoomCode);
             myConnToHost.on('data', handleClientData);
             myConnToHost.on('open', () => {
                 reconnectAttempts = 0;
@@ -425,3 +288,17 @@ function tentarReconectar() {
         });
     }, RECONNECT_DELAY_MS);
 }
+
+function broadcastToClients(data) {
+    connectedClients.forEach(client => {
+        if (!client || !client.open) return;
+        try {
+            client.send(data);
+        } catch(e) {
+            console.error('Erro ao enviar:', e);
+        }
+    });
+}
+
+
+
