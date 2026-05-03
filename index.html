@@ -112,7 +112,26 @@
   </div>
 </div>
 
+<div id="reconnect-overlay" style="display:none">
+    <div id="reconnect-box">
+        <div class="reconnect-spinner"></div>
+        <div id="reconnect-title">Conexão perdida</div>
+        <div id="reconnect-msg">Tentando reconectar... (1/5)</div>
+        <button onclick="cancelReconnect()">Desistir</button>
+    </div>
+</div>
+
+<div id="reconnect-failed" style="display:none">
+    <div id="reconnect-box">
+        <div id="reconnect-title">❌ Não foi possível reconectar</div>
+        <div id="reconnect-msg">O host pode ter encerrado a sala.</div>
+        <button onclick="window.location.reload()">Voltar ao início</button>
+        <button onclick="tentarReconectarManual()">Tentar novamente</button>
+    </div>
+</div>
+
   <script src="names.js"></script>
+
   <script src="config.js"></script>
   <script src="state.js"></script>
   <script src="utils.js"></script>

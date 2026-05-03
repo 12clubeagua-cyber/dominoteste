@@ -35,9 +35,12 @@ let myConnToHost = null;      // Conexão do Cliente com o Host
 let connectedClients = [];    // Lista de conexões que o Host mantém
 let client_predicted = false; // Controle de latência para jogadas locais
 
-// Globais de Interface e Câmera
-window.visualPass = [false, false, false, false]; // Controla o "X" vermelho
-window.minScaleReached = 1.2;    // Menor zoom alcançado (ajuste automático)
-window.currentSnakeScale = 1.2;  // Zoom atual da mesa
-window.currentSnakeCx = 0;       // Centro X da mesa
-window.currentSnakeCy = 0;       // Centro Y da mesa
+// Reconexão
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY_MS = 3000; // 3s entre tentativas
+let reconnectTimer = null;
+let lastRoomCode = null;     // Guarda o código da sala para reconectar
+let lastPlayerIdx = null;    // Guarda o índice do jogador para restaurar
+let isReconnecting = false;
+
