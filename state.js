@@ -3,25 +3,26 @@
 ═══════════════════════════════════════════════════════ */
 
 let STATE = {
-  hands: [],                // Peças na mão de cada jogador
-  extremes: [null, null],   // Valores nas duas pontas do jogo
-  current: 0,               // Índice do jogador da vez (0-3)
-  scores: [0, 0],           // Placar [Equipe A, Equipe B]
-  pendingIdx: null,         // Índice da peça aguardando escolha de lado
-  isBlocked: false,         // Trava de interação para o jogador
-  isOver: false,            // Indica se a rodada atual acabou
-  isShuffling: false,       // Trava para evitar múltiplos embaralhamentos simultâneos
-  roundWinner: null,        // Quem venceu a última rodada
-  lastPlayed: null,         // Último jogador a colocar uma peça no tabuleiro
-  positions: [],            // Coordenadas de cada peça no tabuleiro
-  passCount: 0,             // Contador de passes seguidos (4 = trancado)
+  hands: [],                
+  extremes: [null, null],   
+  current: 0,               
+  scores: [0, 0],           
+  pendingIdx: null,         
+  isBlocked: false,         
+  isOver: false,            
+  matchOver: false,         // New flag for entire match termination
+  isShuffling: false,       
+  roundWinner: null,        
+  lastPlayed: null,         
+  positions: [],            
+  passCount: 0,             
   playerPassed: [false, false, false, false],
-  ends: [],                 // Dados técnicos das pontas (direção, contagem de linha)
-  playerMemory: [[], [], [], []], // Peças que os oponentes sabem que você NÃO tem
-  handSize: [7, 7, 7, 7],   // Quantidade de peças visual nas mãos
-  targetScore: 1,           // Meta de vitórias para ganhar o jogo
-  difficulty: 'normal',     // Nível de inteligência dos bots
-  autoNextInterval: null    // Timer para iniciar a próxima rodada automaticamente
+  ends: [],                 
+  playerMemory: [[], [], [], []], 
+  handSize: [7, 7, 7, 7],   
+  targetScore: 1,           
+  difficulty: 'normal',     
+  autoNextInterval: null    
 };
 
 // Contexto de áudio (iniciado após o primeiro clique do usuário)

@@ -206,6 +206,7 @@ function handleClientData(data) {
     STATE.current = hostState.current;
     STATE.scores = [...hostState.scores];
     STATE.isOver = hostState.isOver;
+    STATE.matchOver = hostState.matchOver;
     STATE.isBlocked = hostState.isBlocked;
     STATE.positions = JSON.parse(JSON.stringify(hostState.positions || []));
     STATE.playerPassed = [...(hostState.playerPassed || [false,false,false,false])];
