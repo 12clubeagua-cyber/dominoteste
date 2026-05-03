@@ -205,6 +205,7 @@ function handleClientData(data) {
     STATE.extremes = [...hostState.extremes];
     STATE.current = hostState.current;
     STATE.scores = [...hostState.scores];
+    STATE.targetScore = hostState.targetScore;
     STATE.isOver = hostState.isOver;
     STATE.matchOver = hostState.matchOver;
     STATE.isBlocked = hostState.isBlocked;
