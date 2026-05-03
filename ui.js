@@ -126,6 +126,15 @@ function renderHands(reveal = false) {
     const c = document.getElementById(`hand-${viewPos}`);
     if (!c) continue;
     c.innerHTML = '';
+    
+    // 1. Limpa destaque de jogada anterior antes de renderizar
+    if (i === myPlayerIdx) {
+       (STATE.hands[i] || []).forEach((_, idx) => {
+           const el = document.getElementById(`my-tile-${idx}`);
+           if (el) el.classList.remove('playable');
+       });
+    }
+
     const isBlinking = window.visualPass && window.visualPass[i];
     c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver ? 'active-turn' : ''}`;
     if (isBlinking) c.classList.add('hand-pass-blink');
@@ -141,36 +150,28 @@ function renderHands(reveal = false) {
     tilesContainer.className = 'tiles-row';
     c.appendChild(tilesContainer);
 
+    // 2. Lógica corrigida de reveal para todos os jogadores
     const isMyHand = (i === myPlayerIdx);
-    if (isMyHand) {
+    if (isMyHand || reveal) {
       (STATE.hands[i] || []).forEach((t, idx) => {
         const el = document.createElement('div');
         el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${t[0] === t[1] ? 'tile-double' : ''}`;
         el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
-        el.id = `my-tile-${idx}`;
+        if (isMyHand) el.id = `my-tile-${idx}`;
         tilesContainer.appendChild(el);
       });
     } else {
-      const count = reveal
-        ? (STATE.hands[i] || []).length
-        : (STATE.handSize[i] || 0);
+      const count = STATE.handSize[i] || 0;
       for (let k = 0; k < count; k++) {
         const el = document.createElement('div');
-        if (reveal && STATE.hands[i]?.[k]) {
-          const t = STATE.hands[i][k];
-          el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${t[0] === t[1] ? 'tile-double' : ''}`;
-          el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
-        } else {
-          el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} hidden`;
-          el.innerHTML = `<div class="half"></div><div class="half"></div>`;
-        }
+        el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} hidden`;
+        el.innerHTML = `<div class="half"></div><div class="half"></div>`;
         tilesContainer.appendChild(el);
       }
     }
-
-    const displayCount = (i === myPlayerIdx)
-      ? (STATE.hands[i]?.length || 0)
-      : (STATE.handSize[i] || 0);
+    
+    // ... restante da renderização dos indicadores (mantido)
+    const displayCount = (i === myPlayerIdx) ? (STATE.hands[i]?.length || 0) : (STATE.handSize[i] || 0);
 
     if (displayCount > 0 && !STATE.isOver) {
       const ind = document.createElement('div');
@@ -181,18 +182,16 @@ function renderHands(reveal = false) {
       badge.innerText = displayCount;
       ind.appendChild(badge);
 
-      // X (Passou) depois, "do outro lado"
       if (isBlinking) {
         const x = document.createElement('div');
         x.className = 'pass-x'; x.innerText = '✕';
         ind.appendChild(x);
       }
-
       c.appendChild(ind);
     }
   }
   if (STATE.current === myPlayerIdx && !STATE.isOver) {
-     STATE.isBlocked = false; // Force block removal on turn
+     STATE.isBlocked = false;
      const moves = getMoves(STATE.hands[myPlayerIdx]);
      if (moves.length > 0) highlight(moves);
   }
