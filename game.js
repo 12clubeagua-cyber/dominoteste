@@ -17,6 +17,10 @@ function startRound() {
   const resArea = document.getElementById('result-area');
   if (resArea) resArea.style.display = 'none';
 
+  // Garante que o seletor de lado esteja escondido
+  const picker = document.getElementById('side-picker');
+  if (picker) picker.style.display = 'none';
+
   for (let v = 0; v < 4; v++) {
     const el = document.getElementById(`hand-${v}`);
     if (el) el.classList.remove('hand-win-blink');

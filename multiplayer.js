@@ -133,6 +133,10 @@ function handleClientData(data) {
     const startScreen = document.getElementById('start-screen'); 
     if (startScreen) startScreen.style.display = 'none'; 
     updateScoreDisplay();
+
+    // Garante que o seletor de lado esteja escondido
+    const picker = document.getElementById('side-picker');
+    if (picker) picker.style.display = 'none';
     
     // Reset completo
     STATE = {
@@ -206,17 +210,31 @@ function connectToHost() {
   const input = document.getElementById('join-code-input').value.toUpperCase().trim();
   if (input.length < 5) return;
   
+  const statusEl = document.getElementById('client-status');
+  if (statusEl) statusEl.innerText = "Conectando...";
+
   if (myPeer) myPeer.destroy();
   myPeer = new Peer(); 
   
+  myPeer.on('error', (err) => {
+    console.error("Peer error:", err);
+    if (statusEl) statusEl.innerText = "Erro: " + (err.type === 'peer-unavailable' ? "Sala nao encontrada" : err.type);
+  });
+
   myPeer.on('open', () => {
     myConnToHost = myPeer.connect('domino-' + input);
     
     myConnToHost.on('data', handleClientData);
-    myConnToHost.on('close', () => { /* ... */ });
-    myConnToHost.on('error', (err) => { /* ... */ });
+    myConnToHost.on('close', () => { 
+        if (statusEl) statusEl.innerText = "Conexao fechada.";
+        setTimeout(() => window.location.reload(), 2000);
+    });
+    myConnToHost.on('error', (err) => { 
+        if (statusEl) statusEl.innerText = "Erro na conexao.";
+    });
     
     myConnToHost.on('open', () => {
+        if (statusEl) statusEl.innerText = "Conectado! Aguardando host...";
         myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
     });
   });

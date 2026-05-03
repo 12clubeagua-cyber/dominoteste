@@ -60,6 +60,10 @@ function startMatch() {
   const startScreen = document.getElementById('start-screen');
   if (startScreen) startScreen.style.display = 'none';
 
+  // Garante que o seletor de lado esteja escondido ao iniciar
+  const picker = document.getElementById('side-picker');
+  if (picker) picker.style.display = 'none';
+
   const doStartRound = () => {
       if (typeof startRound === 'function') startRound();
       else console.error('startRound nao esta definido');
