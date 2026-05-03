@@ -74,16 +74,20 @@ function processTurn() {
   const cur = STATE.current;
   const moves = getMoves(STATE.hands[cur]);
 
-  // É BOT (ou cliente remoto)?
-  // No Host, só joga como BOT se o índice não for o dele E não for de um cliente conectado.
   let isHuman = false;
   if (netMode === 'offline') {
     isHuman = (cur === myPlayerIdx);
   } else if (netMode === 'host') {
     isHuman = (cur === myPlayerIdx || connectedClients.some(c => c.assignedIdx === cur));
-  } else {
-    // No cliente, apenas o próprio cliente é "humano" localmente
-    isHuman = (cur === myPlayerIdx);
+  } else if (netMode === 'client') {
+    // ✅ FIX: No cliente, NUNCA rodar bot. Só habilitar UI se for a vez do jogador local.
+    if (cur !== myPlayerIdx) {
+      // Apenas mostrar status — o host controla tudo
+      STATE.isBlocked = true;
+      updateStatus(`${NameManager.get(cur)} JOGANDO...`);
+      return;  // ← SAIR AQUI, não fazer nada mais
+    }
+    isHuman = true;
   }
 
   if (!isHuman) {
@@ -237,6 +241,11 @@ function play(pIdx, tIdx, side) {
   }
 
   if (netMode === 'client') {
+    // ✅ FIX: Cliente só pode jogar por si mesmo
+    if (pIdx !== myPlayerIdx) {
+      console.warn("Cliente tentou jogar pelo jogador", pIdx, "— ignorado");
+      return;
+    }
     const picker = document.getElementById('side-picker');
     if (picker) picker.style.display = 'none';
     STATE.isBlocked = true;
@@ -248,8 +257,7 @@ function play(pIdx, tIdx, side) {
     return;
   }
 
-  STATE.playerPassed.fill(false);
-  STATE.passCount = 0;
+  STATE.playerPassed.fill(false);  STATE.passCount = 0;
   STATE.lastPlayed = pIdx; // Registra quem jogou a última peça
 
   const tile = STATE.hands[pIdx].splice(tIdx, 1)[0];

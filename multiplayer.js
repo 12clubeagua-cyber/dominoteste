@@ -192,14 +192,14 @@ function connectToHost() {
         if (data.names) {
             NameManager.updateAll(data.names);
         }
-        
+
         // Sincronização robusta usando deep copy (JSON parsing) para garantir integridade
         const hostState = data.state;
-        
+
         // Atualiza profundamente a mão e tamanho
         STATE.hands = JSON.parse(JSON.stringify(hostState.hands));
         STATE.handSize = [...hostState.handSize];
-        
+
         // Atualiza outras propriedades, garantindo que objetos complexos como `ends` ou `extremes` também sejam limpos
         STATE.extremes = [...hostState.extremes];
         STATE.current = hostState.current;
@@ -214,16 +214,19 @@ function connectToHost() {
         client_predicted = false;
 
         updateScoreDisplay();
-        renderBoardFromState(); 
-        renderHands(STATE.isOver); 
+        renderBoardFromState();
+        renderHands(STATE.isOver);
         updateSnakeScale();
 
-        // Dispara o processTurn no cliente após um curto delay para garantir renderização
-        if (!STATE.isOver) {
+        // ✅ FIX: Só chama processTurn no cliente se for a vez DELE
+        if (!STATE.isOver && STATE.current === myPlayerIdx) {
             setTimeout(processTurn, 100);
+        } else if (!STATE.isOver) {
+            // Apenas mostra quem está jogando
+            STATE.isBlocked = true;
+            updateStatusLocal(`${NameManager.get(STATE.current)} JOGANDO...`);
         }
-      }
-      
+      }      
       if (data.type === 'animate_play') {
          client_predicted = false;
          
