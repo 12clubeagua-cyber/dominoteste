@@ -23,10 +23,10 @@ const CONFIG = Object.freeze({
   // Bloco de configurações gerais de proporção, visual e tempos do jogo
   GAME: {
     // Largura padrão de uma peça na matemática de renderização
-    TILE_W: 36,           // Largura da peca (lado curto)
+    TILE_W: 18,           // Largura da peca (lado curto)
     
     // Comprimento padrão da peça.
-    TILE_L: 72,           // Comprimento da peca (lado longo)
+    TILE_L: 36,           // Comprimento da peca (lado longo)
     
     // Tempo que a tela de resultado/fim de rodada fica exposta para os jogadores lerem em segundos
     RESULT_DISPLAY_TIME: 5,
