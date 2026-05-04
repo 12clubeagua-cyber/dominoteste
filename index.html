@@ -1,154 +1,242 @@
+<!-- Declara que este documento é um HTML5 válido -->
 <!DOCTYPE html>
+<!-- Inicia a tag raiz do HTML e define o idioma da página como Português do Brasil -->
 <html lang="pt-BR">
+<!-- Inicia a seção do cabeçalho (head), que contém os metadados e links para arquivos externos -->
 <head>
+  <!-- Define a codificação de caracteres como UTF-8, essencial para exibir acentos e caracteres especiais corretamente -->
   <meta charset="UTF-8">
+  <!-- Configura a responsividade da tela:
+       - width=device-width: a largura da página se adapta à largura do dispositivo (celular/PC).
+       - initial-scale=1.0: o zoom inicial é 100%.
+       - maximum-scale=1.0 e user-scalable=no: impede que o usuário dê zoom com os dedos (pinça), essencial para um app de jogo não quebrar o layout. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Jogue domino online contra bots ou amigos. O melhor simulador de domino Master.">
-  <title>domino Master</title>
+  <!-- Descrição curta do site, usada por motores de busca (Google) e quando o link é compartilhado em redes sociais -->
+  <meta name="description" content="Jogue domino online contra bots ou amigos. O melhor simulador de domino feito pelo Felipe W.">
+  <!-- Define o título que aparecerá na aba do navegador -->
+  <title>domino Felipe W.</title>
+  <!-- Link para o ícone (favicon) que aparece ao lado do título na aba do navegador -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- Importa a biblioteca PeerJS de um servidor externo (CDN). Ela é o "coração" do modo multiplayer, permitindo conexões P2P (ponto a ponto). -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Importa o arquivo de estilos CSS para dar a aparência visual ao jogo -->
   <link rel="stylesheet" href="style.css">
 </head>
+<!-- Inicia o corpo do documento (onde fica a interface visível do usuário) -->
 <body>
 
+<!-- CONTÊINER DA TELA INICIAL (Lobby de configuração antes do jogo começar) -->
 <div id="start-screen">
+  <!-- O logotipo principal escrito "domino" -->
   <div class="start-logo">domino</div>
-  <div class="start-sub">Master</div>
+  <!-- O subtítulo do logotipo "Felipe W." -->
+  <div class="start-sub">Felipe W.</div>
 
+  <!-- PASSO 1: Escolha do Modo de Jogo (Ativo por padrão) -->
   <div class="start-step active" id="step-mode">
     <div class="start-options">
+      <!-- Rótulo explicativo -->
       <div class="start-label">Modo de Jogo</div>
+      <!-- Botão para jogar offline contra os bots -->
       <button class="start-btn" onclick="selectMode('offline')">
         Um Jogador <span>Vs Bots</span>
       </button>
+      <!-- Botão para ser o "Host" (dono da sala) no multiplayer via Wi-Fi -->
       <button class="start-btn" onclick="selectMode('host')">
         Criar Sala <span>Multiplayer Wi-Fi</span>
       </button>
+      <!-- Botão para conectar em uma sala existente de um Host -->
       <button class="start-btn" onclick="selectMode('client')">
         Entrar na Sala <span>Conectar Wi-Fi</span>
       </button>
+      <!-- Botão para o usuário abrir o popup de trocar seu próprio nome -->
       <button class="start-btn" onclick="changeName()">Alterar Nome</button>
     </div>
   </div>
 
+  <!-- PASSO 2: Escolha da Dificuldade (Para modo offline) -->
   <div class="start-step" id="step-diff">
     <div class="start-options">
       <div class="start-label">Dificuldade dos bots</div>
+      <!-- Botão de nível fácil -->
       <button class="start-btn" id="btn-easy" onclick="selectDiff('easy')">
         Facil <span>nivel 1</span>
       </button>
+      <!-- Botão de nível normal (Vem pré-selecionado por padrão) -->
       <button class="start-btn selected" id="btn-normal" onclick="selectDiff('normal')">
         Normal <span>nivel 2</span>
       </button>
+      <!-- Botão de nível difícil -->
       <button class="start-btn" id="btn-hard" onclick="selectDiff('hard')">
         Dificil <span>nivel 3</span>
       </button>
     </div>
+    <!-- Botão para voltar à tela anterior (Escolha de modo) -->
     <button class="step-back" onclick="goToStep('step-mode')"> Voltar</button>
   </div>
 
+  <!-- PASSO 3: Escolha do Objetivo da Partida (Quantas vitórias pra acabar o jogo geral) -->
   <div class="start-step" id="step-goal">
     <div class="start-options">
       <div class="start-label">Objetivo da partida</div>
+      <!-- Botões definindo a meta de pontos/vitórias -->
       <button class="start-btn" onclick="selectGoal(3)">Meta: 3 Vitorias</button>
       <button class="start-btn" onclick="selectGoal(5)">Meta: 5 Vitorias</button>
       <button class="start-btn" onclick="selectGoal(10)">Meta: 10 Vitorias</button>
     </div>
+    <!-- Botão para voltar à tela de dificuldade -->
     <button class="step-back" onclick="goToStep('step-diff')"> Voltar</button>
   </div>
 
+  <!-- PASSO 4A: Sala de Espera do HOST (Quem criou a sala) -->
   <div class="start-step" id="step-lobby-host">
     <div class="start-options">
+      <!-- Instrução para o Host -->
       <div class="start-label">Sala Criada! Passe o codigo:</div>
+      <!-- Div onde o código aleatório de letra (gerado pelo PeerJS) será exibido -->
       <div class="code-display" id="host-code-display">GERANDO...</div>
+      <!-- Lista visual dos jogadores que entraram na sala (Atualizado via JavaScript em seats.js/multiplayer.js) -->
       <div class="player-list" id="host-player-list">
         <div class="player-item">Voce (Host)</div>
       </div>
+      <!-- Texto de status mostrando quantos conectaram -->
       <div class="start-sub" id="host-status">Aguardando conexoes... (0/3)</div>
+      <!-- Botão do Host para iniciar a partida (Escondido por padrão, aparece quando entra alguém) -->
       <button class="start-btn" onclick="startMatch()" id="btn-start-multi" style="justify-content:center; background:var(--gold); color:var(--bg); border:none; display:none;">
         INICIAR JOGO
       </button>
     </div>
+    <!-- Botão para abortar a sala e voltar ao início -->
     <button class="step-back" onclick="cancelHosting()"> Cancelar e Voltar</button>
   </div>
 
+  <!-- PASSO 4B: Tela de Conexão do CLIENTE (Quem vai entrar na sala) -->
   <div class="start-step" id="step-lobby-client">
     <div class="start-options">
       <div class="start-label">Entrar em uma Sala</div>
+      <!-- Campo de texto (Input) para o cliente digitar o código da sala do Host -->
       <input type="text" id="join-code-input" class="input-code" placeholder="CODIGO">
+      <!-- Botão que aciona a tentativa de conexão via PeerJS -->
       <button class="start-btn" onclick="connectToHost()" id="btn-connect" style="justify-content:center;">CONECTAR</button>
+      <!-- Div para exibir mensagens de erro ou sucesso de conexão pro cliente -->
       <div class="start-sub" id="client-status" style="margin-top:10px; color:var(--gold);"></div>
+      <!-- Lista de jogadores (Espelho do Host) para o cliente ver quem está na sala -->
       <div class="player-list" id="client-player-list"></div>
     </div>
+    <!-- Botão para voltar à seleção de modo -->
     <button class="step-back" onclick="goToStep('step-mode')"> Voltar</button>
   </div>
 </div>
 
+<!-- CABEÇALHO DO JOGO (Fica fixo no topo durante a partida) -->
 <div id="header">
+  <!-- Placar da equipe do jogador local (Time A) -->
   <div class="score-block">
     <span class="score-name" id="label-team-a">Sua dupla</span>
     <span class="score-val" id="scoreA">0</span>
   </div>
+  <!-- Barra de status central (Mostra de quem é a vez, mensagens de "Pensando", "Passou", etc) -->
   <div id="game-status">domino Master</div>
+  <!-- Placar da equipe adversária (Time B) -->
   <div class="score-block right">
     <span class="score-name" id="label-team-b">Oponentes</span>
     <span class="score-val" id="scoreB">0</span>
   </div>
 </div>
 
+<!-- ÁREA PRINCIPAL DO JOGO (Onde as peças e a mesa ficam) -->
 <div id="game-area">
+  <!-- Botão no canto para sair da partida no meio do jogo -->
   <button class="exit-btn" onclick="exitGame()">Sair</button>
+  
+  <!-- Contêiner da mão do Jogador 2 (O parceiro, fica no topo da tela, de frente) -->
   <div id="hand-2" class="hand"></div> 
+  
+  <!-- Linha do meio da tela (Agrupa os oponentes laterais e o tabuleiro) -->
   <div id="mid-row">
+    <!-- Contêiner da mão do Jogador 1 (Oponente da esquerda, peças na vertical) -->
     <div id="hand-1" class="hand hand-side"></div> 
+    
+    <!-- Contêiner físico que limita a área de zoom e movimentação da câmera -->
     <div id="board-container">
+      <!-- O tabuleiro real onde as peças jogadas são anexadas dinamicamente -->
       <div id="snake"></div>
     </div>
+    
+    <!-- Contêiner da mão do Jogador 3 (Oponente da direita, peças na vertical) -->
     <div id="hand-3" class="hand hand-side"></div> 
   </div>
+  
+  <!-- Contêiner da mão do Jogador 0 (O jogador local do dispositivo, fica na base da tela) -->
   <div id="hand-0" class="hand"></div> 
   
+  <!-- INTERFACE DE SELEÇÃO DE LADO (Aparece quando uma peça pode ser jogada nas duas pontas) -->
   <div id="side-picker">
+    <!-- Botão para jogar na ponta "0" (geralmente referida como Esquerda/Cima dependendo da orientação) -->
     <button class="btn-side" onclick="executeMove(0)"> Cima</button>
+    <!-- Botão para cancelar e recolher a peça de volta pra mão -->
     <button class="btn-side btn-cancel" onclick="cancelMove()"> Cancelar</button>
+    <!-- Botão para jogar na ponta "1" (Direita/Baixo) -->
     <button class="btn-side" onclick="executeMove(1)">Baixo </button>
   </div>
 </div>
 
+<!-- OVERLAY DE TENTATIVA DE RECONEXÃO (Pop-up transparente escuro que trava a tela quando a rede cai) -->
 <div id="reconnect-overlay" style="display:none">
     <div id="reconnect-box">
+        <!-- Ícone de carregamento visual animado por CSS -->
         <div class="reconnect-spinner"></div>
         <div id="reconnect-title">conexao perdida</div>
+        <!-- Texto que indica em qual tentativa de reconexão o script está -->
         <div id="reconnect-msg">Tentando reconectar... (1/5)</div>
+        <!-- Botão para parar de tentar e aceitar a derrota da queda -->
         <button onclick="cancelReconnect()">Desistir</button>
     </div>
 </div>
 
+<!-- OVERLAY DE FALHA DEFINITIVA (Aparece se as 5 tentativas de reconexão falharem) -->
 <div id="reconnect-failed" style="display:none">
     <div id="reconnect-box">
         <div id="reconnect-title"> Nao foi possivel reconectar</div>
         <div id="reconnect-msg">O host pode ter encerrado a sala.</div>
+        <!-- Recarrega a página dando um "F5" forçado no navegador do celular -->
         <button onclick="window.location.reload()">Voltar ao inicio</button>
+        <!-- Força uma nova leva de tentativas manuais -->
         <button onclick="tentarReconectarManual()">Tentar novamente</button>
     </div>
 </div>
 
+  <!-- IMPORTAÇÃO DOS ARQUIVOS DE SCRIPT (Lógica do Jogo) -->
+  <!-- A tag 'defer' garante que o HTML inteiro seja carregado antes que esses scripts comecem a ser executados.
+       Isso evita que o script tente acessar uma div que ainda não foi desenhada na tela. -->
+       
+  <!-- Gerencia o salvamento e recuperação dos nomes dos jogadores -->
   <script src="names.js" defer></script>
-
+  <!-- Arquivo de configurações de variáveis (tempos, tamanhos, frequências sonoras) -->
   <script src="config.js" defer></script>
+  <!-- Gerencia o banco de dados global (STATE) da partida (placar, mãos, quem joga) -->
   <script src="state.js" defer></script>
+  <!-- Funções utilitárias aleatórias que os outros arquivos usam -->
   <script src="utils.js" defer></script>
+  <!-- Lógica de sintetização de som (batidas e passes) -->
   <script src="audio.js" defer></script>
+  <!-- Lógica e matemática das regras do dominó (checagem de lados, movimentos válidos) -->
   <script src="logic.js" defer></script>
+  <!-- Lógica da câmera dinâmica e da animação de embaralhar e jogar peças -->
   <script src="animations.js" defer></script>
+  <!-- Lógica de tomada de decisão e Inteligência Artificial (Dificuldades) -->
   <script src="bots.js" defer></script>
+  <!-- Gerenciador da interface da sala de espera para escolher o lugar de sentar na mesa multiplayer -->
   <script src="seats.js" defer></script>
+  <!-- Gerenciador de conexão PeerJS (Host e Client), sincronização de estado e reconexão -->
   <script src="multiplayer.js" defer></script>
+  <!-- Gerenciador geral de interface visual (desenhar peças, barra de vida, pontuação) -->
   <script src="ui.js" defer></script>
+  <!-- Captura de cliques ou toques na tela (selecionar peça na mão, cancelar jogada) -->
   <script src="input.js" defer></script>
+  <!-- Funções que controlam os botões da tela inicial (Start Screen) -->
   <script src="lobby.js" defer></script>
+  <!-- Orquestrador principal da rodada (iniciar, passar a vez, terminar jogo, trancar mesa) -->
   <script src="game.js" defer></script>
 </body>
 </html>
-
-
