@@ -24,7 +24,7 @@ function generateShortID() {
     // Inicializa a variável que vai guardar o resultado final vazia
     let result = '';
     // Loop que roda a quantidade de vezes definida para sortear as letras do código
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 10; i++) {
         // Sorteia uma posição aleatória da string de caracteres e adiciona ao resultado
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
