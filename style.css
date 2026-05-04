@@ -3,60 +3,66 @@
 
 /* VARIÁVEIS GLOBAIS DO TEMA DO JOGO */
 :root {
-  /* Cores da mesa do jogo (um verde escuro para simular feltro) */
   --board: #1a6b4a;
   --board-dark: #134d35;
   --board-light: #1f7d57;
-  
-  /* Cores das peças (brancas como osso com borda creme) */
   --tile-bg: #fdfcf0;
   --tile-border: #c8c4a0;
-  
-  /* Cor dos furinhos na peça de dominó */
   --pip: #1a1a2e;
-  /* Cor dos furos em buchas/carroças (podem ser vermelhos para destacar) */
   --pip-double: #c0392b;
-  
-  /* Cores dos menus escuros no fundo */
   --bg: #0d1b14;
   --surface: #162318;
   --surface2: #1e2f22;
-  
-  /* Cores de destaque para texto, vitórias, e botões */
   --gold: #ffcc33;
   --gold-dim: #d4b030;
   --red: #c0392b;
-  
-  /* Cores de texto geral */
   --text: #e8e4d4;
   --text-dim: #a8b4a8;
-  
-  /* Curvatura arredondada padrão para botões e janelas */
   --radius: 12px;
-
-  /* VARIÁVEIS DE MEDIDA (Valores Padrão - Sobrescritos pelo utils.js) */
   --tile-width: 18px;
   --tile-height: 36px;
 }
 
-/* Reset universal para que todo navegador desenhe as caixas com o mesmo formato básico */
+/* Reset universal */
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-/* Corpo geral da página da web */
 body {
-  /* Fundo preto que cria um círculo escuro de fundo */
   background: radial-gradient(circle at center, #162318 0%, #0d1b14 100%);
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  /* Ocupa exatamente 100% da altura da tela visível no dispositivo */
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Impede a tela de "rolar" para cima e para baixo */
+  overflow: hidden;
 }
 
-/* START SCREEN (Estilos da tela de menu com o logotipo) */
+/* BOTÃO SAIR (AJUSTADO: Pequeno e no canto) */
+#btn-exit {
+  position: absolute;
+  top: 15px;      /* Distância do topo */
+  right: 15px;    /* Distância da direita */
+  width: auto;    /* Largura automática baseada no texto */
+  padding: 6px 12px;
+  background: rgba(192, 57, 43, 0.1);
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  z-index: 10000; /* Fica acima de tudo */
+  transition: all 0.2s;
+}
+
+#btn-exit:hover {
+  background: var(--red);
+  color: white;
+}
+
+/* START SCREEN */
 #start-screen {
   position: fixed; inset: 0; z-index: 9000;
   background: var(--bg);
@@ -104,11 +110,9 @@ body {
   display: flex; justify-content: space-between; align-items: center;
   transition: all 0.3s;
 }
-/* Efeitos visuais quando passa o mouse por cima do botão ou o deixa selecionado */
 .start-btn:hover { border-color: var(--gold); background: var(--surface2); }
 .start-btn.selected { border-color: var(--gold); }
 
-/* Partes secundárias da tela de menu (estão ocultas por padrão) */
 .start-step { display: none; flex-direction: column; align-items: center; width: 320px; }
 .start-step.active { display: flex; }
 
@@ -119,7 +123,6 @@ body {
   margin-top: 24px; padding: 10px 20px;
 }
 
-/* O campo de texto para o usuário digitar códigos de sala */
 .input-code {
   background: var(--surface2); 
   color: var(--gold);
@@ -129,7 +132,7 @@ body {
   text-transform: uppercase; letter-spacing: 6px; outline: none;
 }
 
-/* CABEÇALHO DO JOGO (Placar na parte de cima) */
+/* HEADER */
 #header {
   display: grid; grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -146,7 +149,6 @@ body {
 }
 .score-val.winning { color: #4caf75; }
 
-/* Status de texto que fica no centro do cabeçalho */
 #game-status {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 18px;
@@ -157,23 +159,20 @@ body {
 #game-status.active { color: var(--gold); }
 #game-status.pass { color: var(--red); }
 
-/* ÁREA DE JOGO (Compreende toda a área inferior abaixo do header) */
+/* ÁREA DE JOGO */
 #game-area {
   flex: 1; display: flex; flex-direction: column;
   overflow: hidden; position: relative;
 }
 
-/* Linha do meio da tela, que abriga o tabuleiro central e os inimigos da esquerda e direita */
 #mid-row { flex: 1; display: flex; overflow: hidden; }
 
-/* O tabuleiro/mesa onde a "cobrinha" de pedras se monta */
 #board-container {
   flex: 1;
   background: radial-gradient(ellipse at 50% 50%, var(--board-light) 0%, var(--board) 20%, var(--board-dark) 100%);
   position: relative;
   display: flex; align-items: center; justify-content: center;
 }
-/* Efeito de linhas na mesa de feltro verde (Estética) */
 #board-container::before {
   content: '';
   position: absolute; inset: 0;
@@ -183,30 +182,25 @@ body {
   background-size: 64px 64px;
 }
 
-/* TILES E PIPS (Aparência das Peças do Jogo) */
+/* TILES */
 .tile {
   background: var(--tile-bg);
   border: 1px solid var(--tile-border);
   display: flex; border-radius: 4px; position: absolute;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
-
-/* NOVA LÓGICA DINÂMICA (As dimensões agora lêem do JS em vez de usar px fixo) */
 .tile-h { 
-  width: var(--tile-height);  /* Lado longo */
-  height: var(--tile-width);  /* Lado curto */
+  width: var(--tile-height); 
+  height: var(--tile-width); 
 }
 .tile-v { 
-  width: var(--tile-width);   /* Lado curto */
-  height: var(--tile-height); /* Lado longo */
+  width: var(--tile-width); 
+  height: var(--tile-height); 
   flex-direction: column; 
 }
-
-/* Bordas que criam a divisão/linha no meio da peça de dominó */
 .tile-h .half:first-child { border-right: 1px solid rgba(0,0,0,0.1); }
 .tile-v .half:first-child { border-bottom: 1px solid rgba(0,0,0,0.1); }
 
-/* Metade de uma peça de dominó (A malha onde os pontinhos são desenhados) */
 .half {
   flex: 1; display: grid;
   grid-template-columns: repeat(3,1fr);
@@ -214,20 +208,18 @@ body {
   padding: 2px;
   align-items: center; justify-items: center;
 }
-/* Bolinha preta que representa os números */
 .pip {
   width: 4px; height: 4px;
   background: var(--pip); border-radius: 50%;
 }
 
-/* Estilos de estado para a peça */
 .tile.last-move { border: 1px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
 .tile.playable { background: #fff; border: 2px solid var(--gold); cursor: pointer; transform: scale(1.05); }
 .tile.hidden { background: #2a3d2e; }
 .tile.hidden .pip { display: none; }
 .tile.tile-rel { position: relative !important; display: flex !important; }
 
-/* Contêiner de Mão de Peças do Jogador */
+/* Mãos */
 .hand { 
     position: relative; 
     display: flex; 
@@ -249,17 +241,14 @@ body {
     justify-content: center;
     align-items: center;
 }
-/* Peças dos adversários laterais ficam na vertical na tela */
 .hand-side .tiles-row {
     flex-direction: column;
 }
 
-/* Dicas Visuais (Quando é o turno daquele jogador) */
 .hand.active-turn {
   box-shadow: 0 0 15px rgba(76, 175, 117, 0.5);
   border-color: #4caf75;
 }
-/* Efeito de escurecer a mão se o jogador passar a vez e não tiver peça */
 .hand.hand-passed {
   opacity: 0.5;
   filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(2);
@@ -278,11 +267,11 @@ body {
   display: block;
 }
 
-/* Overlays (Popups Escuros de Reconexão e Desconexão) */
+/* Overlays */
 #reconnect-overlay, #reconnect-failed { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999; }
 #reconnect-box { background: #1a1a2e; border: 2px solid #f59e0b; border-radius: 16px; padding: 32px 40px; text-align: center; display: flex; flex-direction: column; gap: 16px; color: white; }
 
-/* Menu Suspenso de Seleção de Lado (Botões de Cima/Baixo) */
+/* Side Picker */
 #side-picker {
   position: fixed;
   bottom: 80px;
@@ -323,7 +312,7 @@ body {
   color: var(--red);
 }
 
-/* Componentes Visuais do Lobby Multiplayer (Onde os jogadores sentam na mesa) */
+/* Multiplayer Lobby */
 .seat-selection-grid { display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 15px; width: 100%; }
 .team-column { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 140px; }
 .team-label { font-size: 11px; color: var(--gold); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
