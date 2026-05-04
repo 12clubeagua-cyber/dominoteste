@@ -37,29 +37,32 @@ body {
   overflow: hidden;
 }
 
-/* BOTÃO SAIR (AJUSTADO: Pequeno e no canto) */
+/* BOTÃO SAIR (AJUSTADO: Pequeno, colado na direita e oculto no início) */
 #btn-exit {
   position: absolute;
-  top: 15px;      /* Distância do topo */
-  right: 15px;    /* Distância da direita */
-  width: auto;    /* Largura automática baseada no texto */
-  padding: 6px 12px;
-  background: rgba(192, 57, 43, 0.1);
+  top: 15px;      
+  right: 0;       /* Colado na borda direita da tela */
+  width: auto;    
+  padding: 6px 12px 6px 16px; /* Mais espaço na esquerda para o arredondamento */
+  background: rgba(192, 57, 43, 0.15);
   border: 1px solid var(--red);
+  border-right: none; /* Remove a borda da direita para "sair" da tela */
   color: var(--red);
-  border-radius: 6px;
+  border-radius: 6px 0 0 6px; /* Arredonda apenas o lado de dentro */
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
-  z-index: 10000; /* Fica acima de tudo */
+  z-index: 10000; 
+  display: none;  /* ESCONDIDO POR PADRÃO - Ativar via JS no início da partida */
   transition: all 0.2s;
 }
 
 #btn-exit:hover {
   background: var(--red);
   color: white;
+  padding-right: 18px; /* Pequeno efeito de deslizar ao passar o mouse */
 }
 
 /* START SCREEN */
