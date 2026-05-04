@@ -55,14 +55,14 @@ function dealAndStart() {
   window.minScaleReached = CONFIG?.GAME?.SNAKE_MAX_SCALE ?? 0.3;
   window.currentSnakeScale = window.minScaleReached;
 
-  // Cria um baralho vazio (array) para as 28 peças de dominó
+  // Cria um baralho vazio (array) para as peças de dominó
   const deck = [];
-  // Usa dois loops (um dentro do outro) para criar todas as combinações de números de 0 a 6
+  // Usa dois loops (um dentro do outro) para criar todas as combinações de números do jogo
   for (let i = 0; i <= 6; i++) for (let j = i; j <= 6; j++) deck.push([i, j]);
-  // Embaralha o array aleatoriamente subtraindo valores
+  // Embaralha o array aleatoriamente
   deck.sort(() => Math.random() - .5);
 
-  // Remove grupos de 7 peças do baralho e os entrega para os 4 jogadores (formando as mãos)
+  // Remove grupos de peças do baralho e os entrega para os 4 jogadores (formando as mãos)
   STATE.hands = [deck.splice(0, 7), deck.splice(0, 7), deck.splice(0, 7), deck.splice(0, 7)];
   // Grava o tamanho inicial de todas as mãos
   STATE.handSize = [7, 7, 7, 7];
@@ -81,9 +81,9 @@ function dealAndStart() {
   if (STATE.roundWinner !== null) {
     STATE.current = STATE.roundWinner;
   } else {
-    // Se for a primeira rodada do jogo, assume que o Jogador 0 começará
+    // Se for a primeira rodada do jogo, assume que o Jogador 0 começará por padrão
     STATE.current = 0;
-    // Olha as mãos de todos os jogadores para procurar quem tirou o duplo sena (bucha de 6)
+    // Olha as mãos de todos os jogadores para procurar quem tirou o maior duplo sena (bucha de 6)
     STATE.hands.forEach((h, i) => h.forEach(t => {
       // Quem tiver a peça [6,6], ganha o direito de ser o primeiro a jogar
       if (t[0] === 6 && t[1] === 6) STATE.current = i;
@@ -104,7 +104,7 @@ function dealAndStart() {
   renderBoardFromState();
   
   // Espera um tempo (baseado na config) para os jogadores se prepararem e então inicia o turno
-  setTimeout(() => processTurn(), CONFIG?.GAME?.START_DELAY ?? 1);
+  setTimeout(() => processTurn(), CONFIG?.GAME?.START_DELAY ?? 1200);
 }
 
 // Função principal que analisa de quem é a vez e o que pode ser feito
@@ -157,7 +157,7 @@ function processTurn() {
     isHuman = true;
   }
 
-  // Se NÃO for humano (ou seja, é um Bot controlado por IA)
+  // LÓGICA DO BOT (Não é humano)
   if (!isHuman) {
     // Bloqueia a tela pro jogador real não clicar em nada
     STATE.isBlocked = true;
@@ -166,11 +166,10 @@ function processTurn() {
     updateStatus(`${playerName} JOGANDO...`);
 
     // Calcula um tempo aleatório de atraso para parecer que a IA está "pensando"
-    const delay = (CONFIG?.BOT?.MIN_DELAY ?? 1) + Math.random() * ((CONFIG?.BOT?.MAX_DELAY ?? 1500) - (CONFIG?.BOT?.MIN_DELAY ?? 500));
-    // Muda a barra de status para a mensagem de "PENSANDO"
+    const delay = (CONFIG?.BOT?.MIN_DELAY ?? 500) + Math.random() * ((CONFIG?.BOT?.MAX_DELAY ?? 1500) - (CONFIG?.BOT?.MIN_DELAY ?? 500));
     updateStatus(CONFIG?.BOT?.THINKING_MSG ?? "PENSANDO...");
-    // Cancela temporizadores velhos
     clearTurnTimer();
+    
     // Executa a ação do bot após o tempo calculado expirar
     STATE.turnTimer = setTimeout(() => {
         // Se o bot não tem jogadas possíveis, ele passa a vez
@@ -188,15 +187,20 @@ function processTurn() {
     return;
   }
 
-  // Se É HUMANO, mas a lista de movimentos dele for vazia (não tem a pedra pra jogar)
+  // LÓGICA DO HUMANO COM MÃO VAZIA (Sem movimentos)
   if (moves.length === 0) {
     // Trava a tela
     STATE.isBlocked = true;
     // Mostra que ele não tem a pedra
     updateStatus(`${NameManager.get(cur)} NAO TEM PECA`, 'pass');
     clearTurnTimer();
-    // Passa a vez automaticamente em nome do jogador depois de um tempo fixo
-    STATE.turnTimer = setTimeout(() => doPass(cur), 1500);
+    
+    // CORREÇÃO CRÍTICA DO MULTIPLAYER: O Cliente NÃO executa a função de passe localmente.
+    // Ele apenas lê a mensagem e espera o Host processar o passe no servidor e enviar de volta.
+    if (netMode === 'client') return; 
+
+    // Se for o Host ou Offline, dá um delay minúsculo pro jogador ler a mensagem de "Não tem peça" e executa o passe
+    STATE.turnTimer = setTimeout(() => doPass(cur), 600);
     return;
   }
 
@@ -207,6 +211,7 @@ function processTurn() {
     return;
   }
 
+  // LÓGICA DO HUMANO COM JOGADA VÁLIDA
   // Se for a vez DESTE usuário (humano local no celular), destranca a tela e avisa pra jogar
   STATE.isBlocked = false;
   updateStatus('SUA VEZ', 'active');
@@ -215,16 +220,15 @@ function processTurn() {
   if (netMode === 'client' || netMode === 'offline' || (netMode === 'host' && cur === myPlayerIdx)) highlight(moves);
 }
 
-// Função que processa o ato de "Passar a vez"
+// Função que processa o ato de "Passar a vez" (Totalmente reescrita para resolver travamentos)
 function doPass(pIdx) {
   // Cancela se o jogo acabou
   if (STATE.isOver) return;
 
   // Se já houverem peças na mesa
   if (STATE.extremes[0] !== null) {
-    // Registra na "memória" do sistema que este jogador não tem a pedra da ponta esquerda
+    // Registra na "memória" do sistema que este jogador não tem a pedra da ponta esquerda e direita
     if (!STATE.playerMemory[pIdx].includes(STATE.extremes[0])) STATE.playerMemory[pIdx].push(STATE.extremes[0]);
-    // Registra que não tem a pedra da ponta direita
     if (!STATE.playerMemory[pIdx].includes(STATE.extremes[1])) STATE.playerMemory[pIdx].push(STATE.extremes[1]);
   }
 
@@ -235,10 +239,10 @@ function doPass(pIdx) {
 
   // Toca o som de erro
   playPass();
-  // Exibe a animação/texto de passe na tela
+  // Exibe a animação cinza de passe na mão do jogador na tela local
   triggerPassVisual(pIdx);
 
-  // Se for o host, manda um aviso pros clientes para eles tocarem a animação lá também
+  // Se for o host, manda um aviso pros clientes para eles tocarem a animação cinza lá também
   if (netMode === 'host') broadcastToClients({ type: 'animate_pass', pIdx });
 
   // Regra de "Tranca": Se houveram 4 passes seguidos, ninguém tem peça e o jogo trancou
@@ -248,14 +252,24 @@ function doPass(pIdx) {
     return;
   }
 
-  // Avança pro próximo jogador na roda (0 vira 1, 3 volta pro 0)
-  STATE.current = (STATE.current + 1) % 4;
-  // Sincroniza o novo estado no multiplayer
-  broadcastState();
-
-  // Prepara o relógio para iniciar a rodada do próximo após mostrar o aviso visual do passe
+  // TRAVA DE SEGURANÇA: Bloqueia qualquer clique e limpa relógios soltos
+  STATE.isBlocked = true;
   clearTurnTimer();
-  STATE.turnTimer = setTimeout(() => processTurn(), CONFIG?.GAME?.PASS_DISPLAY_TIME ?? 1500);
+  
+  // CORREÇÃO CRÍTICA DE SINCRONIA:
+  // Agora o jogo SÓ PULA PARA O PRÓXIMO TURNO depois que a animação de "Passar" acaba.
+  const passDelay = CONFIG?.GAME?.PASS_DISPLAY_TIME ?? 2000;
+  STATE.turnTimer = setTimeout(() => {
+      // Avança pro próximo jogador na roda (0 vira 1, 3 volta pro 0)
+      STATE.current = (STATE.current + 1) % 4;
+      
+      // Sincroniza o novo estado de quem deve jogar no multiplayer
+      if (typeof broadcastState === 'function') broadcastState();
+      
+      // Inicia a rotina de avaliação do próximo jogador
+      if (typeof processTurn === 'function') processTurn();
+      
+  }, passDelay);
 }
 
 // Função que finaliza a rodada atual e define o vencedor
