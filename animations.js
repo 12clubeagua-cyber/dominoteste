@@ -25,6 +25,10 @@ function runShuffleAnimation(cb) {
   // Aplica a escala inicial via CSS transform, mantendo o eixo X e Y no 0 (centro)
   snake.style.transform = `scale(${initialScale}) translate(0px,0px)`;
 
+  // Lê as medidas de largura e comprimento reais do CONFIG e corta pela metade
+  const halfW = (CONFIG?.GAME?.TILE_W ?? 18) / 2;
+  const halfL = (CONFIG?.GAME?.TILE_L ?? 36) / 2;
+
   // Cria um array para guardar as peças falsas da animação de embaralhamento
   const fakes = [];
   // Loop para criar 28 peças visuais (o total do dominó)
@@ -33,8 +37,8 @@ function runShuffleAnimation(cb) {
     const el = document.createElement('div');
     // Define as classes CSS (peça de dominó, virada para baixo/escondida)
     el.className = 'tile tile-v hidden';
-    // Aplica o estilo base: posição absoluta centralizada e transição suave de 0.15s
-    el.style.cssText = 'position:absolute;left:-9px;top:-18px;transition:transform .15s ease-in-out;';
+    // NOVA LÓGICA DINÂMICA: Centraliza a peça usando metades perfeitas dos valores configurados
+    el.style.cssText = `position:absolute;left:-${halfW}px;top:-${halfL}px;transition:transform .15s ease-in-out;`;
     // Chama a função para espalhar essa peça em uma posição e rotação aleatórias
     scatter(el);
     // Adiciona a peça falsa na tela (dentro do tabuleiro)
@@ -195,12 +199,18 @@ function updateSnakeScale() {
   // Se não houver peças jogadas ou os elementos não existirem, ignora
   if (!STATE?.positions?.length || !s || !b) return;
 
+  // Lógica dinâmica baseada no config.js
+  const halfW = (CONFIG?.GAME?.TILE_W ?? 18) / 2;
+  const halfL = (CONFIG?.GAME?.TILE_L ?? 36) / 2;
+
   // Variáveis para rastrear os limites extremos de todas as peças na mesa (Bounding Box)
   let minX=0, maxX=0, minY=0, maxY=0;
   // Itera sobre todas as peças que já foram jogadas
   STATE.positions.forEach(p => {
-    // Define largura e altura baseados se a peça é vertical ou horizontal
-    const w = p.isV ? 9 : 18, h = p.isV ? 18 : 9;
+    // NOVA LÓGICA: Largura (w) e altura (h) agora usam as metades dinâmicas dependendo se a peça está em pé ou deitada
+    const w = p.isV ? halfW : halfL;
+    const h = p.isV ? halfL : halfW;
+    
     // Expande os limites para garantir que a peça caiba no retângulo virtual da mesa
     minX = Math.min(minX, p.x-w); maxX = Math.max(maxX, p.x+w);
     minY = Math.min(minY, p.y-h); maxY = Math.max(maxY, p.y+h);
