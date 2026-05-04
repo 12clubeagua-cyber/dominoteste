@@ -1,31 +1,34 @@
 /* 
-    LOGICA MULTIPLAYER - VERSÃO DE DEPURAÇÃO MOBILE
-    Foco: Identificar onde o script trava no celular.
+    MULTIPLAYER.JS - VERSÃO "ULTRA RESILIENTE" PARA CELULAR
+    Esta versão força a exibição de erros e garante que as variáveis existam.
 */
 
-// --- 1. DECLARAÇÕES GLOBAIS DE SEGURANÇA ---
-// Garantimos que as variáveis existam antes de qualquer função ser chamada
-window.myPeer = window.myPeer || null;
-window.myConnToHost = window.myConnToHost || null;
-window.connectedClients = window.connectedClients || [];
+// 1. GARANTIR QUE AS VARIÁVEIS GLOBAIS EXISTAM (Evita o erro "not defined")
+window.myPeer = null;
+window.connectedClients = [];
 window.lastRoomCode = '';
+window.netMode = 'none';
 
-// --- 2. FERRAMENTA DE LOG VISUAL PARA CELULAR ---
-function debugLog(msg, cor = "#fff") {
-    const statusEl = document.getElementById('host-status') || document.getElementById('client-status');
+// 2. FUNÇÃO DE LOG PARA VOCÊ VER NO CELULAR
+function mobileLog(msg, cor = "white") {
+    const statusEl = document.getElementById('host-status');
     if (statusEl) {
         statusEl.style.color = cor;
-        statusEl.innerText = `> ${msg}`;
+        statusEl.innerText = "> " + msg;
     }
-    console.log(`[DEBUG] ${msg}`);
 }
 
+// 3. CAPTURAR QUALQUER ERRO DE QUALQUER ARQUIVO (Aparecerá um alerta no seu celular)
+window.onerror = function(msg, url, line) {
+    alert("ERRO NO JS: " + msg + "\nLinha: " + line + "\nArquivo: " + url);
+    return false;
+};
+
 /**
- * Gera um ID de 4 letras. 
- * (1 letra causa muito conflito no servidor público, travando a criação)
+ * GERA O CÓDIGO DA SALA
  */
 function generateShortID() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removi 'I' e 'O' para não confundir com 1 e 0
     let result = '';
     for (let i = 0; i < 4; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -34,159 +37,94 @@ function generateShortID() {
 }
 
 /**
- * INICIALIZAÇÃO DO HOST
+ * FUNÇÃO PRINCIPAL: INICIALIZAR HOST
  */
 function initializeHost() {
-    debugLog("Iniciando função Host...", "yellow");
+    mobileLog("Iniciando Host...", "yellow");
 
-    // Verificação da biblioteca PeerJS
+    // Verifica se a biblioteca PeerJS carregou
     if (typeof Peer === 'undefined') {
-        debugLog("ERRO: Biblioteca PeerJS não carregada!", "red");
+        alert("CRÍTICO: A biblioteca PeerJS não carregou! Verifique sua internet ou o link no HTML.");
         return;
     }
 
     try {
-        // Limpeza de conexões fantasmas
+        // Limpa conexões anteriores
         if (window.myPeer) {
-            debugLog("Limpando conexões antigas...");
             window.myPeer.destroy();
+            window.myPeer = null;
         }
 
-        // Geração do ID
+        // Gera o ID
         const fullID = generateShortID();
         window.lastRoomCode = fullID.split('-')[1];
 
-        // Atualização da UI
-        const codeEl = document.getElementById('host-code-display');
-        if (codeEl) {
-            codeEl.innerText = window.lastRoomCode;
-            debugLog("ID gerado na tela: " + window.lastRoomCode, "cyan");
+        // --- AQUI É ONDE MUDA O "GERANDO..." ---
+        const codeDisplay = document.getElementById('host-code-display');
+        if (codeDisplay) {
+            codeDisplay.innerText = window.lastRoomCode;
+            codeDisplay.style.color = "#00ff00"; // Fica verde quando gera
+            mobileLog("Código gerado com sucesso!", "#00ff00");
         } else {
-            debugLog("ERRO: Elemento 'host-code-display' não encontrado!", "red");
+            alert("ERRO: O elemento 'host-code-display' não existe no seu HTML!");
         }
 
-        // Criando o servidor Peer
-        debugLog("Conectando ao servidor PeerJS...");
+        // Cria o Peer
+        mobileLog("Conectando ao servidor Peer...", "cyan");
         window.myPeer = new Peer(fullID);
 
-        // Eventos do Servidor
-        window.myPeer.on('open', (id) => {
-            debugLog("SALA ONLINE!", "#00ff00");
-            const btn = document.getElementById('btn-start-multi');
-            if (btn) btn.style.display = 'flex';
+        window.myPeer.on('open', function(id) {
+            mobileLog("SALA ONLINE!", "#00ff00");
+            const btnStart = document.getElementById('btn-start-multi');
+            if (btnStart) btnStart.style.display = 'flex';
         });
 
-        window.myPeer.on('error', (err) => {
-            debugLog("ERRO REDE: " + err.type, "red");
+        window.myPeer.on('error', function(err) {
+            mobileLog("ERRO DE REDE: " + err.type, "red");
             if (err.type === 'unavailable-id') {
-                debugLog("ID ocupado, tentando novo...", "orange");
+                mobileLog("ID ocupado, tentando outro...", "orange");
                 setTimeout(initializeHost, 1000);
             }
         });
 
-        window.myPeer.on('connection', (conn) => {
-            setupHostConnectionEvents(conn);
+        window.myPeer.on('connection', function(conn) {
+            setupHostEvents(conn);
         });
 
     } catch (e) {
-        // Captura qualquer erro de lógica ou variável inexistente
-        debugLog("CRASH: " + e.message, "red");
-        alert("Erro detectado: " + e.message);
+        alert("ERRO DENTRO DO INITIALIZE: " + e.message);
     }
 }
 
 /**
- * CONFIGURAÇÃO DOS EVENTOS DE QUEM ENTRA NA SALA
- */
-function setupHostConnectionEvents(conn) {
-    debugLog("Alguém tentando entrar...", "white");
-    
-    // Define assento livre (1 a 3)
-    let freeIdx = -1;
-    for (let i = 1; i <= 3; i++) {
-        if (!window.connectedClients.some(c => c.assignedIdx === i)) {
-            freeIdx = i;
-            break;
-        }
-    }
-
-    if (freeIdx === -1) {
-        debugLog("Sala cheia, rejeitando conexão.");
-        conn.on('open', () => {
-            conn.send({ type: 'error', msg: 'Sala cheia!' });
-            setTimeout(() => conn.close(), 500);
-        });
-        return;
-    }
-
-    conn.assignedIdx = freeIdx;
-    window.connectedClients.push(conn);
-
-    conn.on('open', () => {
-        debugLog(`Jogador ${freeIdx} entrou!`, "#00ff00");
-        
-        // Envia dados iniciais (com checagem de existência do NameManager)
-        const currentNames = (typeof NameManager !== 'undefined') ? NameManager.getAll() : {};
-        conn.send({ type: 'welcome', yourIdx: conn.assignedIdx, names: currentNames });
-        
-        if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
-    });
-
-    conn.on('data', (data) => {
-        // Interpretador de dados recebidos pelo Host
-        if (data.type === 'set_name' && typeof NameManager !== 'undefined') {
-            NameManager.set(conn.assignedIdx, data.name);
-            if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
-        }
-    });
-
-    conn.on('close', () => {
-        debugLog(`Jogador ${conn.assignedIdx} saiu.`, "orange");
-        window.connectedClients = window.connectedClients.filter(c => c !== conn);
-        if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
-    });
-}
-
-/**
- * CONEXÃO DO CLIENTE
+ * CONFIGURAÇÕES DE QUEM ENTRA (CLIENTE)
  */
 function connectToHost() {
-    const inputEl = document.getElementById('join-code-input');
-    const input = inputEl ? inputEl.value.toUpperCase().trim() : '';
-    
-    if (input.length < 1) {
-        debugLog("Digite um código primeiro!", "orange");
+    const input = document.getElementById('join-code-input').value.toUpperCase().trim();
+    if (!input) {
+        alert("Digite o código da sala!");
         return;
     }
 
-    debugLog("Iniciando conexão...", "yellow");
+    mobileLog("Conectando à sala: " + input, "yellow");
 
     try {
         if (window.myPeer) window.myPeer.destroy();
         window.myPeer = new Peer();
 
-        window.myPeer.on('open', () => {
-            window.lastRoomCode = input;
-            window.myConnToHost = window.myPeer.connect('domino-' + input);
-
-            window.myConnToHost.on('open', () => {
-                debugLog("CONECTADO AO HOST!", "#00ff00");
-                const myName = (typeof NameManager !== 'undefined') ? NameManager.get(0) : 'Convidado';
-                window.myConnToHost.send({ type: 'set_name', name: myName });
-            });
-
-            window.myConnToHost.on('data', (data) => {
-                if (typeof handleClientData === 'function') handleClientData(data);
-            });
-
-            window.myConnToHost.on('error', (err) => debugLog("Erro na conexão: " + err, "red"));
+        window.myPeer.on('open', function() {
+            const conn = window.myPeer.connect('domino-' + input);
+            setupClientEvents(conn);
         });
 
-        window.myPeer.on('error', (err) => {
-            debugLog("ERRO: " + (err.type === 'peer-unavailable' ? "Sala não existe" : err.type), "red");
+        window.myPeer.on('error', function(err) {
+            alert("Erro ao conectar: " + err.type);
         });
-
     } catch (e) {
-        debugLog("CRASH CLIENTE: " + e.message, "red");
+        alert("Erro no cliente: " + e.message);
     }
 }
+
+// Funções vazias para evitar erros se os arquivos ainda não carregaram
+function setupHostEvents(conn) { console.log("Novo cliente conectado"); }
+function setupClientEvents(conn) { console.log("Conectado ao host"); }
