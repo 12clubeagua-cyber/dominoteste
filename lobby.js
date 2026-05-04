@@ -105,6 +105,10 @@ function startMatch() {
   // Oculta ela, revelando o tabuleiro e os espaços vazios das mãos
   if (startScreen) startScreen.style.display = 'none';
 
+  // --- MUDANÇA AQUI: Mostra o botão de Sair ao iniciar o jogo ---
+  const exitBtn = document.getElementById('btn-exit');
+  if (exitBtn) exitBtn.style.display = 'block';
+
   // Garante que os botões de cima/baixo não fiquem flutuando sozinhos na tela vazia
   const picker = document.getElementById('side-picker');
   if (picker) picker.style.display = 'none';
