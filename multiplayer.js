@@ -1,24 +1,28 @@
 /* 
-    LOGICA PEERJS (multiplayer.js) - VERSÃO ESPECIALISTA
-    Melhorias: Proteção contra ReferenceError, Retry recursivo de ID e Gestão de Estado.
+    LOGICA MULTIPLAYER - VERSÃO DE DEPURAÇÃO MOBILE
+    Foco: Identificar onde o script trava no celular.
 */
 
-// --- 1. DECLARAÇÃO DE VARIÁVEIS GLOBAIS (ESTRUTURA DE DADOS) ---
-// Estas variáveis precisam estar no topo para evitar erros de "is not defined"
-let myPeer = null; 
-let myConnToHost = null;
-let connectedClients = []; 
-let lastRoomCode = '';
-let reconnectAttempts = 0;
-let reconnectTimer = null;
+// --- 1. DECLARAÇÕES GLOBAIS DE SEGURANÇA ---
+// Garantimos que as variáveis existam antes de qualquer função ser chamada
+window.myPeer = window.myPeer || null;
+window.myConnToHost = window.myConnToHost || null;
+window.connectedClients = window.connectedClients || [];
+window.lastRoomCode = '';
 
-// Configurações de conexão
-const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY_MS = 2000;
+// --- 2. FERRAMENTA DE LOG VISUAL PARA CELULAR ---
+function debugLog(msg, cor = "#fff") {
+    const statusEl = document.getElementById('host-status') || document.getElementById('client-status');
+    if (statusEl) {
+        statusEl.style.color = cor;
+        statusEl.innerText = `> ${msg}`;
+    }
+    console.log(`[DEBUG] ${msg}`);
+}
 
 /**
- * Gera um ID curto. Usei 4 caracteres para equilibrar facilidade e disponibilidade.
- * Com 1 caractere a chance de erro é de 95%. Com 4, cai para quase 0%.
+ * Gera um ID de 4 letras. 
+ * (1 letra causa muito conflito no servidor público, travando a criação)
  */
 function generateShortID() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -30,74 +34,84 @@ function generateShortID() {
 }
 
 /**
- * INICIALIZAÇÃO DO HOST (Dono da Sala)
+ * INICIALIZAÇÃO DO HOST
  */
 function initializeHost() {
+    debugLog("Iniciando função Host...", "yellow");
+
+    // Verificação da biblioteca PeerJS
     if (typeof Peer === 'undefined') {
-        console.error("PeerJS não carregado. Verifique o link do script no HTML.");
+        debugLog("ERRO: Biblioteca PeerJS não carregada!", "red");
         return;
     }
 
-    // Proteção: Só tenta destruir se a instância realmente existir e for um objeto Peer
-    if (myPeer && typeof myPeer.destroy === 'function') {
-        try { myPeer.destroy(); } catch(e) { console.warn("Erro ao limpar Peer anterior"); }
-    }
-
-    // Gera e exibe o código na interface antes de tentar a conexão
-    const fullID = generateShortID();
-    lastRoomCode = fullID.split('-')[1];
-
-    const codeEl = document.getElementById('host-code-display');
-    if (codeEl) codeEl.innerText = lastRoomCode;
-
-    // Tenta registrar o ID no servidor
-    myPeer = new Peer(fullID);
-
-    // --- EVENTOS DO PEER ---
-
-    myPeer.on('open', (id) => {
-        console.log(`%c[HOST] Sala criada com sucesso! ID: ${lastRoomCode}`, "color: green; font-weight: bold;");
-        const btn = document.getElementById('btn-start-multi');
-        if (btn) btn.style.display = 'flex';
-        
-        // Atualiza status visual
-        const statusEl = document.getElementById('host-status');
-        if (statusEl) statusEl.innerText = "Aguardando jogadores...";
-    });
-
-    myPeer.on('error', (err) => {
-        console.error("[HOST] Erro no Peer:", err.type);
-
-        if (err.type === 'unavailable-id') {
-            // Em vez de dar reload na página, tenta gerar um novo ID automaticamente
-            console.warn("Código em uso. Gerando nova tentativa...");
-            setTimeout(initializeHost, 500); 
-        } else {
-            // Outros erros (ex: rede offline)
-            const statusEl = document.getElementById('host-status');
-            if (statusEl) statusEl.innerText = "Erro de conexão: " + err.type;
+    try {
+        // Limpeza de conexões fantasmas
+        if (window.myPeer) {
+            debugLog("Limpando conexões antigas...");
+            window.myPeer.destroy();
         }
-    });
 
-    myPeer.on('connection', (conn) => {
-        setupHostConnectionEvents(conn);
-    });
+        // Geração do ID
+        const fullID = generateShortID();
+        window.lastRoomCode = fullID.split('-')[1];
+
+        // Atualização da UI
+        const codeEl = document.getElementById('host-code-display');
+        if (codeEl) {
+            codeEl.innerText = window.lastRoomCode;
+            debugLog("ID gerado na tela: " + window.lastRoomCode, "cyan");
+        } else {
+            debugLog("ERRO: Elemento 'host-code-display' não encontrado!", "red");
+        }
+
+        // Criando o servidor Peer
+        debugLog("Conectando ao servidor PeerJS...");
+        window.myPeer = new Peer(fullID);
+
+        // Eventos do Servidor
+        window.myPeer.on('open', (id) => {
+            debugLog("SALA ONLINE!", "#00ff00");
+            const btn = document.getElementById('btn-start-multi');
+            if (btn) btn.style.display = 'flex';
+        });
+
+        window.myPeer.on('error', (err) => {
+            debugLog("ERRO REDE: " + err.type, "red");
+            if (err.type === 'unavailable-id') {
+                debugLog("ID ocupado, tentando novo...", "orange");
+                setTimeout(initializeHost, 1000);
+            }
+        });
+
+        window.myPeer.on('connection', (conn) => {
+            setupHostConnectionEvents(conn);
+        });
+
+    } catch (e) {
+        // Captura qualquer erro de lógica ou variável inexistente
+        debugLog("CRASH: " + e.message, "red");
+        alert("Erro detectado: " + e.message);
+    }
 }
 
 /**
- * Organiza os eventos de quando um cliente se conecta ao host
+ * CONFIGURAÇÃO DOS EVENTOS DE QUEM ENTRA NA SALA
  */
 function setupHostConnectionEvents(conn) {
+    debugLog("Alguém tentando entrar...", "white");
+    
+    // Define assento livre (1 a 3)
     let freeIdx = -1;
-    // Busca assento livre (1 a 3, o 0 é o host)
     for (let i = 1; i <= 3; i++) {
-        if (!connectedClients.some(c => c.assignedIdx === i)) {
+        if (!window.connectedClients.some(c => c.assignedIdx === i)) {
             freeIdx = i;
             break;
         }
     }
 
     if (freeIdx === -1) {
+        debugLog("Sala cheia, rejeitando conexão.");
         conn.on('open', () => {
             conn.send({ type: 'error', msg: 'Sala cheia!' });
             setTimeout(() => conn.close(), 500);
@@ -106,160 +120,73 @@ function setupHostConnectionEvents(conn) {
     }
 
     conn.assignedIdx = freeIdx;
-    connectedClients.push(conn);
+    window.connectedClients.push(conn);
 
     conn.on('open', () => {
-        // Envia boas-vindas e sincroniza nomes
-        conn.send({ 
-            type: 'welcome', 
-            yourIdx: conn.assignedIdx, 
-            names: (typeof NameManager !== 'undefined') ? NameManager.getAll() : {} 
-        });
+        debugLog(`Jogador ${freeIdx} entrou!`, "#00ff00");
         
-        if (typeof NameManager !== 'undefined') {
-            NameManager.set(conn.assignedIdx, `Jogador ${conn.assignedIdx}`);
-        }
+        // Envia dados iniciais (com checagem de existência do NameManager)
+        const currentNames = (typeof NameManager !== 'undefined') ? NameManager.getAll() : {};
+        conn.send({ type: 'welcome', yourIdx: conn.assignedIdx, names: currentNames });
         
-        updateHostLobbyUI();
-        broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
+        if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
     });
 
     conn.on('data', (data) => {
-        handleHostDataReceive(conn, data);
+        // Interpretador de dados recebidos pelo Host
+        if (data.type === 'set_name' && typeof NameManager !== 'undefined') {
+            NameManager.set(conn.assignedIdx, data.name);
+            if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
+        }
     });
 
     conn.on('close', () => {
-        console.warn(`[HOST] Cliente ${conn.assignedIdx} desconectou.`);
-        connectedClients = connectedClients.filter(c => c !== conn);
-        if (typeof NameManager !== 'undefined') {
-            NameManager.set(conn.assignedIdx, 'Aguardando...');
-        }
-        updateHostLobbyUI();
-
-        if (typeof STATE !== 'undefined' && !STATE.isOver) {
-            STATE.isBlocked = true;
-            if (typeof updateStatus === 'function') updateStatus(`Jogador ${conn.assignedIdx} caiu. Pausado.`, 'pass');
-        }
+        debugLog(`Jogador ${conn.assignedIdx} saiu.`, "orange");
+        window.connectedClients = window.connectedClients.filter(c => c !== conn);
+        if (typeof updateHostLobbyUI === 'function') updateHostLobbyUI();
     });
 }
 
 /**
- * INTERPRETADOR DE DADOS DO HOST
- */
-function handleHostDataReceive(conn, data) {
-    switch (data.type) {
-        case 'set_name':
-            NameManager.set(conn.assignedIdx, data.name);
-            updateHostLobbyUI();
-            broadcastToClients({ type: 'sync_names', names: NameManager.getAll() });
-            break;
-
-        case 'play_request':
-            if (STATE.current === conn.assignedIdx && typeof play === 'function') {
-                play(conn.assignedIdx, data.tIdx, data.side);
-            }
-            break;
-
-        case 'reconnect':
-            const requestedIdx = data.playerIdx;
-            const seatFree = !connectedClients.some(c => c.assignedIdx === requestedIdx);
-            if (seatFree && [1, 2, 3].includes(requestedIdx)) {
-                conn.assignedIdx = requestedIdx;
-                NameManager.set(requestedIdx, data.name);
-                broadcastState();
-                if (typeof updateStatus === 'function') updateStatus(`${data.name} voltou!`, 'active');
-            }
-            break;
-    }
-}
-
-/**
- * CONEXÃO DO CLIENTE (Entrar em uma sala)
+ * CONEXÃO DO CLIENTE
  */
 function connectToHost() {
-    if (typeof Peer === 'undefined') return;
-
-    const input = document.getElementById('join-code-input').value.toUpperCase().trim();
-    if (input.length < 1) return;
-
-    const statusEl = document.getElementById('client-status');
-    if (statusEl) statusEl.innerText = "Conectando...";
-
-    if (myPeer) myPeer.destroy();
-    myPeer = new Peer(); 
-
-    myPeer.on('error', (err) => {
-        console.error("[CLIENTE] Erro:", err.type);
-        if (statusEl) statusEl.innerText = (err.type === 'peer-unavailable') ? "Sala não encontrada" : "Erro: " + err.type;
-    });
-
-    myPeer.on('open', () => {
-        lastRoomCode = input; 
-        myConnToHost = myPeer.connect('domino-' + input);
-
-        myConnToHost.on('data', handleClientData);
-
-        myConnToHost.on('open', () => {
-            reconnectAttempts = 0;
-            if (statusEl) statusEl.innerText = "Conectado!";
-            myConnToHost.send({ type: 'set_name', name: NameManager.get(0) });
-        });
-
-        myConnToHost.on('close', () => {
-            if (statusEl) statusEl.innerText = "Conexão perdida. Reconectando...";
-            tentarReconectar();
-        });
-    });
-}
-
-/**
- * MOTOR DE RECONEXÃO AUTOMÁTICA
- */
-function tentarReconectar() {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
+    const inputEl = document.getElementById('join-code-input');
+    const input = inputEl ? inputEl.value.toUpperCase().trim() : '';
     
-    reconnectAttempts++;
-    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-        alert("Conexão perdida definitivamente.");
-        window.location.reload();
+    if (input.length < 1) {
+        debugLog("Digite um código primeiro!", "orange");
         return;
     }
 
-    reconnectTimer = setTimeout(() => {
-        console.log(`Tentativa de reconexão ${reconnectAttempts}...`);
-        myPeer = new Peer();
-        myPeer.on('open', () => {
-            myConnToHost = myPeer.connect('domino-' + lastRoomCode);
-            myConnToHost.on('data', handleClientData);
-            myConnToHost.on('open', () => {
-                reconnectAttempts = 0;
-                myConnToHost.send({ 
-                    type: 'reconnect', 
-                    name: NameManager.get(0), 
-                    playerIdx: myPlayerIdx 
-                });
+    debugLog("Iniciando conexão...", "yellow");
+
+    try {
+        if (window.myPeer) window.myPeer.destroy();
+        window.myPeer = new Peer();
+
+        window.myPeer.on('open', () => {
+            window.lastRoomCode = input;
+            window.myConnToHost = window.myPeer.connect('domino-' + input);
+
+            window.myConnToHost.on('open', () => {
+                debugLog("CONECTADO AO HOST!", "#00ff00");
+                const myName = (typeof NameManager !== 'undefined') ? NameManager.get(0) : 'Convidado';
+                window.myConnToHost.send({ type: 'set_name', name: myName });
             });
-            myConnToHost.on('close', tentarReconectar);
+
+            window.myConnToHost.on('data', (data) => {
+                if (typeof handleClientData === 'function') handleClientData(data);
+            });
+
+            window.myConnToHost.on('error', (err) => debugLog("Erro na conexão: " + err, "red"));
         });
-    }, RECONNECT_DELAY_MS);
-}
 
-/**
- * TRANSMISSÃO GERAL (Megafone)
- */
-function broadcastToClients(data) {
-    connectedClients.forEach(client => {
-        if (client && client.open) {
-            try { client.send(data); } catch(e) { console.error('Falha no broadcast:', e); }
-        }
-    });
-}
+        window.myPeer.on('error', (err) => {
+            debugLog("ERRO: " + (err.type === 'peer-unavailable' ? "Sala não existe" : err.type), "red");
+        });
 
-function updateHostLobbyUI() {
-    if (typeof SeatManager !== 'undefined') SeatManager.renderSelectionUI();
-    const statusEl = document.getElementById('host-status');
-    if (statusEl) statusEl.innerText = `Jogadores na sala: (${connectedClients.length + 1}/4)`;
-    
-    const btnStart = document.getElementById('btn-start-multi');
-    if (btnStart) btnStart.style.display = (connectedClients.length >= 1) ? 'flex' : 'none';
+    } catch (e) {
+        debugLog("CRASH CLIENTE: " + e.message, "red");
+    }
 }
