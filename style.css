@@ -4,7 +4,7 @@
    ======================================================================== 
 */
 
-/* 1. RESET E VARIÁVEIS (Essencial para as cores e tamanhos) */
+/* 1. RESET E VARIAVEIS (Essencial para as cores e tamanhos) */
 :root {
   --bg: #0d1b14;
   --surface: #162318;
@@ -27,12 +27,12 @@ body {
   color: var(--text);
   font-family: sans-serif;
   margin: 0;
-  overflow: hidden; /* Evita barras de rolagem desnecessárias */
+  overflow: hidden; /* Evita barras de rolagem desnecessarias */
 }
 
-/* 2. LÓGICA DE EXIBIÇÃO DO MENU */
+/* 2. LOGICA DE EXIBICAO DO MENU */
 .start-step { 
-  display: none;        /* Esconde todas as etapas por padrão */
+  display: none;        /* Esconde todas as etapas por padrao */
   flex-direction: column; 
   align-items: center; 
   width: 320px; 
@@ -42,7 +42,7 @@ body {
   display: flex;        /* Mostra apenas a que tiver a classe 'active' */
 }
 
-/* 3. ESTILIZAÇÃO DO LOBBY */
+/* 3. ESTILIZACAO DO LOBBY */
 #start-screen {
   position: fixed;
   inset: 0;
@@ -81,7 +81,7 @@ body {
 }
 
 /* ========================================================================
-   CABEÇALHO E PLACAR
+   CABECALHO E PLACAR
    ======================================================================== */
 
 #header {
@@ -101,7 +101,7 @@ body {
 #game-status { color: var(--text-dim); text-transform: uppercase; font-size: 14px; letter-spacing: 2px; font-weight: bold; }
 
 /* ========================================================================
-   ÁREA DO JOGO (CONTÊINER PRINCIPAL)
+   AREA DO JOGO (CONTEINER PRINCIPAL)
    ======================================================================== */
 
 #game-area {
@@ -117,10 +117,10 @@ body {
   overflow: hidden;
 }
 
-/* CÂMERA E TABULEIRO */
+/* CAMERA E TABULEIRO */
 #board-container {
   flex: 1;
-  position: relative; /* Cria uma janela para a câmera rodar dentro */
+  position: relative; /* Cria uma janela para a camera rodar dentro */
   overflow: hidden;
 }
 
@@ -133,7 +133,7 @@ body {
 }
 
 /* ========================================================================
-   MÃOS DOS JOGADORES
+   MAOS DOS JOGADORES
    ======================================================================== */
 
 .hand {
@@ -201,7 +201,7 @@ body {
 }
 
 /* ========================================================================
-   AS PEÇAS (DOMINÓS)
+   AS PECAS (DOMINOS)
    ======================================================================== */
 
 .tile {
@@ -214,9 +214,9 @@ body {
   z-index: 10;
 }
 
-/* 🛡️ CORREÇÃO: Verso da peça (Para oponentes) */
+/* ! CORRECAO: Verso da peca (Para oponentes) */
 .tile-back {
-    background-color: #2a3a30 !important; /* Cor sólida para o verso */
+    background-color: #2a3a30 !important; /* Cor solida para o verso */
     border: 1px solid #1a251e !important;
     box-shadow: inset 0 0 8px rgba(0,0,0,0.4) !important;
 }
@@ -226,10 +226,10 @@ body {
 }
 
 .tile-back .pip {
-    display: none; /* Garante que nenhum ponto apareça no verso */
+    display: none; /* Garante que nenhum ponto apareca no verso */
 }
 
-/* Peças nas mãos */
+/* Pecas nas maos */
 .tile-rel {
   position: relative !important; 
   left: auto !important;
@@ -282,7 +282,7 @@ body {
 }
 
 /* ========================================================================
-   INTERFACE FLUTUANTE (OVERLAYS E BOTÕES)
+   INTERFACE FLUTUANTE (OVERLAYS E BOTOES)
    ======================================================================== */
 
 #side-picker {

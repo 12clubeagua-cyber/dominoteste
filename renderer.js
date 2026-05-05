@@ -1,6 +1,6 @@
 /* 
    ========================================================================
-   RENDERER.JS - O ARTISTA (VERSÃO BLINDADA E CORRIGIDA)
+   RENDERER.JS - O ARTISTA (VERSAO BLINDADA E CORRIGIDA)
    Transforma os dados do STATE em elementos visuais (HTML/DOM).
    ======================================================================== 
 */

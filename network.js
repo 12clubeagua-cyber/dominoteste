@@ -1,7 +1,7 @@
 /* 
    ========================================================================
-   NETWORK.JS - O ADAPTADOR DE REDE (VERSÃO BLINDADA)
-   Abstrai toda a comunicação P2P, tanto para o Host quanto para o Cliente.
+   NETWORK.JS - O ADAPTADOR DE REDE (VERSAO BLINDADA)
+   Abstrai toda a comunicacao P2P, tanto para o Host quanto para o Cliente.
    ======================================================================== 
 */
 
@@ -14,7 +14,7 @@ window.Network = {
 
     /**
      * [HOST -> CLIENTES]
-     * Sincroniza uma ação ou animação com todos os jogadores da sala.
+     * Sincroniza uma acao ou animacao com todos os jogadores da sala.
      */
     sync: (payload) => {
         if (window.Network.isHost()) {
@@ -26,7 +26,7 @@ window.Network = {
 
     /**
      * [HOST -> CLIENTES]
-     * Sincroniza o objeto STATE inteiro para garantir que todos estão no mesmo turno.
+     * Sincroniza o objeto STATE inteiro para garantir que todos estao no mesmo turno.
      */
     syncState: () => {
         if (window.Network.isHost()) {
@@ -41,7 +41,7 @@ window.Network = {
      * Atualiza a barra de status local e de todos os convidados.
      */
     sendStatus: (text, cls) => {
-        // Atualiza a tela de quem disparou a função
+        // Atualiza a tela de quem disparou a funcao
         if (typeof window.updateStatusLocal === 'function') {
             window.updateStatusLocal(text, cls);
         }
@@ -54,18 +54,18 @@ window.Network = {
 
     /**
      * [CLIENTE -> HOST]
-     * Permite que o cliente envie pedidos (como jogar peça ou sentar).
+     * Permite que o cliente envie pedidos (como jogar peca ou sentar).
      */
     request: (payload) => {
         if (window.Network.isClient()) {
             if (window.myConnToHost && window.myConnToHost.open) {
                 window.myConnToHost.send(payload);
             } else {
-                console.warn("Network: Tentativa de envio sem conexão ativa com o Host.");
+                console.warn("Network: Tentativa de envio sem conexao ativa com o Host.");
                 
-                // Opcional: Se a conexão caiu, pode tentar forçar a reconexão visualmente
+                // Opcional: Se a conexao caiu, pode tentar forcar a reconexao visualmente
                 if (typeof window.updateStatusLocal === 'function') {
-                    window.updateStatusLocal("Conexão falhou. Aguarde...", "pass");
+                    window.updateStatusLocal("Conexao falhou. Aguarde...", "pass");
                 }
             }
         }

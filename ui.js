@@ -1,11 +1,11 @@
 /* 
    ========================================================================
-   UI.JS - O COORDENADOR DE INTERFACE (VERSÃO BLINDADA)
+   UI.JS - O COORDENADOR DE INTERFACE (VERSAO BLINDADA)
    ======================================================================== 
 */
 
 /**
- * 1. PONTES DE COMUNICAÇÃO (WRAPPERS)
+ * 1. PONTES DE COMUNICACAO (WRAPPERS)
  * Usando window.* para garantir acesso seguro aos objetos em diferentes arquivos.
  */
 
@@ -24,7 +24,7 @@ function updateStatusLocal(text, cls) {
 function renderBoardFromState() {
     if (typeof window.Renderer !== 'undefined') {
         window.Renderer.drawBoard();
-        // Garante que a câmera se ajuste sempre que o tabuleiro for redesenhado
+        // Garante que a camera se ajuste sempre que o tabuleiro for redesenhado
         syncCameraView();
     }
 }
@@ -50,22 +50,22 @@ function changeName() {
 }
 
 /**
- * 2. HELPER DE SINCRONIZAÇÃO DE CÂMERA
+ * 2. HELPER DE SINCRONIZACAO DE CAMERA
  * Resolve o erro de "Can't find variable" unificando os nomes.
  */
 function syncCameraView() {
     if (typeof window.updateCamera === 'function') {
         window.updateCamera();
     } else if (typeof window.updateSnakeScale === 'function') {
-        window.updateSnakeScale(); // Fallback caso algum código antigo chame
+        window.updateSnakeScale(); // Fallback caso algum codigo antigo chame
     }
 }
 
-// ⚠️ NOTA: A função getPips() foi removida daqui, pois agora ela vive no utils.js 
+// ! NOTA: A funcao getPips() foi removida daqui, pois agora ela vive no utils.js 
 // de forma global (window.getPips) e otimizada com CSS Grid.
 
 /**
- * 3. INICIALIZAÇÃO DO AMBIENTE VISUAL
+ * 3. INICIALIZACAO DO AMBIENTE VISUAL
  */
 document.addEventListener('DOMContentLoaded', () => {
     console.log("UI: Inicializando componentes visuais...");
@@ -80,12 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Dashboard.init();
     }
 
-    // 3. Renderização Inicial (Tabuleiro Vazio)
+    // 3. Renderizacao Inicial (Tabuleiro Vazio)
     if (typeof window.Renderer !== 'undefined') {
         if (typeof window.Renderer.drawBoard === 'function') window.Renderer.drawBoard();
         if (typeof window.Renderer.drawHands === 'function') window.Renderer.drawHands();
         
-        // Tenta centralizar a câmera no início com um pequeno atraso de segurança
+        // Tenta centralizar a camera no inicio com um pequeno atraso de seguranca
         setTimeout(syncCameraView, 100);
     }
 });

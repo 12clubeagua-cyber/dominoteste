@@ -1,31 +1,32 @@
 /* 
    ========================================================================
-   STATE.JS - O CÉREBRO DO DOMINÓ (VERSÃO BLINDADA)
-   Centraliza todas as variáveis de estado, rede e memória da IA.
-   Tudo é exportado explicitamente para 'window' para evitar ReferenceErrors.
+   STATE.JS - O CEREBRO DO DOMINO (VERSAO BLINDADA)
+   Centraliza todas as variaveis de estado, rede e memoria da IA.
+   Tudo e exportado explicitamente para 'window' para evitar ReferenceErrors.
    ======================================================================== 
 */
 
 window.STATE = {
-    // --- Lógica de Peças e Mesa ---
-    hands: [[], [], [], []],      // Peças físicas nas mãos
+    // --- Logica de Pecas e Mesa ---
+    hands: [[], [], [], []],      // Pecas fisicas nas maos
     handSize: [7, 7, 7, 7],       // Contagem (essencial para sincronizar Clientes)
-    extremes: [null, null],       // Números das duas pontas da mesa
+    extremes: [null, null],       // Numeros das duas pontas da mesa
     ends: [],                     // Dados vetoriais para o animations.js (curvas)
-    positions: [],                // Histórico de coordenadas das peças jogadas
+    positions: [],                // Historico de coordenadas das pecas jogadas
     
     // --- Controle de Turno e Fluxo ---
-    current: 0,                   // Índice do jogador da vez (0 a 3)
-    pendingIdx: null,             // Armazena peça clicada aguardando escolha de lado
-    lastPlayed: null,             // Quem fez a última jogada (útil para empates)
-    passCount: 0,                 // Quantos jogadores passaram em sequência
+    current: 0,                   // Indice do jogador da vez (0 a 3)
+    pendingIdx: null,             // Armazena peca clicada aguardando escolha de lado
+    lastPlayed: null,             // Quem fez a ultima jogada (util para empates)
+    passCount: 0,                 // Quantos jogadores passaram em sequencia
     playerPassed: [false, false, false, false], 
-    isBlocked: false,             // Trava interações durante animações
+    isBlocked: false,             // Trava interacoes durante animacoes
     isShuffling: false,           // Estado de embaralhamento inicial
+    sessions: {},                 // Mapeamento: seatIdx -> peerId (para reconexao)
     
     // --- Regras e Metas ---
     scores: [0, 0],               // Placar: [Time A+C, Time B+D]
-    targetScore: 10,              // Pontuação para vencer a partida
+    targetScore: 10,              // Pontuacao para vencer a partida
     difficulty: 'normal',         // 'easy', 'normal' ou 'hard'
     matchHistory: [],             // Registro de rodadas (vencedor, pontos, msg)
     botPersonalities: ['normal', 'aggressive', 'defensive', 'random'], 
@@ -33,33 +34,33 @@ window.STATE = {
     // --- Status Finalizadores ---
     isOver: false,                // Rodada terminou?
     matchOver: false,             // Partida inteira terminou?
-    roundWinner: null,            // Quem venceu a última rodada
+    roundWinner: null,            // Quem venceu a ultima rodada
     
-    // --- Memória da IA (Essencial para o bots.js) ---
-    playerMemory: [[], [], [], []], // O que cada jogador NÃO tem
+    // --- Memoria da IA (Essencial para o bots.js) ---
+    playerMemory: [[], [], [], []], // O que cada jogador NAO tem
     
     // --- Controle de Tempo ---
     turnTimer: null,              
     autoNextInterval: null        
 };
 
-// --- Áudio e Sistema ---
+// --- Audio e Sistema ---
 window.audioCtx = null;
 
-// --- Variáveis de Rede / Multiplayer ---
+// --- Variaveis de Rede / Multiplayer ---
 window.netMode = 'offline';       // 'offline', 'host' ou 'client'
-window.myPlayerIdx = 0;           // Sua posição na mesa (definida no Seat Selection)
-window.myPeer = null;             // Instância do PeerJS
-window.myConnToHost = null;       // Conexão do Cliente com o Host
-window.connectedClients = [];     // Lista de conexões no celular do Host
-window.client_predicted = false;  // Otimização de interface para o cliente
+window.myPlayerIdx = 0;           // Sua posicao na mesa (definida no Seat Selection)
+window.myPeer = null;             // Instancia do PeerJS
+window.myConnToHost = null;       // Conexao do Cliente com o Host
+window.connectedClients = [];     // Lista de conexoes no celular do Host
+window.client_predicted = false;  // Otimizacao de interface para o cliente
 
-// --- Sistema de Reconexão (Resiliência Mobile) ---
+// --- Sistema de Reconexao (Resiliencia Mobile) ---
 window.reconnectAttempts = 0;
 window.MAX_RECONNECT_ATTEMPTS = 5;
 window.RECONNECT_DELAY_MS = 3000;
 window.reconnectTimer = null;
-window.lastRoomCode = null;       // Código da sala para tentar voltar
+window.lastRoomCode = null;       // Codigo da sala para tentar voltar
 window.isReconnecting = false;
 
 // --- Interface Global ---
@@ -67,7 +68,7 @@ window.visualPass = [false, false, false, false];
 
 /* 
    ========================================================================
-   FUNÇÕES DE GERENCIAMENTO DE ESTADO
+   FUNCOES DE GERENCIAMENTO DE ESTADO
    ======================================================================== 
 */
 
@@ -83,7 +84,7 @@ window.clearTurnTimer = function() {
 };
 
 /**
- * Reseta os dados táticos para uma nova rodada.
+ * Reseta os dados taticos para uma nova rodada.
  * Crucial para o funcionamento do bots.js.
  */
 window.resetIAAndMemory = function() {
@@ -93,7 +94,7 @@ window.resetIAAndMemory = function() {
 };
 
 /**
- * Reseta o sistema de reconexão.
+ * Reseta o sistema de reconexao.
  */
 window.resetReconnect = function() {
     window.reconnectAttempts = 0;
@@ -101,7 +102,7 @@ window.resetReconnect = function() {
     if (window.reconnectTimer) clearTimeout(window.reconnectTimer);
 };
 
-// Inicialização de segurança: garante que os arrays existam no carregamento
+// Inicializacao de seguranca: garante que os arrays existam no carregamento
 (function init() {
     window.resetIAAndMemory();
     console.log("State.js: Sistema inicializado e exportado globalmente.");
