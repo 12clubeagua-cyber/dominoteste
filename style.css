@@ -22,12 +22,19 @@
   --radius: 12px;
 }
 
-body {
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   background-color: var(--bg);
+}
+
+body {
   color: var(--text);
   font-family: sans-serif;
-  margin: 0;
-  overflow: hidden; /* Evita barras de rolagem desnecessárias */
+  display: flex;
+  flex-direction: column;
 }
 
 /* 2. LÓGICA DE EXIBIÇÃO DO MENU */
@@ -92,7 +99,9 @@ body {
   background-color: var(--surface);
   border-bottom: 2px solid var(--surface2);
   height: 60px;
+  min-height: 60px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .score-block { display: flex; flex-direction: column; font-weight: bold; }
@@ -107,13 +116,17 @@ body {
 #game-area {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* Preenche o resto da tela abaixo do header */
+  flex: 1;
+  height: calc(100% - 60px);
+  height: calc(100dvh - 60px);
   position: relative;
+  overflow: hidden;
 }
 
 #mid-row {
   display: flex;
   flex: 1;
+  min-height: 0; /* Permite que o flex container encolha além do conteúdo */
   overflow: hidden;
 }
 
@@ -417,10 +430,19 @@ body {
   .start-logo { font-size: 52px; }
   .start-step { width: 90%; }
   
-  #header { padding: 5px 10px; height: 50px; }
+  #header { padding: 5px 10px; height: 50px; min-height: 50px; }
   .score-val { font-size: 20px; }
-  #game-area { height: calc(100vh - 50px); }
+  #game-area { height: calc(100dvh - 50px); }
   
   .hand-side { width: 60px; }
   .hand-horiz { min-height: 60px; }
+
+  /* Ajustes especificos para Portrait (Vertical) */
+  @media (orientation: portrait) {
+    .hand { padding: 4px; }
+    .player-name-tag { margin-bottom: 2px; font-size: 10px; }
+    .hand-horiz { min-height: 50px; }
+    .hand-side { width: 50px; }
+    .tiles-rack { gap: 3px; }
+  }
 }

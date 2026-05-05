@@ -35,5 +35,5 @@
 ## 6. Licoes Aprendidas (Prevencao de Bugs)
 - **Contexto 'this' em Callbacks:** Em loops (forEach), timers ou eventos, NUNCA use `this`. Use sempre a referencia global explicita (ex: `window.Renderer.drawHands`).
 - **Sintaxe em Arquivos Grandes:** Arquivos como `game.js` sao propensos a erros de duplicacao de codigo no final do arquivo. Verifique se nao ha blocos "fantasmas" apos edicoes.
-- **Visibilidade de Pips:** O destaque (`.playable`) deve usar bordas douradas escuras e sombras projetadas, nunca brilhos internos que ofusquem os pontos.
-- **CSS Variables:** As dimensoes das pecas dependem de `--tile-width` e `--tile-height` injetados via `Dashboard.init()`. Se as pecas sumirem, verifique se esta funcao foi chamada.
+- **Visibilidade em Mobile (Portrait):** Em dispositivos moveis, o uso de `100vh` pode causar overflow devido as barras de ferramentas do navegador. Utilize sempre `100dvh` (Dynamic Viewport Height) para o container principal e garanta que `html` e `body` tenham `height: 100%`. Adicionalmente, use `min-height: 0` em containers flexiveis intermediarios para permitir que encolham corretamente em telas verticais estreitas.
+- **Dimensoes de Peças:** As dimensoes das pecas dependem de `--tile-width` e `--tile-height` injetados via `Dashboard.init()`. Se as pecas sumirem, verifique se esta funcao foi chamada.
