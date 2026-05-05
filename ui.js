@@ -1,282 +1,91 @@
 /* 
-   INTERFACE VISUAL (ui.js)
+   ========================================================================
+   UI.JS - O COORDENADOR DE INTERFACE (VERSÃO BLINDADA)
+   ======================================================================== 
+*/
+
+/**
+ * 1. PONTES DE COMUNICAÇÃO (WRAPPERS)
+ * Usando window.* para garantir acesso seguro aos objetos em diferentes arquivos.
  */
 
-// Função responsável por atualizar os números do placar e os nomes das equipes no cabeçalho
 function updateScoreDisplay() {
-  const scoreA = document.getElementById('scoreA');
-  const scoreB = document.getElementById('scoreB');
-  const labelA = document.getElementById('label-team-a');
-  const labelB = document.getElementById('label-team-b');
-  
-  if (!scoreA || !scoreB || !labelA || !labelB) return;
-
-  scoreA.textContent = STATE.scores[0];
-  scoreB.textContent = STATE.scores[1];
-  
-  // Destaca em verde quem está na frente
-  scoreA.classList.toggle('winning', STATE.scores[0] > STATE.scores[1]);
-  scoreB.classList.toggle('winning', STATE.scores[1] > STATE.scores[0]);
-
-  // Define os rótulos baseado na posição do jogador (Pares = Time A, Ímpares = Time B)
-  const teamLabels = (myPlayerIdx % 2 !== 0) ? ["Oponentes", "Sua Dupla"] : ["Sua Dupla", "Oponentes"];
-  labelA.innerText = teamLabels[0];
-  labelB.innerText = teamLabels[1];
+    if (typeof window.Dashboard !== 'undefined') window.Dashboard.updateScore();
 }
 
-// Função para o jogador escolher ou alterar o próprio apelido
-function changeName() {
-  let name = "";
-  let valid = false;
-
-  while (!valid) {
-    const input = prompt("Digite seu apelido (ate 10 letras, apenas A-Z):", "SEUNOME");
-    if (input === null) return; 
-
-    const cleaned = input.trim().toUpperCase();
-    if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-Z]+$/.test(cleaned)) {
-      name = cleaned;
-      valid = true;
-    } else {
-      alert("Nome invalido. Use apenas letras (A-Z), entre 1 e 10 caracteres.");
-    }
-  }
-
-  NameManager.set(0, name);
-  updateScoreDisplay();
-}
-
-// Verifica se o usuário já possui um nome salvo
-function checkAndPromptName() {
-    if (!localStorage.getItem('userName')) {
-        changeName();
-    }
-}
-
-// Gerencia o visual de "Passou a vez" (mão acinzentada)
-function triggerPassVisual(pIdx) {
-    if (!window.visualPass) window.visualPass = [false, false, false, false];
-    
-    window.visualPass[pIdx] = true;
-    renderHands(STATE.isOver); 
-    
-    setTimeout(() => {
-        window.visualPass[pIdx] = false;
-        renderHands(STATE.isOver); 
-    }, CONFIG?.GAME?.PASS_DISPLAY_TIME ?? 1000);
-}
-
-// Atualiza a barra de status e sincroniza com os clientes se for Host
 function updateStatus(text, cls = '') {
-  updateStatusLocal(text, cls);
-  if (netMode === 'host') broadcastToClients({ type: 'status', text, cls });
+    if (typeof window.Dashboard !== 'undefined') window.Dashboard.setMessage(text, cls);
 }
 
-// Altera o texto de status localmente tratando "VOCE" e apelidos
 function updateStatusLocal(text, cls) {
-  const el = document.getElementById('game-status');
-  if (!el) return;
-  
-  let displayMsg = text;
-  const allNames = NameManager.getAll();
-  
-  Object.keys(allNames).forEach(idx => {
-      const genericName = `JOGADOR ${parseInt(idx) + 1}`;
-      if (displayMsg.includes(genericName)) {
-          displayMsg = displayMsg.replace(genericName, (parseInt(idx) === myPlayerIdx ? "VOCE" : allNames[idx]));
-      }
-  });
-  
-  el.innerText = displayMsg;
-  el.className = (cls === 'active' || displayMsg.includes('PASSA') || displayMsg.includes('PASSOU')) ? cls : '';
+    if (typeof window.Dashboard !== 'undefined') window.Dashboard._renderStatusLocal(text, cls);
 }
 
-// Desenha as peças no tabuleiro (mesa)
 function renderBoardFromState() {
-  const s = document.getElementById('snake');
-  if (!s) return;
-  
-  const children = Array.from(s.children);
-  children.forEach(child => {
-      if (!child.classList.contains('temp-hidden')) child.remove();
-  });
-  
-  const W = CONFIG?.GAME?.TILE_W ?? 18;
-  const L = CONFIG?.GAME?.TILE_L ?? 36;
-
-  STATE.positions.forEach((nP, i) => {
-    const isAlreadyAnimating = Array.from(s.children).some(child => 
-        child.classList.contains('temp-hidden') && 
-        parseInt(child.dataset.x) === nP.x && 
-        parseInt(child.dataset.y) === nP.y
-    );
-    
-    if (isAlreadyAnimating) return;
-
-    const el = document.createElement('div');
-    el.className = `tile ${nP.isV ? 'tile-v' : 'tile-h'}`;
-    
-    const offsetX = nP.isV ? (W / 2) : (L / 2);
-    const offsetY = nP.isV ? (L / 2) : (W / 2);
-
-    el.style.left = (nP.x - offsetX) + 'px';
-    el.style.top  = (nP.y - offsetY) + 'px';
-    
-    el.innerHTML = `<div class="half">${getPips(nP.v1)}</div><div class="half">${getPips(nP.v2)}</div>`;
-    if (i === STATE.positions.length - 1 && !STATE.isOver) el.classList.add('last-move');
-    s.appendChild(el);
-  });
+    if (typeof window.Renderer !== 'undefined') {
+        window.Renderer.drawBoard();
+        // Garante que a câmera se ajuste sempre que o tabuleiro for redesenhado
+        syncCameraView();
+    }
 }
 
-// Renderiza as mãos dos 4 jogadores com mapeamento de câmera
 function renderHands(reveal = false) {
-  const picker = document.getElementById('side-picker');
-  if (picker) picker.style.display = 'none';
-
-  for (let i = 0; i < 4; i++) {
-    const c = document.getElementById(`hand-${(i - myPlayerIdx + 4) % 4}`);
-    if (c) c.innerHTML = '';
-  }
-
-  for (let i = 0; i < 4; i++) {
-    const viewPos = (i - myPlayerIdx + 4) % 4; 
-    const isSide = (viewPos === 1 || viewPos === 3); 
-    const c = document.getElementById(`hand-${viewPos}`);
-    if (!c) continue;
-    
-    const isBlinking = window.visualPass && window.visualPass[i];
-    
-    c.className = `hand ${isSide ? 'hand-side' : ''} ${i === STATE.current && !STATE.isOver && !STATE.isBlocked ? 'active-turn' : ''} ${isBlinking ? 'hand-passed' : ''}`;
-    
-    if (!c.querySelector('.turn-indicator')) {
-        const ind = document.createElement('div');
-        ind.className = 'turn-indicator';
-        c.appendChild(ind);
-    }
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'player-name-label';
-    nameEl.innerText = NameManager.get((myPlayerIdx + viewPos) % 4);
-    c.appendChild(nameEl);
-
-    const tilesContainer = document.createElement('div');
-    tilesContainer.className = 'tiles-row';
-    c.appendChild(tilesContainer);
-
-    const isMyHand = (i === myPlayerIdx);
-    
-    if (isMyHand || reveal) {
-      (STATE.hands[i] || []).forEach((t, idx) => {
-        const el = document.createElement('div');
-        el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} ${t[0] === t[1] ? 'tile-double' : ''}`;
-        el.innerHTML = `<div class="half">${getPips(t[0])}</div><div class="half">${getPips(t[1])}</div>`;
-        if (isMyHand) el.id = `my-tile-${idx}`;
-        tilesContainer.appendChild(el);
-      });
-    } else {
-      const count = STATE.handSize[i] || 0;
-      for (let k = 0; k < count; k++) {
-        const el = document.createElement('div');
-        el.className = `tile tile-rel ${isSide ? 'tile-v' : 'tile-h'} hidden`;
-        el.innerHTML = `<div class="half"></div><div class="half"></div>`;
-        tilesContainer.appendChild(el);
-      }
-    }
-    
-    const displayCount = (i === myPlayerIdx) ? (STATE.hands[i]?.length || 0) : (STATE.handSize[i] || 0);
-    if (displayCount > 0 && !STATE.isOver) {
-      const ind = document.createElement('div');
-      ind.className = 'hand-indicators';
-      const badge = document.createElement('div');
-      badge.className = 'tile-count';
-      badge.innerText = displayCount;
-      ind.appendChild(badge);
-      if (isBlinking) {
-        const x = document.createElement('div');
-        x.className = 'pass-x'; x.innerText = '';
-        ind.appendChild(x);
-      }
-      c.appendChild(ind);
-    }
-  }
-
-  if (STATE.current === myPlayerIdx && !STATE.isOver && !STATE.isBlocked) {
-     STATE.isBlocked = false;
-     const moves = getMoves(STATE.hands[myPlayerIdx]);
-     if (moves.length > 0) highlight(moves);
-  }
+    if (typeof window.Renderer !== 'undefined') window.Renderer.drawHands(reveal);
 }
 
-// Gerencia o fim da rodada e transição para a próxima
-function executeEndRoundUI(winTeam, idx, msg) {
-  renderHands(true);
-  updateScoreDisplay();
-  
-  if (winTeam === 0 || winTeam === 1) playVictory();
-  
-  if (winTeam === 0 || winTeam === 1) {
-    const teamA = [0, 2], teamB = [1, 3];
-    (winTeam === 0 ? teamA : teamB).forEach(pIdx => {
-        const handEl = document.getElementById(`hand-${(pIdx - myPlayerIdx + 4) % 4}`);
-        if (handEl) handEl.classList.add('hand-win-blink');
-    });
-  }
-
-  const isMatchOver = STATE.matchOver || STATE.scores[0] >= STATE.targetScore || STATE.scores[1] >= STATE.targetScore;
-  
-  if (isMatchOver) {
-    STATE.matchOver = true;
-    if (netMode === 'host') broadcastState();
-    const isMyTeamWinner = (STATE.scores[0] >= STATE.targetScore) ? (myPlayerIdx % 2 === 0) : (myPlayerIdx % 2 === 1);
-    updateStatusLocal(`${isMyTeamWinner ? "SUA DUPLA E CAMPEAO!" : "OPONENTES SAO CAMPEOES!"} Placar: ${STATE.scores[0]} x ${STATE.scores[1]}`, 'active');
-    
-    // Oculta o botão de sair antes de resetar para o menu
-    const exitBtn = document.getElementById('btn-exit');
-    if (exitBtn) exitBtn.style.display = 'none';
-
-    setTimeout(() => window.location.reload(), 6000);
-    
-  } else {
-    if (STATE.autoNextInterval) clearInterval(STATE.autoNextInterval);
-    let timeLeft = CONFIG?.GAME?.RESULT_DISPLAY_TIME ?? 3;
-    
-    updateStatusLocal(`${msg} (Proxima em ${timeLeft}s)`, 'active');
-    
-    STATE.autoNextInterval = setInterval(() => {
-        timeLeft--;
-        if (timeLeft > 0) {
-             updateStatusLocal(`${msg} (Proxima em ${timeLeft}s)`, 'active');
-        } else {
-            clearInterval(STATE.autoNextInterval);
-            if (typeof startRound === 'function') startRound();
-        }
-    }, 1000);
-  }
+function triggerPassVisual(pIdx) {
+    if (typeof window.Renderer !== 'undefined') window.Renderer.flashPass(pIdx);
 }
 
-// --- MUDANÇA NO BOTÃO SAIR ---
+function executeEndRoundUI(winTeam, idx, msg, detail = '') {
+    if (typeof window.FlowUI !== 'undefined') window.FlowUI.endRound(winTeam, idx, msg, detail);
+}
+
 function exitGame() {
-  if (confirm("Deseja mesmo sair da partida?")) {
-      // Esconde o botão visualmente antes de recarregar a página
-      const exitBtn = document.getElementById('btn-exit');
-      if (exitBtn) exitBtn.style.display = 'none';
-      
-      // Reinicia o app voltando para a URL base
-      window.location.href = window.location.origin + window.location.pathname;
-  }
+    if (typeof window.FlowUI !== 'undefined') window.FlowUI.exitGame();
 }
 
-// Inicialização
+function changeName() {
+    if (typeof window.Identity !== 'undefined') window.Identity.promptChange();
+}
+
+/**
+ * 2. HELPER DE SINCRONIZAÇÃO DE CÂMERA
+ * Resolve o erro de "Can't find variable" unificando os nomes.
+ */
+function syncCameraView() {
+    if (typeof window.updateCamera === 'function') {
+        window.updateCamera();
+    } else if (typeof window.updateSnakeScale === 'function') {
+        window.updateSnakeScale(); // Fallback caso algum código antigo chame
+    }
+}
+
+// ⚠️ NOTA: A função getPips() foi removida daqui, pois agora ela vive no utils.js 
+// de forma global (window.getPips) e otimizada com CSS Grid.
+
+/**
+ * 3. INICIALIZAÇÃO DO AMBIENTE VISUAL
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    checkAndPromptName();
+    console.log("UI: Inicializando componentes visuais...");
+
+    // 1. Inicializa Identidade
+    if (typeof window.Identity !== 'undefined' && typeof window.Identity.init === 'function') {
+        window.Identity.init();
+    }
+
+    // 2. Inicializa Dashboard
+    if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.init === 'function') {
+        window.Dashboard.init();
+    }
+
+    // 3. Renderização Inicial (Tabuleiro Vazio)
+    if (typeof window.Renderer !== 'undefined') {
+        if (typeof window.Renderer.drawBoard === 'function') window.Renderer.drawBoard();
+        if (typeof window.Renderer.drawHands === 'function') window.Renderer.drawHands();
+        
+        // Tenta centralizar a câmera no início com um pequeno atraso de segurança
+        setTimeout(syncCameraView, 100);
+    }
 });
-
-// Aplica medidas do config no CSS
-function applyDynamicCSS() {
-    const width = CONFIG?.GAME?.TILE_W ?? 18;
-    const height = CONFIG?.GAME?.TILE_L ?? 36;
-    document.documentElement.style.setProperty('--tile-width', `${width}px`);
-    document.documentElement.style.setProperty('--tile-height', `${height}px`);
-}
-
-applyDynamicCSS();

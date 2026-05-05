@@ -1,25 +1,20 @@
 <!-- Declara que este documento é um HTML5 válido -->
 <!DOCTYPE html>
-<!-- Inicia a tag raiz do HTML e define o idioma da página como Português do Brasil -->
 <html lang="pt-BR">
-<!-- Inicia a seção do cabeçalho (head), que contém os metadados e links para arquivos externos -->
 <head>
-  <!-- Define a codificação de caracteres como UTF-8 -->
   <meta charset="UTF-8">
-  <!-- Configura a responsividade da tela -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <!-- Descrição curta do site -->
   <meta name="description" content="Jogue domino online contra bots ou amigos. O melhor simulador de domino feito pelo Felipe W.">
-  <!-- Define o título que aparecerá na aba do navegador -->
   <title>domino Felipe W.</title>
-  <!-- Link para o ícone (favicon) -->
+  
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <!-- Importa a biblioteca PeerJS para o modo multiplayer -->
+  
+  <!-- Biblioteca PeerJS para o modo multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <!-- Importa o arquivo de estilos CSS -->
+  
+  <!-- Arquivo de Estilo corrigido -->
   <link rel="stylesheet" href="style.css">
 </head>
-<!-- Inicia o corpo do documento -->
 <body>
 
 <!-- CONTÊINER DA TELA INICIAL (Lobby) -->
@@ -116,7 +111,6 @@
 
 <!-- ÁREA PRINCIPAL DO JOGO -->
 <div id="game-area">
-  <!-- CORREÇÃO: Usando id="btn-exit" para ativar o CSS compacto -->
   <button id="btn-exit" onclick="exitGame()">Sair</button>
   
   <!-- Mão do Parceiro -->
@@ -154,29 +148,39 @@
     </div>
 </div>
 
-<div id="reconnect-failed" style="display:none">
-    <div id="reconnect-box">
-        <div id="reconnect-title"> Nao foi possivel reconectar</div>
-        <div id="reconnect-msg">O host pode ter encerrado a sala.</div>
-        <button onclick="window.location.reload()">Voltar ao inicio</button>
-        <button onclick="tentarReconectarManual()">Tentar novamente</button>
-    </div>
-</div>
-
-<!-- SCRIPTS -->
-<script src="names.js" defer></script>
+<!-- SCRIPTS (A ordem abaixo garante o funcionamento da câmera e interações) -->
+<!-- 1. Dados e Configurações -->
 <script src="config.js" defer></script>
 <script src="state.js" defer></script>
+<script src="names.js" defer></script>
 <script src="utils.js" defer></script>
-<script src="audio.js" defer></script>
+
+<!-- 2. Matemática do Jogo e IA -->
 <script src="logic.js" defer></script>
-<script src="animations.js" defer></script>
+<script src="dealer.js" defer></script>
+<script src="referee.js" defer></script>
 <script src="bots.js" defer></script>
+
+<!-- 3. Visual e Câmera (Carregados antes dos renderizadores) -->
+<script src="audio.js" defer></script>
+<script src="animations.js" defer></script>
+<script src="renderer.js" defer></script>
+
+<!-- 4. Interface e Hub (Coordena os anteriores) -->
+<script src="dashboard.js" defer></script>
+<script src="flowui.js" defer></script>
+<script src="identity.js" defer></script>
+<script src="ui.js" defer></script>
+
+<!-- 5. Rede e Input -->
+<script src="network.js" defer></script>
 <script src="seats.js" defer></script>
 <script src="multiplayer.js" defer></script>
-<script src="ui.js" defer></script>
 <script src="input.js" defer></script>
 <script src="lobby.js" defer></script>
+
+<!-- 6. O Motor Principal (Sempre por último) -->
 <script src="game.js" defer></script>
+
 </body>
 </html>

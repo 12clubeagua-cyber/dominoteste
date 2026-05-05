@@ -1,105 +1,106 @@
 /* 
-   ESTADO GLOBAL E CONFIGURACOES (state.js)
- */
+   ========================================================================
+   STATE.JS - O CÉREBRO DO DOMINÓ (VERSÃO BLINDADA)
+   Centraliza todas as variáveis de estado, rede e memória da IA.
+   Tudo é exportado explicitamente para 'window' para evitar ReferenceErrors.
+   ======================================================================== 
+*/
 
-// Criação do objeto global STATE que atua como o banco de dados principal de uma rodada
-let STATE = {
-  // Matriz (lista de listas) que armazena as peças que estão nas mãos de cada um dos 4 jogadores
-  hands: [[], [], [], []],                
-  // Armazena os números das duas pontas livres na mesa de dominó para saber o que pode ser jogado
-  extremes: [null, null],   
-  // Variável que guarda o índice do jogador (0 a 3) que deve realizar a jogada neste exato momento
-  current: 0,               
-  // Placar do jogo: índice 0 é a pontuação da Dupla A, índice 1 é a pontuação da Dupla B
-  scores: [0, 0],           
-  // Memória temporária que guarda o índice de uma peça quando o jogador precisa escolher se quer jogar na "Cima" ou "Baixo"
-  pendingIdx: null,         
-  // Trava de segurança global. Se for verdadeira, a interface ignora os cliques do usuário (Ex: durante animações)
-  isBlocked: false,         
-  // Indica se a rodada atual terminou (alguém bateu ou a mesa trancou)
-  isOver: false,            
-  // Sinalizador ("flag") para indicar se a partida completa (o jogo todo, ex: chegou a 5 pontos) terminou
-  matchOver: false,         // New flag for entire match termination
-  // Indica se o jogo está no meio da animação inicial de embaralhar as peças
-  isShuffling: false,       
-  // Guarda o índice do jogador que venceu a última rodada para que ele comece jogando a próxima
-  roundWinner: null,        
-  // Registra o índice da última pessoa que conseguiu colocar uma peça na mesa (usado como critério de desempate se trancar)
-  lastPlayed: null,         
-  // Histórico matemático completo contendo a coordenada (X e Y) e o formato de todas as peças já colocadas no tabuleiro
-  positions: [],            
-  // Contador global de quantas vezes os jogadores "passaram a vez" em sequência
-  passCount: 0,             
-  // Lista que marca "verdadeiro" ou "falso" para indicar individualmente se cada jogador passou a vez naquela rodada de lances
-  playerPassed: [false, false, false, false],
-  // Objetos que guardam a geometria e os cálculos de direção das "cobrinhas" crescendo nas duas pontas da mesa
-  ends: [],                 
-  // Inteligência/Memória da mesa: Guarda os números em que cada jogador já passou a vez para a IA ou outras lógicas usarem
-  playerMemory: [[], [], [], []], 
-  // Cache de performance que guarda quantas peças restam na mão de cada jogador sem precisar inspecionar a mão real
-  handSize: [7, 7, 7, 7],   
-  // Pontuação necessária estipulada no menu para declarar um vencedor definitivo da partida inteira
-  targetScore: 1,           
-  // Nível da inteligência artificial escolhida para os oponentes do computador no modo offline
-  difficulty: 'normal',     
-  // Armazena o ID do cronômetro ("timer" que roda a cada segundo) que avança de uma rodada encerrada para a próxima
-  autoNextInterval: null,
-  // Armazena o ID do temporizador que aguarda o "delay" do turno (ex: o robô pensando) para podermos cancelar se preciso
-  turnTimer: null    // Timer for pending turn execution
+window.STATE = {
+    // --- Lógica de Peças e Mesa ---
+    hands: [[], [], [], []],      // Peças físicas nas mãos
+    handSize: [7, 7, 7, 7],       // Contagem (essencial para sincronizar Clientes)
+    extremes: [null, null],       // Números das duas pontas da mesa
+    ends: [],                     // Dados vetoriais para o animations.js (curvas)
+    positions: [],                // Histórico de coordenadas das peças jogadas
+    
+    // --- Controle de Turno e Fluxo ---
+    current: 0,                   // Índice do jogador da vez (0 a 3)
+    pendingIdx: null,             // Armazena peça clicada aguardando escolha de lado
+    lastPlayed: null,             // Quem fez a última jogada (útil para empates)
+    passCount: 0,                 // Quantos jogadores passaram em sequência
+    playerPassed: [false, false, false, false], 
+    isBlocked: false,             // Trava interações durante animações
+    isShuffling: false,           // Estado de embaralhamento inicial
+    
+    // --- Regras e Metas ---
+    scores: [0, 0],               // Placar: [Time A+C, Time B+D]
+    targetScore: 10,              // Pontuação para vencer a partida
+    difficulty: 'normal',         // 'easy', 'normal' ou 'hard'
+    
+    // --- Status Finalizadores ---
+    isOver: false,                // Rodada terminou?
+    matchOver: false,             // Partida inteira terminou?
+    roundWinner: null,            // Quem venceu a última rodada
+    
+    // --- Memória da IA (Essencial para o bots.js) ---
+    playerMemory: [[], [], [], []], // O que cada jogador NÃO tem
+    
+    // --- Controle de Tempo ---
+    turnTimer: null,              
+    autoNextInterval: null        
 };
 
-// Contexto de audio (iniciado apos o primeiro clique do usuario)
-// Preparação da Web Audio API (O navegador exige que fique nula até o jogador clicar fisicamente na tela pela 1ª vez)
-let audioCtx = null;
+// --- Áudio e Sistema ---
+window.audioCtx = null;
 
-// Variaveis de Rede / Multiplayer
-// Variável que diz ao jogo como ele deve se comportar: contra a máquina, criando sala ou conectando na de um amigo
-let netMode = 'offline';      // 'offline', 'host' ou 'client'
-// Variável que guarda o assento deste dispositivo na mesa (Se você for o Host, sempre será a cadeira principal)
-let myPlayerIdx = 0;          // Sua posicao na mesa (Host  sempre 0)
-// Variável que armazena a máquina local de conexão ponto-a-ponto da biblioteca PeerJS
-let myPeer = null;            // Objeto PeerJS
-// Variável que armazena a "linha telefônica" aberta, caso este aparelho seja um cliente conectando ao criador da sala
-let myConnToHost = null;      // conexao do Cliente com o Host
-// Lista tipo "agenda" mantida pelo Host que grava quem e quantos estão conectados à sala dele
-let connectedClients = [];    // Lista de conexoes que o Host mantem
-// Sinalizador anti-lag. Diz se o cliente já animou a própria jogada na tela dele para não precisar esperar o servidor confirmar
-let client_predicted = false; // Controle de latencia para jogadas locais
+// --- Variáveis de Rede / Multiplayer ---
+window.netMode = 'offline';       // 'offline', 'host' ou 'client'
+window.myPlayerIdx = 0;           // Sua posição na mesa (definida no Seat Selection)
+window.myPeer = null;             // Instância do PeerJS
+window.myConnToHost = null;       // Conexão do Cliente com o Host
+window.connectedClients = [];     // Lista de conexões no celular do Host
+window.client_predicted = false;  // Otimização de interface para o cliente
 
-// Reconexao
-// Contador que diz quantas vezes o código já tentou religar a internet após uma queda
-let reconnectAttempts = 0;
-// Limite máximo de tentativas que o sistema pode tentar restabelecer o multiplayer antes de assumir a desconexão definitiva
-const MAX_RECONNECT_ATTEMPTS = 5;
-// Tempo de atraso entre uma tentativa de religar a rede e outra
-const RECONNECT_DELAY_MS = 3000; // 3s entre tentativas
-// Variável que guarda o agendamento da próxima tentativa para que possamos cancelar caso a internet volte rápido
-let reconnectTimer = null;
-// Backup da letra/código da sala que o usuário estava jogando antes de a rede cair
-let lastRoomCode = null;     // Guarda o codigo da sala para reconectar
-// Backup do número da cadeira que o jogador ocupava antes de cair para pedir o mesmo lugar de volta
-let lastPlayerIdx = null;    // Guarda o indice do jogador para restaurar
-// Trava que indica se o sistema de segurança da rede está atualmente trabalhando para reconectar
-let isReconnecting = false;
+// --- Sistema de Reconexão (Resiliência Mobile) ---
+window.reconnectAttempts = 0;
+window.MAX_RECONNECT_ATTEMPTS = 5;
+window.RECONNECT_DELAY_MS = 3000;
+window.reconnectTimer = null;
+window.lastRoomCode = null;       // Código da sala para tentar voltar
+window.isReconnecting = false;
 
-// Array global injetado na janela do navegador (Window) para acionar a luz de alerta cinza quando alguém passa a vez
+// --- Interface Global ---
 window.visualPass = [false, false, false, false];
 
-// Função utilitária criada para exterminar e limpar qualquer agendamento de turno/jogada que ainda esteja no relógio do sistema
-function clearTurnTimer() {
-    // Se existir algum cronômetro gravado na variável correspondente do estado
-    if (STATE.turnTimer) {
-        // Envia a ordem para o navegador cancelar a execução futura agendada
-        clearTimeout(STATE.turnTimer);
-        // Desocupa a variável devolvendo ela ao estado inicial nulo
-        STATE.turnTimer = null;
-    }
-}
+/* 
+   ========================================================================
+   FUNÇÕES DE GERENCIAMENTO DE ESTADO
+   ======================================================================== 
+*/
 
-// Função utilitária rápida para resetar as estatísticas do módulo de segurança de rede
-function resetReconnect() {
-    // Zera a conta de falhas já que a crise (supostamente) acabou
-    reconnectAttempts = 0;
-    // Desliga a luz de alerta de reconexão informando ao código que as coisas voltaram ao normal
-    isReconnecting = false;
-}
+/**
+ * Limpa o timer de turno para evitar que um bot jogue 
+ * no momento em que o jogo foi pausado ou reiniciado.
+ */
+window.clearTurnTimer = function() {
+    if (window.STATE.turnTimer) {
+        clearTimeout(window.STATE.turnTimer);
+        window.STATE.turnTimer = null;
+    }
+};
+
+/**
+ * Reseta os dados táticos para uma nova rodada.
+ * Crucial para o funcionamento do bots.js.
+ */
+window.resetIAAndMemory = function() {
+    window.STATE.playerMemory = [[], [], [], []];
+    window.STATE.playerPassed = [false, false, false, false];
+    window.STATE.passCount = 0;
+};
+
+/**
+ * Reseta o sistema de reconexão.
+ */
+window.resetReconnect = function() {
+    window.reconnectAttempts = 0;
+    window.isReconnecting = false;
+    if (window.reconnectTimer) clearTimeout(window.reconnectTimer);
+};
+
+// Inicialização de segurança: garante que os arrays existam no carregamento
+(function init() {
+    window.resetIAAndMemory();
+    console.log("State.js: Sistema inicializado e exportado globalmente.");
+})();

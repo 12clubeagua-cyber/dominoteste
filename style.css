@@ -1,342 +1,363 @@
-/* Importação de fontes externas do Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap');
+/* 
+   ========================================================================
+   STYLE.CSS - O ESTILO DEFINITIVO (CORRIGIDO)
+   ======================================================================== 
+*/
 
-/* VARIÁVEIS GLOBAIS DO TEMA DO JOGO */
+/* 1. RESET E VARIÁVEIS (Essencial para as cores e tamanhos) */
 :root {
-  --board: #1a6b4a;
-  --board-dark: #134d35;
-  --board-light: #1f7d57;
-  --tile-bg: #fdfcf0;
-  --tile-border: #c8c4a0;
-  --pip: #1a1a2e;
-  --pip-double: #c0392b;
   --bg: #0d1b14;
   --surface: #162318;
   --surface2: #1e2f22;
   --gold: #ffcc33;
-  --gold-dim: #d4b030;
   --red: #c0392b;
   --text: #e8e4d4;
   --text-dim: #a8b4a8;
-  --radius: 12px;
+  --tile-bg: #fdfcf0;
+  --tile-border: #c8c4a0;
+  --pip: #1a1a2e;
+  
   --tile-width: 18px;
   --tile-height: 36px;
+  --radius: 12px;
 }
-
-/* Reset universal */
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
 body {
-  background: radial-gradient(circle at center, #162318 0%, #0d1b14 100%);
+  background-color: var(--bg);
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  height: 100dvh;
+  font-family: sans-serif;
+  margin: 0;
+  overflow: hidden; /* Evita barras de rolagem desnecessárias */
+}
+
+/* 2. LÓGICA DE EXIBIÇÃO DO MENU */
+.start-step { 
+  display: none;        /* Esconde todas as etapas por padrão */
+  flex-direction: column; 
+  align-items: center; 
+  width: 320px; 
+}
+
+.start-step.active { 
+  display: flex;        /* Mostra apenas a que tiver a classe 'active' */
+}
+
+/* 3. ESTILIZAÇÃO DO LOBBY */
+#start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background-color: var(--bg);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-/* BOTÃO SAIR (Estilo aba colada na direita) */
-#btn-exit {
-  position: absolute;
-  top: 15px;      
-  right: 0;       
-  width: auto;    
-  padding: 6px 12px 6px 16px; 
-  background: rgba(192, 57, 43, 0.2);
-  border: 1px solid var(--red);
-  border-right: none; 
-  color: var(--red);
-  border-radius: 6px 0 0 6px; 
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
-  z-index: 10000; 
-  display: none;  
-  transition: all 0.2s;
-}
-
-#btn-exit:hover {
-  background: var(--red);
-  color: white;
-}
-
-/* CABEÇALHO DO JOGO (MELHORIA: Espaçamento e Alinhamento) */
-#header {
-  display: grid; 
-  grid-template-columns: 1fr auto 1fr; /* Divide em 3 colunas */
   align-items: center;
-  /* 80px de padding na direita garante que o placar não bata no botão Sair */
-  padding: 8px 80px 8px 18px; 
-  background: var(--surface);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  height: 60px; 
-  flex-shrink: 0;
+  justify-content: center;
 }
 
-/* Empurra o placar dos oponentes para o final da coluna da direita */
-.score-block.right {
-  text-align: right;
-  justify-self: end;
-}
-
-.score-val {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
-  color: var(--gold);
-}
-.score-val.winning { color: #4caf75; }
-
-#game-status {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  letter-spacing: 2px;
-  color: var(--text-dim);
-  text-align: center;
-  padding: 0 10px; /* Proteção lateral para o texto central */
-}
-#game-status.active { color: var(--gold); }
-#game-status.pass { color: var(--red); }
-
-/* START SCREEN */
-#start-screen {
-  position: fixed; inset: 0; z-index: 9000;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-}
 .start-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 82px;
-  letter-spacing: 8px;
+  font-size: 60px;
   color: var(--gold);
-  line-height: 1;
-  text-shadow: 0 0 40px rgba(255,204,51,0.4), 0 10px 20px rgba(0,0,0,0.5);
+  font-weight: bold;
+  margin-bottom: 5px;
 }
+
 .start-sub {
   color: var(--text-dim);
-  font-size: 14px;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  margin-top: 6px;
-  margin-bottom: 48px;
-  text-align: center;
+  margin-bottom: 30px;
 }
-.start-options {
-  display: flex; flex-direction: column; gap: 12px; width: 320px;
-}
-.start-label {
-  font-size: 11px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-  text-align: center;
-}
+
 .start-btn {
   background: var(--surface2);
   border: 1px solid rgba(255,255,255,0.1);
   color: var(--text);
-  padding: 18px 24px;
+  padding: 15px 20px;
   border-radius: var(--radius);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  margin-bottom: 10px;
   cursor: pointer;
-  display: flex; justify-content: space-between; align-items: center;
-  transition: all 0.3s;
-}
-.start-btn:hover { border-color: var(--gold); background: var(--surface2); }
-.start-btn.selected { border-color: var(--gold); }
-
-.start-step { display: none; flex-direction: column; align-items: center; width: 320px; }
-.start-step.active { display: flex; }
-
-.step-back {
-  background: none; border: none; color: var(--text-dim);
-  font-family: 'DM Sans', sans-serif; font-size: 12px;
-  cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
-  margin-top: 24px; padding: 10px 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
-.input-code {
-  background: var(--surface2); 
-  color: var(--gold);
-  border: 1px solid rgba(255,255,255,0.1); padding: 18px;
-  border-radius: var(--radius); font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px; text-align: center; width: 100%; margin-bottom: 12px;
-  text-transform: uppercase; letter-spacing: 6px; outline: none;
+/* ========================================================================
+   CABEÇALHO E PLACAR
+   ======================================================================== */
+
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: var(--surface);
+  border-bottom: 2px solid var(--surface2);
+  height: 60px;
+  box-sizing: border-box;
 }
 
-/* ÁREA DE JOGO */
+.score-block { display: flex; flex-direction: column; font-weight: bold; }
+.score-block.right { text-align: right; }
+.score-val { color: var(--gold); font-size: 24px; }
+#game-status { color: var(--text-dim); text-transform: uppercase; font-size: 14px; letter-spacing: 2px; font-weight: bold; }
+
+/* ========================================================================
+   ÁREA DO JOGO (CONTÊINER PRINCIPAL)
+   ======================================================================== */
+
 #game-area {
-  flex: 1; display: flex; flex-direction: column;
-  overflow: hidden; position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px); /* Preenche o resto da tela abaixo do header */
+  position: relative;
 }
 
-#mid-row { flex: 1; display: flex; overflow: hidden; }
+#mid-row {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 
+/* CÂMERA E TABULEIRO */
 #board-container {
   flex: 1;
-  background: radial-gradient(ellipse at 50% 50%, var(--board-light) 0%, var(--board) 20%, var(--board-dark) 100%);
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-}
-#board-container::before {
-  content: '';
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+  position: relative; /* Cria uma janela para a câmera rodar dentro */
+  overflow: hidden;
 }
 
-/* TILES */
+#snake {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 0 0;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ========================================================================
+   MÃOS DOS JOGADORES
+   ======================================================================== */
+
+.hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.3s;
+  z-index: 20;
+  position: relative;
+}
+
+.hand-horiz { min-height: 80px; }
+.hand-side { width: 90px; }
+
+.tiles-rack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.hand-side .tiles-rack { flex-direction: column; }
+.player-name-tag { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; }
+
+/* Destaques da Interface */
+.active-turn { background: rgba(255, 204, 51, 0.12); border-radius: 8px; }
+
+/* Efeito vermelho intenso com texto quando o jogador passa a vez */
+.hand-passed { 
+    animation: passFlash 0.3s ease-in-out infinite alternate;
+    z-index: 30;
+}
+
+.hand-passed::after {
+    content: "PASSOU!";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px #c0392b;
+    z-index: 100;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+@keyframes passFlash {
+    from { background: rgba(192, 57, 43, 0.4); }
+    to { background: rgba(192, 57, 43, 0.95); box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
+}
+
+.hand-win-blink {
+  animation: winBlink 0.8s infinite alternate;
+  border-radius: 8px;
+}
+
+@keyframes winBlink {
+  from { background: rgba(255, 204, 51, 0.1); box-shadow: 0 0 10px rgba(255, 204, 51, 0.2); }
+  to { background: rgba(255, 204, 51, 0.4); box-shadow: 0 0 20px rgba(255, 204, 51, 0.6); }
+}
+
+/* ========================================================================
+   AS PEÇAS (DOMINÓS)
+   ======================================================================== */
+
 .tile {
   background: var(--tile-bg);
   border: 1px solid var(--tile-border);
-  display: flex; border-radius: 4px; position: absolute;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-}
-.tile-h { 
-  width: var(--tile-height); 
-  height: var(--tile-width); 
-}
-.tile-v { 
-  width: var(--tile-width); 
-  height: var(--tile-height); 
-  flex-direction: column; 
-}
-.tile-h .half:first-child { border-right: 1px solid rgba(0,0,0,0.1); }
-.tile-v .half:first-child { border-bottom: 1px solid rgba(0,0,0,0.1); }
-
-.half {
-  flex: 1; display: grid;
-  grid-template-columns: repeat(3,1fr);
-  grid-template-rows: repeat(3,1fr);
-  padding: 2px;
-  align-items: center; justify-items: center;
-}
-.pip {
-  width: 4px; height: 4px;
-  background: var(--pip); border-radius: 50%;
-}
-
-.tile.last-move { border: 1px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
-.tile.playable { background: #fff; border: 2px solid var(--gold); cursor: pointer; transform: scale(1.05); }
-.tile.hidden { background: #2a3d2e; }
-.tile.hidden .pip { display: none; }
-.tile.tile-rel { position: relative !important; display: flex !important; }
-
-/* Mãos */
-.hand { 
-    position: relative; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 4px; 
-    justify-content: center; 
-    align-items: center;
-    padding: 6px 8px; 
-    background: var(--surface);
-    min-height: 58px; 
-    flex-shrink: 0;
-    transition: all 0.3s;
-    border: 1px solid transparent;
-}
-.hand .tiles-row {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-    justify-content: center;
-    align-items: center;
-}
-.hand-side .tiles-row {
-    flex-direction: column;
-}
-
-.hand.active-turn {
-  box-shadow: 0 0 15px rgba(76, 175, 117, 0.5);
-  border-color: #4caf75;
-}
-.hand.hand-passed {
-  opacity: 0.5;
-  filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(2);
-}
-.turn-indicator {
+  display: flex; 
+  border-radius: 3px;
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 10px;
-  height: 10px;
-  background: #4caf75;
-  border-radius: 50%;
-  display: none;
-}
-.hand.active-turn .turn-indicator {
-  display: block;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(0,0,0,0.1);
+  z-index: 10;
 }
 
-/* Overlays e Side Picker */
-#reconnect-overlay, #reconnect-failed { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-#reconnect-box { background: #1a1a2e; border: 2px solid #f59e0b; border-radius: 16px; padding: 32px 40px; text-align: center; display: flex; flex-direction: column; gap: 16px; color: white; }
+/* 🛡️ CORREÇÃO: Verso da peça (Para oponentes) */
+.tile-back {
+    background-color: #2a3a30 !important; /* Cor sólida para o verso */
+    border: 1px solid #1a251e !important;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.4) !important;
+}
+
+.tile-back .half {
+    border: none !important;
+}
+
+.tile-back .pip {
+    display: none; /* Garante que nenhum ponto apareça no verso */
+}
+
+/* Peças nas mãos */
+.tile-rel {
+  position: relative !important; 
+  left: auto !important;
+  top: auto !important;
+  cursor: pointer;
+  transition: transform 0.2s ease-out;
+}
+
+.tile-rel:hover { transform: translateY(-5px); }
+.hand-side .tile-rel:hover { transform: translateX(-5px); }
+
+.tile-h { width: var(--tile-height); height: var(--tile-width); }
+.tile-v { width: var(--tile-width); height: var(--tile-height); flex-direction: column; }
+
+/* Grid Interno para os Pontos */
+.half {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0; /* Removido gap para evitar overflow em pecas pequenas */
+    padding: 2px; /* Reduzido respiro para dar mais espaco aos pontos */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    align-items: center; 
+    justify-items: center;
+}
+
+.pip {
+    width: 3px; /* Reduzido de 4px para 3px para caber no grid 18x18 */
+    height: 3px;
+    background: var(--pip); 
+    border-radius: 50%;
+}
+
+/* O Highlight Amarelo (Focado em contraste, sem brilho excessivo) */
+.tile.playable {
+    cursor: pointer;
+    border: 3px solid #d4af37 !important; /* Dourado escuro para contraste */
+    box-shadow: 0 8px 15px rgba(0,0,0,0.6); /* Sombra projetada */
+    transform: translateY(-12px) scale(1.05); 
+    z-index: 100;
+}
+
+/* Ajuste para pecas na mesa (para nao brilhar quando jogadas) */
+#snake .tile.playable {
+    transform: none;
+    box-shadow: none;
+    border: 1px solid var(--tile-border);
+}
+
+/* ========================================================================
+   INTERFACE FLUTUANTE (OVERLAYS E BOTÕES)
+   ======================================================================== */
 
 #side-picker {
-  position: fixed;
-  bottom: 80px;
-  left: 0;
-  right: 0;
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
   display: none;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  z-index: 9999;
-  pointer-events: auto;
-}
-.btn-side {
-  padding: 14px 28px;
-  border-radius: 24px;
+  gap: 15px;
+  z-index: 1000;
   background: var(--surface2);
-  color: var(--text);
-  border: 2px solid var(--gold);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .15s;
+  padding: 10px;
+  border-radius: var(--radius);
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
-.btn-side:hover {
-  background: var(--gold);
-  color: var(--bg);
-  transform: scale(1.05);
-}
-.btn-cancel {
-  background: transparent;
-  border-color: var(--red);
-  color: var(--red);
-}
-.btn-cancel:hover {
-  background: rgba(192,57,43,.2);
-  color: var(--red);
+
+.btn-side {
+  background: var(--gold); color: var(--bg);
+  border: none; padding: 12px 24px;
+  border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase;
 }
 
-/* Multiplayer Lobby */
-.seat-selection-grid { display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 15px; width: 100%; }
-.team-column { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 140px; }
-.team-label { font-size: 11px; color: var(--gold); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-.team-divider { font-weight: 800; color: var(--gold); opacity: 0.5; font-size: 18px; }
-.seat-item { 
-    padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px; text-align: center; font-size: 14px; color: white;
-    min-height: 45px; display: flex; align-items: center; justify-content: center;
+.btn-cancel { background: var(--red); color: white; }
+
+#btn-exit {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(255,255,255,0.1); border: none;
+  color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer;
+  z-index: 1000;
 }
-.seat-item.occupied { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); font-weight: bold; }
-.seat-item.empty { color: rgba(255,255,255,0.3); font-style: italic; }
-.seat-item.empty.clickable { 
-    cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.1); 
-    border-style: dashed; color: var(--gold); font-style: normal;
+
+.hidden { display: none !important; }
+
+/* --- ANIMACOES DE IMPACTO (JUICE) --- */
+.shake {
+    animation: cameraShake 0.2s ease-in-out;
 }
-.seat-item.empty.clickable:hover { background: var(--gold); color: var(--bg); border-style: solid; }
+
+@keyframes cameraShake {
+    0% { transform: scale(var(--cam-scale)) translate(var(--cam-x), var(--cam-y)); }
+    25% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) + 5px), calc(var(--cam-y) + 5px)); }
+    50% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) - 5px), calc(var(--cam-y) - 5px)); }
+    75% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) + 3px), calc(var(--cam-y) - 3px)); }
+    100% { transform: scale(var(--cam-scale)) translate(var(--cam-x), var(--cam-y)); }
+}
+
+/* Balao de Pensamento dos Bots */
+.thinking-bubble {
+    position: absolute;
+    top: -25px;
+    background: white;
+    color: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    animation: bubblePop 0.3s ease-out;
+    white-space: nowrap;
+    z-index: 50;
+}
+
+@keyframes bubblePop {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+@media (max-width: 600px) {
+  .start-logo { font-size: 52px; }
+  .start-step { width: 90%; }
+  
+  #header { padding: 5px 10px; height: 50px; }
+  .score-val { font-size: 20px; }
+  #game-area { height: calc(100vh - 50px); }
+  
+  .hand-side { width: 60px; }
+  .hand-horiz { min-height: 60px; }
+}
