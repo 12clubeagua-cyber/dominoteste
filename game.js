@@ -151,7 +151,17 @@ window.processTurn = function() {
         if (handEl) {
             const bubble = document.createElement('div');
             bubble.className = 'thinking-bubble';
-            bubble.innerText = '...';
+            
+            // Texto varia de acordo com a personalidade (ocasionalmente)
+            const personality = window.STATE.botPersonalities?.[cur] || 'normal';
+            let text = '...';
+            if (Math.random() > 0.7) {
+                if (personality === 'aggressive') text = 'Vou fechar!';
+                if (personality === 'defensive') text = 'Calma...';
+                if (personality === 'random') text = 'Sera?';
+            }
+            bubble.innerText = text;
+            
             handEl.appendChild(bubble);
             setTimeout(() => bubble.remove(), 1000);
         }

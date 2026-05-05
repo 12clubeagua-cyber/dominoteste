@@ -172,5 +172,22 @@ window.Renderer = {
             return window.getPips(val, color);
         }
         return `<span style="color:var(--bg); font-weight:bold; font-size:10px;">${val}</span>`;
+    },
+
+    /**
+     * Cria uma explosao de confetes na tela.
+     */
+    spawnConfetti: function() {
+        const colors = ['#ffcc33', '#ffffff', '#2ecc71', '#3498db', '#e74c3c'];
+        for (let i = 0; i < 50; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti';
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            el.style.animation = `confettiFall ${2 + Math.random() * 3}s linear forwards`;
+            el.style.opacity = Math.random();
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
     }
 };

@@ -77,8 +77,24 @@ window.screenShake = function() {
 };
 
 /**
- * 2. ANIMAÇÕES DE PREPARAÇÃO (SHUFFLE)
+ * 2. ANIMACOES DE VITORIA (CELEBRATION)
  */
+window.victoryZoom = function(targetTilePos) {
+    const snakeEl = document.getElementById('snake');
+    if (!snakeEl || !targetTilePos) return;
+
+    const zoomScale = 1.8; // Zoom aproximado na peca vencedora
+    const offsetX = -targetTilePos.x;
+    const offsetY = -targetTilePos.y;
+
+    snakeEl.style.transition = 'transform 1.5s cubic-bezier(0.2, 0, 0.2, 1)';
+    snakeEl.style.transform = `scale(${zoomScale}) translate(${offsetX}px, ${offsetY}px)`;
+    
+    // Define as variaveis de camera para efeitos de particulas alinhados
+    document.documentElement.style.setProperty('--cam-scale', zoomScale);
+    document.documentElement.style.setProperty('--cam-x', `${offsetX}px`);
+    document.documentElement.style.setProperty('--cam-y', `${offsetY}px`);
+};
 window.runShuffleAnimation = function(onComplete) {
     const snake = document.getElementById('snake');
     if (!snake) {

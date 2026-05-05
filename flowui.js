@@ -32,29 +32,52 @@ window.FlowUI = {
     },
 
     /**
-     * Gerencia a exibição visual do fim de uma rodada.
+     * Gerencia a exibicao visual do fim de uma rodada.
      */
     endRound: function(winTeam, idx, msg, detail = '') {
-        // 1. Revela as mãos de todos para transparência
+        // 1. Revela as maos de todos para transparencia
         if (typeof window.Renderer !== 'undefined' && typeof window.Renderer.drawHands === 'function') {
             window.Renderer.drawHands(true);
         }
         
-        // 2. Atualiza o placar no Dashboard
+        // 2. Zoom na peca vencedora e Confetes
+        if (winTeam !== -1) {
+            const lastTile = window.STATE?.positions?.[window.STATE.positions.length - 1];
+            if (lastTile && typeof window.victoryZoom === 'function') {
+                window.victoryZoom(lastTile);
+            }
+            if (typeof window.Renderer !== 'undefined' && typeof window.Renderer.spawnConfetti === 'function') {
+                window.Renderer.spawnConfetti();
+            }
+        }
+
+        // 3. Atualiza o placar no Dashboard
         if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.updateScore === 'function') {
             window.Dashboard.updateScore();
         }
         
-        // 3. Feedback sonoro
+        // 4. Grava no Historico e Persistencia
+        if (winTeam !== -1) {
+            const historyItem = {
+                winTeam: winTeam,
+                msg: msg,
+                scores: [...window.STATE.scores],
+                time: new Date().toLocaleTimeString()
+            };
+            window.STATE.matchHistory.push(historyItem);
+            this.saveMatchState();
+            this.renderHistory();
+        }
+
+        // 5. Feedback sonoro
         if (winTeam !== -1 && typeof window.playVictory === 'function') {
             window.playVictory();
         }
         
-        // 4. Efeito visual de brilho nas mãos da dupla vencedora
+        // 6. Efeito visual de brilho nas maos da dupla vencedora
         this._highlightWinningTeam(winTeam);
 
-        // 5. Verifica se a partida inteira acabou (Meta de vitórias)
-        // Fallback seguro caso STATE demore a responder
+        // 7. Verifica se a partida inteira acabou
         const target = (window.STATE && window.STATE.targetScore) ? window.STATE.targetScore : 10;
         const scoreA = (window.STATE && window.STATE.scores) ? window.STATE.scores[0] : 0;
         const scoreB = (window.STATE && window.STATE.scores) ? window.STATE.scores[1] : 0;
@@ -66,6 +89,41 @@ window.FlowUI = {
         } else {
             this._startNextRoundCountdown(msg);
         }
+    },
+
+    /**
+     * Salva o estado atual da partida no localStorage para persistencia.
+     */
+    saveMatchState: function() {
+        try {
+            const stateToSave = {
+                scores: window.STATE.scores,
+                targetScore: window.STATE.targetScore,
+                difficulty: window.STATE.difficulty,
+                matchHistory: window.STATE.matchHistory
+            };
+            localStorage.setItem('domino_match_state', JSON.stringify(stateToSave));
+        } catch (e) {
+            console.warn("Nao foi possivel salvar o estado:", e);
+        }
+    },
+
+    /**
+     * Renderiza o historico na barra lateral.
+     */
+    renderHistory: function() {
+        const list = document.getElementById('history-list');
+        if (!list) return;
+
+        list.innerHTML = window.STATE.matchHistory.map((h, i) => {
+            const isWin = (h.winTeam === 0); // Time A (voce)
+            return `
+                <div class="history-item ${isWin ? 'win' : 'loss'}">
+                    <strong>Rodada ${i + 1}</strong>: ${isWin ? 'Vitoria' : 'Derrota'}<br>
+                    <small>${h.scores[0]} x ${h.scores[1]}</small>
+                </div>
+            `;
+        }).join('');
     },
 
     /**

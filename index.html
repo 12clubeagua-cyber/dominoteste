@@ -26,6 +26,9 @@
   <div class="start-step active" id="step-mode">
     <div class="start-options">
       <div class="start-label">Modo de Jogo</div>
+      <button class="start-btn" id="btn-continue" onclick="loadMatchState()" style="display:none; background:var(--gold); color:var(--bg);">
+        Continuar <span>Partida Salva</span>
+      </button>
       <button class="start-btn" onclick="selectMode('offline')">
         Um Jogador <span>Vs Bots</span>
       </button>
@@ -109,10 +112,16 @@
   </div>
 </div>
 
-<!-- ÁREA PRINCIPAL DO JOGO -->
+<!-- AREA PRINCIPAL DO JOGO -->
 <div id="game-area">
   <button id="btn-exit" onclick="exitGame()">Sair</button>
   
+  <!-- Historico Lateral -->
+  <div id="history-sidebar" class="sidebar">
+    <div class="sidebar-header">Historico</div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+
   <!-- Mão do Parceiro -->
   <div id="hand-2" class="hand"></div> 
   

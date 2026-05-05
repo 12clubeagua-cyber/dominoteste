@@ -27,6 +27,8 @@ window.STATE = {
     scores: [0, 0],               // Placar: [Time A+C, Time B+D]
     targetScore: 10,              // Pontuação para vencer a partida
     difficulty: 'normal',         // 'easy', 'normal' ou 'hard'
+    matchHistory: [],             // Registro de rodadas (vencedor, pontos, msg)
+    botPersonalities: ['normal', 'aggressive', 'defensive', 'random'], 
     
     // --- Status Finalizadores ---
     isOver: false,                // Rodada terminou?

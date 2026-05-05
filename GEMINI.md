@@ -15,12 +15,14 @@
 
 ## 3. Geometria e Animacao
 - **Corner Hinge Engine (logic.js):** O calculo em `calculateTilePlacement` define curvas em L. Respeite o gap de 2px em `totalDist` e `projection`.
-- **Responsive Camera (animations.js):** O sistema de zoom e centralizacao usa as variaveis `--cam-scale`, `--cam-x` e `--cam-y`. Qualquer efeito visual (shake, bubbles) deve se basear nessas variaveis para manter o alinhamento.
+- **Responsive Camera (animations.js):** O sistema de zoom e centralizacao usa as variaveis `--cam-scale`, `--cam-x` e `--cam-y`. O efeito 'victoryZoom' foca na peca vencedora.
+- **Visual Juice:** Efeitos como 'shake', 'thinking-bubble' e confetes devem respeitar o contexto de camera atual.
 - **Flying Tiles:** A peca 'proxy' em `animateTile` deve ser removida via `requestAnimationFrame` apos o callback `onComplete` para evitar flicker.
 
-## 4. Rede e Sincronizacao
-- **Protocolo Host-Cliente:** Apenas o Host processa a logica e envia `syncState()`.
-- **Anti-Cheat:** O `broadcastState` filtra as maos dos jogadores para que clientes nao vejam peças ocultas via console.
+## 4. Interface e Persistencia
+- **Dashboard.js:** Gerencia o placar e traduz nomes. Depende de `Dashboard.init()` para injetar dimensoes de pecas via CSS.
+- **Persistencia (FlowUI.js):** O estado da partida (placar, historico) e salvo no `localStorage` ('domino_match_state'). Utilize `loadMatchState()` no Lobby para retomar partidas.
+- **Rede:** O `broadcastState` filtra as maos para evitar trapaças. Clientes nao processam logica de jogo.
 
 ## 5. Workflow de Verificacao
 - Apos qualquer alteracao, verifique:
@@ -28,6 +30,7 @@
   2. Se as curvas mantem o gap de 2px.
   3. Se o modo multiplayer sincroniza sem revelar maos ocultas.
   4. Se o 'this' nao esta sendo usado dentro de loops/callbacks no Renderer.
+  5. Se o botao 'Continuar Partida' aparece corretamente quando ha dados no cache.
 
 ## 6. Licoes Aprendidas (Prevencao de Bugs)
 - **Contexto 'this' em Callbacks:** Em loops (forEach), timers ou eventos, NUNCA use `this`. Use sempre a referencia global explicita (ex: `window.Renderer.drawHands`).

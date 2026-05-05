@@ -78,6 +78,43 @@ window.selectGoal = function(limit) {
 };
 
 /**
+ * Carrega uma partida salva do localStorage.
+ */
+window.loadMatchState = function() {
+    try {
+        const saved = localStorage.getItem('domino_match_state');
+        if (!saved) return;
+
+        const data = JSON.parse(saved);
+        if (window.STATE) {
+            window.STATE.scores = data.scores || [0, 0];
+            window.STATE.targetScore = data.targetScore || 10;
+            window.STATE.difficulty = data.difficulty || 'normal';
+            window.STATE.matchHistory = data.matchHistory || [];
+        }
+
+        // Renderiza o historico salvo
+        if (typeof window.FlowUI !== 'undefined' && typeof window.FlowUI.renderHistory === 'function') {
+            window.FlowUI.renderHistory();
+        }
+
+        window.startMatch();
+    } catch (e) {
+        console.warn("Erro ao carregar partida:", e);
+        localStorage.removeItem('domino_match_state');
+    }
+};
+
+// Verifica se existe partida salva ao carregar a pagina
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('domino_match_state');
+    const btn = document.getElementById('btn-continue');
+    if (saved && btn) {
+        btn.style.display = 'flex';
+    }
+});
+
+/**
  * 3. FLUXO DE INÍCIO DE JOGO
  */
 

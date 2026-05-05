@@ -80,6 +80,7 @@ window.chooseBotMove = function(botIdx, moves) {
 window.calculateWeight = function(botIdx, tile, side) {
     const currentState = window.STATE || {};
     const hand = currentState.hands?.[botIdx] || [];
+    const personality = currentState.botPersonalities?.[botIdx] || 'normal';
     
     // CASO INICIAL: Se for a primeira jogada, foca em pontos e buchas
     if (!currentState.extremes || currentState.extremes[0] === null) {
@@ -91,37 +92,42 @@ window.calculateWeight = function(botIdx, tile, side) {
     const opponents = [(botIdx + 1) % 4, (botIdx + 3) % 4];
     const nextExtreme = (tile[0] === extremes[side]) ? tile[1] : tile[0];
 
-    // --- 1. PESO DE DESCARTE (Hand Cleaning) ---
-    // Prioriza soltar peças com soma alta para evitar derrota pesada no trancamento
-    let weight = (tile[0] + tile[1]) * 1.2; 
+    let weight = 0;
 
-    // --- 2. BÔNUS DE BUCHA (Doubles) ---
-    // Livrar-se de buchas é prioridade tática para evitar trancamento da própria mão
-    if (tile[0] === tile[1]) weight += 40;
+    // --- 1. LOGICA POR PERSONALIDADE ---
+    if (personality === 'aggressive') {
+        // Prioriza descartar o maior valor (limpar a mao rapidamente)
+        weight += (tile[0] + tile[1]) * 2.0;
+        if (tile[0] === tile[1]) weight += 60;
+    } else if (personality === 'defensive') {
+        // Prioriza bloquear oponentes e ajudar o parceiro
+        weight += (tile[0] + tile[1]) * 0.8;
+        if (tile[0] === tile[1]) weight += 20;
+    } else if (personality === 'random') {
+        weight += Math.random() * 100;
+    } else {
+        // Normal
+        weight += (tile[0] + tile[1]) * 1.2; 
+        if (tile[0] === tile[1]) weight += 40;
+    }
 
-    // --- 3. INTELIGÊNCIA DE NAIPE (Suit Counting) ---
-    // O bot prefere deixar na ponta um número que ele tenha em abundância na mão
+    // --- 2. INTELIGENCIA DE NAIPE ---
     const countInHand = hand.filter(t => t[0] === nextExtreme || t[1] === nextExtreme).length;
     weight += (countInHand * 15); 
 
-    // --- 4. LÓGICA DE MEMÓRIA (Partner & Opponents) ---
+    // --- 3. LOGICA DE MEMORIA ---
     const memory = currentState.playerMemory;
     if (Array.isArray(memory)) {
-        // Bloqueio: Se o próximo extremo for algo que os oponentes já passaram (não têm)
         opponents.forEach(opp => {
             if (Array.isArray(memory[opp]) && memory[opp].includes(nextExtreme)) {
-                weight += 50; 
+                weight += 50; // Bloqueio
             }
         });
 
-        // Apoio: Se o próximo extremo for algo que o parceiro já passou, evite jogar!
         if (Array.isArray(memory[partner]) && memory[partner].includes(nextExtreme)) {
-            weight -= 60; 
+            weight -= 60; // Apoio
         }
     }
-
-    // --- 5. BÔNUS DE FINAL DE JOGO ---
-    if (hand.length <= 2) weight += 30;
 
     return weight;
 };
