@@ -1,13 +1,13 @@
 /* 
    ========================================================================
-   NAMES.JS - GERENCIAMENTO DE NOMES E PERSISTÊNCIA (VERSÃO BLINDADA)
-   Controla os apelidos dos jogadores e salva as preferências no navegador.
+   NAMES.JS - GERENCIAMENTO DE NOMES E PERSISTENCIA (VERSAO BLINDADA)
+   Controla os apelidos dos jogadores e salva as preferencias no navegador.
    ======================================================================== 
 */
 
 /**
- * 1. PERSISTÊNCIA DE DADOS (STORAGE)
- * Funções seguras para ler e salvar no localStorage sem quebrar o jogo.
+ * 1. PERSISTENCIA DE DADOS (STORAGE)
+ * Funcoes seguras para ler e salvar no localStorage sem quebrar o jogo.
  * Exportadas globalmente.
  */
 
@@ -15,7 +15,7 @@ window.safeGetStorage = function(key, defaultValue) {
     try {
         return localStorage.getItem(key) || defaultValue;
     } catch (e) {
-        // Fallback para abas anônimas ou bloqueio de cookies
+        // Fallback para abas anonimas ou bloqueio de cookies
         return defaultValue; 
     }
 };
@@ -34,10 +34,10 @@ window.safeSetStorage = function(key, value) {
  */
 
 window.PLAYER_NAMES = {
-    0: window.safeGetStorage('userName', "VOCÊ"),
-    1: "ROBÔ A",
-    2: "ROBÔ B",
-    3: "ROBÔ C"
+    0: window.safeGetStorage('userName', "VOCE"),
+    1: "ROBO A",
+    2: "ROBO B",
+    3: "ROBO C"
 };
 
 /**
@@ -46,10 +46,10 @@ window.PLAYER_NAMES = {
  */
 
 window.NameManager = {
-    // Retorna o dicionário completo (útil para o Host enviar via rede)
+    // Retorna o dicionario completo (util para o Host enviar via rede)
     getAll: () => window.PLAYER_NAMES,
     
-    // Busca o nome de uma cadeira específica com fallback de segurança
+    // Busca o nome de uma cadeira especifica com fallback de seguranca
     get: (idx) => {
         const name = window.PLAYER_NAMES[idx];
         return (typeof name === 'string' && name.trim().length > 0) 
@@ -61,11 +61,11 @@ window.NameManager = {
     set: (idx, name) => {
         if (typeof name !== 'string' || name.trim() === '') return;
         
-        // Limpeza: 10 caracteres, sem espaços nas bordas e em MAIÚSCULO
+        // Limpeza: 10 caracteres, sem espacos nas bordas e em MAIUSCULO
         const sanitized = name.trim().substring(0, 10).toUpperCase();
         window.PLAYER_NAMES[idx] = sanitized;
 
-        // Se for o jogador local (cadeira 0), salva para o próximo acesso
+        // Se for o jogador local (cadeira 0), salva para o proximo acesso
         if (idx === 0) {
             window.safeSetStorage('userName', sanitized);
         }
@@ -74,7 +74,7 @@ window.NameManager = {
     // Atualiza todos os nomes de uma vez (usado por Clientes no Multiplayer ao sincronizar com o Host)
     updateAll: (newNames) => {
         if (newNames && typeof newNames === 'object') {
-            // Mescla os nomes recebidos garantindo que não perderemos a referência do objeto principal
+            // Mescla os nomes recebidos garantindo que nao perderemos a referencia do objeto principal
             window.PLAYER_NAMES = { ...window.PLAYER_NAMES, ...newNames };
         }
     }

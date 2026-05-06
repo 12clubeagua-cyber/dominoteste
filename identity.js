@@ -1,7 +1,7 @@
 /* 
    ========================================================================
-   IDENTITY.JS - O CARTÓRIO (VERSÃO BLINDADA)
-   Gerencia a identidade do jogador local e sua persistência.
+   IDENTITY.JS - O CARTORIO (VERSAO BLINDADA)
+   Gerencia a identidade do jogador local e sua persistencia.
    ======================================================================== 
 */
 
@@ -9,8 +9,8 @@ window.Identity = {
     STORAGE_KEY: 'userName',
 
     /**
-     * Retorna o nome salvo ou o padrão 'JOGADOR'.
-     * Utiliza o safeGetStorage criado no names.js para evitar crash em aba anônima.
+     * Retorna o nome salvo ou o padrao 'JOGADOR'.
+     * Utiliza o safeGetStorage criado no names.js para evitar crash em aba anonima.
      */
     get: function() {
         if (typeof window.safeGetStorage === 'function') {
@@ -32,8 +32,8 @@ window.Identity = {
         
         const cleaned = rawName.trim().toUpperCase();
         
-        // Regra: Apenas letras, espaços, entre 1 e 10 caracteres
-        if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-ZÁ-Ú ]+$/.test(cleaned)) {
+        // Regra: Apenas letras, espacos, entre 1 e 10 caracteres
+        if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-Z ]+$/.test(cleaned)) {
             
             // Salva de forma segura
             if (typeof window.safeSetStorage === 'function') {
@@ -52,15 +52,15 @@ window.Identity = {
     },
 
     /**
-     * Abre o prompt para alteração de nome com validação em loop.
+     * Abre o prompt para alteracao de nome com validacao em loop.
      */
     promptChange: function() {
         let valid = false;
 
         while (!valid) {
-            const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", this.get());
+            const input = prompt("Digite seu apelido (ate 10 letras, apenas A-Z):", this.get());
             
-            // Se o usuário clicar em "Cancelar", interrompe
+            // Se o usuario clicar em "Cancelar", interrompe
             if (input === null) break; 
 
             if (this.set(input)) {
@@ -70,18 +70,18 @@ window.Identity = {
                     window.Dashboard.updateScore();
                 }
             } else {
-                alert("Nome inválido. Use apenas letras (A-Z e acentos), entre 1 e 10 caracteres.");
+                alert("Nome invalido. Use apenas letras (A-Z), entre 1 e 10 caracteres.");
             }
         }
     },
 
     /**
-     * Verificação inicial ao carregar o jogo.
+     * Verificacao inicial ao carregar o jogo.
      */
     init: function() {
         let savedName = null;
         
-        // Tenta buscar o nome sem forçar o default ainda
+        // Tenta buscar o nome sem forcar o default ainda
         if (typeof window.safeGetStorage === 'function') {
             savedName = window.safeGetStorage(this.STORAGE_KEY, null);
         } else {

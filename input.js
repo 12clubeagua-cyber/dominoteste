@@ -1,26 +1,26 @@
 /* 
    ========================================================================
-   INPUT.JS - CONTROLE DE ENTRADA E INTERATIVIDADE (VERSÃO BLINDADA)
-   Gerencia cliques nas peças, redimensionamento de tela e menus de escolha.
+   INPUT.JS - CONTROLE DE ENTRADA E INTERATIVIDADE (VERSAO BLINDADA)
+   Gerencia cliques nas pecas, redimensionamento de tela e menus de escolha.
    ======================================================================== 
 */
 
 /**
  * 1. EVENTOS GERAIS DE SISTEMA
- * Trata mudanças no ambiente, como girar o celular ou redimensionar a aba.
+ * Trata mudancas no ambiente, como girar o celular ou redimensionar a aba.
  */
 window.handleResize = function() {
-    // Se houver peças na mesa, ajusta o zoom e redesenha para não cortar o jogo
+    // Se houver pecas na mesa, ajusta o zoom e redesenha para nao cortar o jogo
     if (window.STATE?.positions?.length > 0) {
         
-        // Usa a função de câmera unificada do ui.js/animations.js
+        // Usa a funcao de camera unificada do ui.js/animations.js
         if (typeof window.syncCameraView === 'function') {
             window.syncCameraView();
         } else if (typeof window.updateCamera === 'function') {
             window.updateCamera();
         }
         
-        // Atualiza a renderização de forma segura
+        // Atualiza a renderizacao de forma segura
         if (typeof window.renderBoardFromState === 'function') {
             window.renderBoardFromState();
         }
@@ -30,8 +30,8 @@ window.handleResize = function() {
 window.addEventListener('resize', window.handleResize);
 
 /**
- * 2. GESTÃO DE INTERATIVIDADE (CLIQUES)
- * Controla quais peças podem ser tocadas e limpa ouvintes antigos.
+ * 2. GESTAO DE INTERATIVIDADE (CLIQUES)
+ * Controla quais pecas podem ser tocadas e limpa ouvintes antigos.
  */
 
 window.removePlayableListeners = function() {
@@ -50,7 +50,7 @@ window.removePlayableListeners = function() {
 };
 
 window.highlight = function(moves) {
-    // Limpeza preventiva em todas as peças para evitar fantasmas
+    // Limpeza preventiva em todas as pecas para evitar fantasmas
     document.querySelectorAll('.tile').forEach(el => el.classList.remove('playable'));
     window.removePlayableListeners();
 
@@ -64,17 +64,17 @@ window.highlight = function(moves) {
             if (typeof window.safeAudioInit === 'function') window.safeAudioInit();
             if (window.STATE?.isBlocked) return;
 
-            // Trava de segurança imediata para evitar bugs de múltiplos toques rápidos (comum em touch)
+            // Trava de seguranca imediata para evitar bugs de multiplos toques rapidos (comum em touch)
             window.STATE.isBlocked = true;
 
-            // Feedback visual instantâneo
+            // Feedback visual instantaneo
             document.querySelectorAll('.tile.playable').forEach(t => t.classList.remove('playable'));
             const hand0 = document.getElementById('hand-0');
             if (hand0) hand0.classList.remove('active-turn');
 
             window.removePlayableListeners();
 
-            // Força o navegador a processar as mudanças visuais antes da lógica pesada
+            // Forca o navegador a processar as mudancas visuais antes da logica pesada
             void document.body.offsetHeight; 
 
             requestAnimationFrame(() => {
@@ -102,8 +102,8 @@ window.highlight = function(moves) {
 
 /**
  * 3. FLUXO DE ESCOLHA (PICKER)
- * Gerencia os botões de "Cima/Baixo" ou "Esquerda/Direita" quando a peça serve nos dois lados.
- * Estas funções SÃO chamadas pelo HTML via onclick, então o window.* é essencial.
+ * Gerencia os botoes de "Cima/Baixo" ou "Esquerda/Direita" quando a peca serve nos dois lados.
+ * Estas funcoes SAO chamadas pelo HTML via onclick, entao o window.* e essencial.
  */
 
 window.executeMove = function(side) {
@@ -112,7 +112,7 @@ window.executeMove = function(side) {
 
     if (window.STATE && window.STATE.pendingIdx !== null) {
         const idx = window.STATE.pendingIdx;
-        window.STATE.pendingIdx = null; // Limpa memória temporária
+        window.STATE.pendingIdx = null; // Limpa memoria temporaria
         
         if (typeof window.play === 'function') {
             window.play(window.myPlayerIdx ?? 0, idx, side);
@@ -131,7 +131,7 @@ window.cancelMove = function() {
         const myIdx = window.myPlayerIdx ?? 0;
         const hand = window.STATE.hands?.[myIdx];
         
-        // Refaz o brilho nas peças para o usuário escolher de novo
+        // Refaz o brilho nas pecas para o usuario escolher de novo
         if (Array.isArray(hand) && typeof window.getMoves === 'function') {
             const moves = window.getMoves(hand);
             if (moves.length > 0 && typeof window.highlight === 'function') {

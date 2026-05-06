@@ -1,23 +1,23 @@
 /* 
    ========================================================================
-   SEATS.JS - GERENCIAMENTO DE ASSENTOS E TIMES (VERSÃO BLINDADA)
-   Controla a ocupação das cadeiras e a formação das duplas no lobby.
+   SEATS.JS - GERENCIAMENTO DE ASSENTOS E TIMES (VERSAO BLINDADA)
+   Controla a ocupacao das cadeiras e a formacao das duplas no lobby.
    ======================================================================== 
 */
 
 /**
- * 1. LÓGICA DE OCUPAÇÃO
+ * 1. LOGICA DE OCUPACAO
  * Exportada globalmente para ser acessada pelo motor de rede e lobby.
  */
 window.SeatManager = {
-    // Verifica se uma cadeira específica (0-3) está livre
+    // Verifica se uma cadeira especifica (0-3) esta livre
     isAvailable: (idx) => {
-        if (idx === 0) return false; // Cadeira 0 é reservada ao Host
+        if (idx === 0) return false; // Cadeira 0 e reservada ao Host
         const clients = window.connectedClients || [];
         return !clients.some(c => c.assignedIdx === idx);
     },
 
-    // Retorna os dados (nome, conexão) de quem ocupa o assento
+    // Retorna os dados (nome, conexao) de quem ocupa o assento
     getOccupant: (idx) => {
         // Caso especial: Host (Sempre na cadeira 0)
         if (idx === 0) {
@@ -38,7 +38,7 @@ window.SeatManager = {
 
     /**
      * 2. MOTOR DE INTERFACE (UI)
-     * Gera o visual das duplas e botões de seleção.
+     * Gera o visual das duplas e botoes de selecao.
      */
     renderSelectionUI: () => {
         const hostContainer = document.getElementById('host-player-list');
@@ -47,7 +47,7 @@ window.SeatManager = {
         if (!hostContainer && !clientContainer) return;
 
         // Estrutura das Duplas: 
-        // Dupla 1: Posições 0 e 2 | Dupla 2: Posições 1 e 3
+        // Dupla 1: Posicoes 0 e 2 | Dupla 2: Posicoes 1 e 3
         const html = `
             <div class="seat-selection-grid">
                 <div class="team-column">
@@ -94,14 +94,14 @@ window.SeatManager = {
 };
 
 /**
- * 3. COMUNICAÇÃO DE PEDIDOS
- * Função global chamada pelos botões de UI para solicitar troca.
+ * 3. COMUNICACAO DE PEDIDOS
+ * Funcao global chamada pelos botoes de UI para solicitar troca.
  */
 window.requestSeat = function(idx) {
     const currentMode = window.netMode || 'offline';
     const conn = window.myConnToHost;
 
-    // Segurança: Apenas clientes conectados podem solicitar assentos
+    // Seguranca: Apenas clientes conectados podem solicitar assentos
     if (currentMode !== 'client' || !conn || !conn.open) return;
     
     // Feedback visual imediato (Optimistic UI)

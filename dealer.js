@@ -1,13 +1,13 @@
 /* 
    ========================================================================
-   DEALER.JS - O CRUPIER (VERSÃO BLINDADA)
-   Responsável por gerar, embaralhar e distribuir as peças.
+   DEALER.JS - O CRUPIER (VERSAO BLINDADA)
+   Responsavel por gerar, embaralhar e distribuir as pecas.
    ======================================================================== 
 */
 
 window.Dealer = {
     /**
-     * Gera as 28 peças clássicas do dominó (0-0 até 6-6).
+     * Gera as 28 pecas classicas do domino (0-0 ate 6-6).
      */
     generateDeck: function() {
         const deck = [];
@@ -21,7 +21,7 @@ window.Dealer = {
 
     /**
      * Embaralhamento Fisher-Yates.
-     * Algoritmo de alta performance e justiça estatística.
+     * Algoritmo de alta performance e justica estatistica.
      */
     shuffle: function(deck) {
         if (!Array.isArray(deck)) return [];
@@ -33,13 +33,13 @@ window.Dealer = {
     },
 
     /**
-     * Divide o deck em 4 mãos de 7 peças.
-     * Inclui trava de segurança para evitar erros com decks incompletos.
+     * Divide o deck em 4 maos de 7 pecas.
+     * Inclui trava de seguranca para evitar erros com decks incompletos.
      */
     distribute: function(deck) {
-        // --- Failsafe: Garante que ninguém receba menos peças do que deveria ---
+        // --- Failsafe: Garante que ninguem receba menos pecas do que deveria ---
         if (!Array.isArray(deck) || deck.length < 28) {
-            console.error("Dealer: Deck incompleto ou inválido para distribuição!");
+            console.error("Dealer: Deck incompleto ou invalido para distribuicao!");
             return [[], [], [], []];
         }
 

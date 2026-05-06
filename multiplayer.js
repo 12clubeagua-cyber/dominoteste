@@ -1,11 +1,11 @@
 /* 
    ========================================================================
-   MULTIPLAYER.JS - VERSÃO ULTRA RESILIENTE E BLINDADA (PEERJS)
-   Gerencia conexões P2P, criação de salas e sincronização de rede.
+   MULTIPLAYER.JS - VERSAO ULTRA RESILIENTE E BLINDADA (PEERJS)
+   Gerencia conexoes P2P, criacao de salas e sincronizacao de rede.
    ======================================================================== 
 */
 
-// 1. RESILIÊNCIA E DEBUG MOBILE
+// 1. RESILIENCIA E DEBUG MOBILE
 window.mobileLog = function(msg, cor = "white") {
     const statusEl = document.getElementById('host-status');
     const clientStatusEl = document.getElementById('client-status');
@@ -21,13 +21,13 @@ window.mobileLog = function(msg, cor = "white") {
 
 window.onerror = function(msg, url, line) {
     if (msg.includes("Script error") || msg.includes("PeerJS")) return false;
-    // Evita popups excessivos em produção, útil apenas para debug
+    // Evita popups excessivos em producao, util apenas para debug
     console.error("ERRO NO JS: " + msg + "\nLinha: " + line);
     return false;
 };
 
 /**
- * 2. UTILITÁRIOS DE REDE
+ * 2. UTILITARIOS DE REDE
  */
 window.generateShortID = function() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -39,19 +39,19 @@ window.generateShortID = function() {
 };
 
 /**
- * 3. LÓGICA DO HOST (CRIADOR DA SALA)
+ * 3. LOGICA DO HOST (CRIADOR DA SALA)
  */
 window.initializeHost = function() {
     window.netMode = 'host';
     window.mobileLog("Iniciando Host...", "yellow");
     
     if (typeof Peer === 'undefined') {
-        alert("Erro: Biblioteca de rede (PeerJS) não carregou. Verifique sua internet.");
+        alert("Erro: Biblioteca de rede (PeerJS) nao carregou. Verifique sua internet.");
         return;
     }
 
     try {
-        // Limpa conexão anterior se existir
+        // Limpa conexao anterior se existir
         if (window.myPeer) { 
             window.myPeer.destroy(); 
             window.myPeer = null; 
@@ -89,14 +89,14 @@ window.initializeHost = function() {
 };
 
 /**
- * 4. LÓGICA DO CLIENTE (QUEM ENTRA)
+ * 4. LOGICA DO CLIENTE (QUEM ENTRA)
  */
 window.connectToHost = function() {
     const inputEl = document.getElementById('join-code-input');
     if (!inputEl) return;
     
     const input = inputEl.value.toUpperCase().trim();
-    if (!input) return alert("Digite o código da sala!");
+    if (!input) return alert("Digite o codigo da sala!");
 
     window.netMode = 'client';
     window.mobileLog("Procurando sala...", "yellow");
@@ -106,13 +106,13 @@ window.connectToHost = function() {
         window.myPeer = new Peer();
 
         window.myPeer.on('open', () => {
-            // reliable: true garante que os pacotes de peças não se percam pelo caminho
+            // reliable: true garante que os pacotes de pecas nao se percam pelo caminho
             const conn = window.myPeer.connect('domino-' + input, { reliable: true });
             window.setupClientEvents(conn);
         });
 
         window.myPeer.on('error', (err) => {
-            window.mobileLog("Sala não encontrada ou erro: " + err.type, "red");
+            window.mobileLog("Sala nao encontrada ou erro: " + err.type, "red");
         });
 
     } catch (e) { 
@@ -134,7 +134,7 @@ window.setupHostEvents = function(conn) {
         window.broadcastState(); 
     });
 
-    // BLINDAGEM: Remoção de fantasmas
+    // BLINDAGEM: Remocao de fantasmas
     conn.on('close', () => {
         window.mobileLog("Um jogador saiu da sala", "var(--red)");
         if (window.connectedClients) {
@@ -172,7 +172,7 @@ window.setupClientEvents = function(conn) {
 
     // Detectar quando o Host fecha a sala ou cai a internet dele
     conn.on('close', () => {
-        alert("A conexão com o Host foi perdida.");
+        alert("A conexao com o Host foi perdida.");
         window.location.reload(); 
     });
 
@@ -188,7 +188,7 @@ window.setupClientEvents = function(conn) {
         }
         
         if (data.type === 'state_update' && window.STATE) {
-            // Atualiza o estado local com segurança
+            // Atualiza o estado local com seguranca
             Object.assign(window.STATE, data.state);
             
             if (typeof window.renderHands === 'function') window.renderHands();
@@ -204,7 +204,7 @@ window.setupClientEvents = function(conn) {
 };
 
 /**
- * 6. SISTEMA DE TRANSMISSÃO (BROADCAST)
+ * 6. SISTEMA DE TRANSMISSAO (BROADCAST)
  */
 window.broadcastToClients = function(data) {
     if (window.netMode !== 'host' || !Array.isArray(window.connectedClients)) return;
@@ -223,8 +223,8 @@ window.broadcastToClients = function(data) {
 window.broadcastState = function() {
     if (window.netMode !== 'host' || !window.STATE) return;
 
-    // Criamos um pacote apenas com os dados públicos. 
-    // NOTA: As 'hands' (mãos) não vão inteiras para evitar cheats (trapaças) de rede.
+    // Criamos um pacote apenas com os dados publicos. 
+    // NOTA: As 'hands' (maos) nao van inteiras para evitar cheats (trapacas) de rede.
     const statePackage = {
         type: 'state_update',
         state: {

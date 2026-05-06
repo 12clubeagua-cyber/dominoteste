@@ -1,21 +1,21 @@
 /* 
    ========================================================================
-   FLOWUI.JS - O CERIMONIALISTA (VERSÃO BLINDADA)
-   Gerencia fluxos de encerramento, transições de rodadas e diálogos.
+   FLOWUI.JS - O CERIMONIALISTA (VERSAO BLINDADA)
+   Gerencia fluxos de encerramento, transicoes de rodadas e dialogos.
    ======================================================================== 
 */
 
 window.FlowUI = {
     /**
-     * Limpa a interface para preparar o início de uma nova rodada.
+     * Limpa a interface para preparar o inicio de uma nova rodada.
      * Resolve o erro: FlowUI.resetForNewRound is not a function.
      */
     resetForNewRound: function() {
-        // 1. Esconde qualquer overlay de resultado que esteja visível
+        // 1. Esconde qualquer overlay de resultado que esteja visivel
         const resArea = document.getElementById('result-area');
         if (resArea) resArea.style.display = 'none';
 
-        // 2. Limpa o destaque de vitória das mãos dos jogadores
+        // 2. Limpa o destaque de vitoria das maos dos jogadores
         for (let i = 0; i < 4; i++) {
             const handEl = document.getElementById(`hand-${i}`);
             if (handEl) {
@@ -127,7 +127,7 @@ window.FlowUI = {
     },
 
     /**
-     * Diálogo de confirmação para sair.
+     * Dialogo de confirmacao para sair.
      */
     exitGame: function() {
         if (confirm("Deseja mesmo sair e encerrar a partida?")) {
@@ -136,7 +136,7 @@ window.FlowUI = {
     },
 
     /**
-     * Aplica brilho visual nas mãos da dupla vencedora.
+     * Aplica brilho visual nas maos da dupla vencedora.
      * @private
      */
     _highlightWinningTeam: function(winTeam) {
@@ -144,7 +144,7 @@ window.FlowUI = {
         
         const teamMembers = (winTeam === 0) ? [0, 2] : [1, 3];
         teamMembers.forEach(pIdx => {
-            // Converte índice global para índice de visão local
+            // Converte indice global para indice de visao local
             const viewIdx = (pIdx - (window.myPlayerIdx || 0) + 4) % 4;
             const handEl = document.getElementById(`hand-${viewIdx}`);
             if (handEl) handEl.classList.add('hand-win-blink');
@@ -164,25 +164,25 @@ window.FlowUI = {
             : (myIdx % 2 === 1);
             
         const finalMsg = isMyTeamWinner 
-            ? "🏆 VOCÊS VENCERAM A PARTIDA!" 
-            : "FIM DE JOGO: VITÓRIA DOS OPONENTES";
+            ? "[VITORIA] VOCES VENCERAM A PARTIDA!" 
+            : "FIM DE JOGO: VITORIA DOS OPONENTES";
 
         if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.setMessage === 'function') {
             window.Dashboard.setMessage(finalMsg, 'active');
         }
         
-        // Reinicia o jogo após 8 segundos para dar tempo de ver o placar final
+        // Reinicia o jogo apos 8 segundos para dar tempo de ver o placar final
         setTimeout(() => window.location.reload(), 8000);
     },
 
     /**
-     * Contador regressivo para a próxima rodada.
+     * Contador regressivo para a proxima rodada.
      * @private
      */
     _startNextRoundCountdown: function(msg) {
         let timeLeft = 3;
         const timer = setInterval(() => {
-            const statusMsg = `${msg} - Próxima rodada em ${timeLeft}s`;
+            const statusMsg = `${msg} - Proxima rodada em ${timeLeft}s`;
             
             if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.setMessage === 'function') {
                 window.Dashboard.setMessage(statusMsg, 'active');
@@ -196,7 +196,7 @@ window.FlowUI = {
                 if (typeof window.startRound === 'function') {
                     window.startRound();
                 } else {
-                    console.error('FlowUI: startRound não foi encontrado globalmente.');
+                    console.error('FlowUI: startRound nao foi encontrado globalmente.');
                 }
             }
         }, 1000);

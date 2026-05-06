@@ -1,22 +1,22 @@
 /* 
    ========================================================================
-   BOTS.JS - INTELIGÊNCIA ARTIFICIAL (VERSÃO BLINDADA E PRO)
+   BOTS.JS - INTELIGENCIA ARTIFICIAL (VERSAO BLINDADA E PRO)
    ======================================================================== 
 */
 
 /**
- * Escolhe a melhor jogada disponível com base na dificuldade definida no STATE.
- * Exportada para window para que processTurn() (game.js) a encontre com segurança.
+ * Escolhe a melhor jogada disponivel com base na dificuldade definida no STATE.
+ * Exportada para window para que processTurn() (game.js) a encontre com seguranca.
  */
 window.chooseBotMove = function(botIdx, moves) {
     if (!Array.isArray(moves) || moves.length === 0) return null;
     const safeBotIdx = (typeof botIdx === 'number') ? botIdx : 0;
     
-    // Fallback de segurança para o estado global
+    // Fallback de seguranca para o estado global
     const currentState = window.STATE || {};
     const difficulty = currentState.difficulty || 'normal';
 
-    // --- MODO DIFÍCIL (Simulação e Obstrução) ---
+    // --- MODO DIFICIL (Simulacao e Obstrucao) ---
     if (difficulty === 'hard') {
         let bestMove = null;
         let highestScore = -Infinity;
@@ -31,7 +31,7 @@ window.chooseBotMove = function(botIdx, moves) {
             sidesToTry.forEach(s => {
                 let score = window.calculateWeight(safeBotIdx, tile, s);
                 
-                // Simulação de Obstrução: avalia o próximo oponente
+                // Simulacao de Obstrucao: avalia o proximo oponente
                 const nextOpponent = (safeBotIdx + 1) % 4;
                 const simExtremes = [...(currentState.extremes || [null, null])];
                 simExtremes[s] = (tile[0] === currentState.extremes?.[s]) ? tile[1] : tile[0];
@@ -47,7 +47,7 @@ window.chooseBotMove = function(botIdx, moves) {
         return bestMove || moves[0];
     }
 
-    // --- MODO FÁCIL / NORMAL (Baseado em Pesos) ---
+    // --- MODO FACIL / NORMAL (Baseado em Pesos) ---
     const scoredMoves = [];
     moves.forEach(m => {
         const sidesToEval = (m.side === 'both') ? [0, 1] : [(m.side === 'any' ? 0 : m.side)];
@@ -64,7 +64,7 @@ window.chooseBotMove = function(botIdx, moves) {
         });
     });
 
-    // Modo Fácil: Adiciona ruído (erro proposital) nas decisões
+    // Modo Facil: Adiciona ruido (erro proposital) nas decisoes
     if (difficulty === 'easy') {
         scoredMoves.forEach(m => m.weight += (Math.random() * 40 - 20));
     }
@@ -75,7 +75,7 @@ window.chooseBotMove = function(botIdx, moves) {
 };
 
 /**
- * Calcula o peso estratégico de uma peça específica.
+ * Calcula o peso estrategico de uma peca especifica.
  */
 window.calculateWeight = function(botIdx, tile, side) {
     const currentState = window.STATE || {};
@@ -133,7 +133,7 @@ window.calculateWeight = function(botIdx, tile, side) {
 };
 
 /**
- * Heurística de obstrução para simular o impacto da jogada no adversário.
+ * Heuristica de obstrucao para simular o impacto da jogada no adversario.
  */
 window.evaluateOpponentObstruction = function(oppIdx, simExtremes) {
     const memory = window.STATE?.playerMemory?.[oppIdx];
@@ -142,9 +142,9 @@ window.evaluateOpponentObstruction = function(oppIdx, simExtremes) {
     const blocksLeft = memory.includes(simExtremes[0]);
     const blocksRight = memory.includes(simExtremes[1]);
     
-    // Se a jogada tranca ambos os lados para o oponente, é uma jogada excelente
+    // Se a jogada tranca ambos os lados para o oponente, e uma jogada excelente
     if (blocksLeft && blocksRight) return 70;
-    // Se tranca apenas um lado, é boa
+    // Se tranca apenas um lado, e boa
     if (blocksLeft || blocksRight) return 30;
     
     return 0;

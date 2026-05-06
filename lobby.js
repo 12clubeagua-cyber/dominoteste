@@ -1,12 +1,12 @@
 /* 
    ========================================================================
-   LOBBY.JS - GERENCIAMENTO DE MENUS E PREPARAÇÃO (VERSÃO BLINDADA)
-   Controla a navegação, seleção de dificuldades e o início da partida.
+   LOBBY.JS - GERENCIAMENTO DE MENUS E PREPARACAO (VERSAO BLINDADA)
+   Controla a navegacao, selecao de dificuldades e o inicio da partida.
    ======================================================================== 
 */
 
 /**
- * 1. NAVEGAÇÃO ENTRE TELAS
+ * 1. NAVEGACAO ENTRE TELAS
  */
 
 window.hideAllSteps = function() {
@@ -20,15 +20,15 @@ window.goToStep = function(stepId) {
 };
 
 /**
- * 2. CONFIGURAÇÕES E IDENTIDADE
+ * 2. CONFIGURACOES E IDENTIDADE
  */
 
-// Integração com o módulo Identity protegida
+// Integracao com o modulo Identity protegida
 window.changeName = function() {
     if (typeof window.Identity !== 'undefined' && typeof window.Identity.promptChange === 'function') {
         window.Identity.promptChange();
     } else {
-        // Fallback robusto caso o módulo não esteja carregado
+        // Fallback robusto caso o modulo nao esteja carregado
         const n = prompt("Nome:");
         if (n && typeof window.NameManager !== 'undefined') {
             window.NameManager.set(0, n);
@@ -98,7 +98,7 @@ window.loadMatchState = function() {
             window.FlowUI.renderHistory();
         }
 
-        window.startMatch();
+        window.startMatch(true); // Indica que estamos retomando
     } catch (e) {
         console.warn("Erro ao carregar partida:", e);
         localStorage.removeItem('domino_match_state');
@@ -115,25 +115,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 3. FLUXO DE INÍCIO DE JOGO
+ * 3. FLUXO DE INICIO DE JOGO
  */
 
-window.startMatch = function() {
-    // Inicialização de áudio
+window.startMatch = function(isResuming = false) {
+    // Inicializacao de audio
     if (typeof window.safeAudioInit === 'function') window.safeAudioInit();
     
-    if (window.STATE) {
+    if (window.STATE && !isResuming) {
         window.STATE.scores = [0, 0];
         window.STATE.roundWinner = null;
+        window.STATE.matchHistory = [];
+    }
+
+    if (window.STATE) {
         window.STATE.isOver = false;
     }
 
-    // Atualiza o Dashboard com os nomes e pontos zerados antes de entrar na mesa
+    // Atualiza o Dashboard com os nomes e pontos atuais antes de entrar na mesa
     if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.updateScore === 'function') {
         window.Dashboard.updateScore();
     }
     
-    // Transição visual: Esconde o Lobby e mostra o botão Sair
+    // Transicao visual: Esconde o Lobby e mostra o botao Sair
     const startScreen = document.getElementById('start-screen');
     if (startScreen) startScreen.style.display = 'none';
 
@@ -144,15 +148,15 @@ window.startMatch = function() {
         if (typeof window.startRound === 'function') {
             window.startRound();
         } else {
-            console.error('Lobby: startRound não definido ou não carregado.');
+            console.error('Lobby: startRound nao definido ou nao carregado.');
         }
     };
 
-    // --- Lógica de Rede (Host) ---
+    // --- Logica de Rede (Host) ---
     if (window.netMode === 'host') {
         if (typeof window.Network !== 'undefined' && window.Network.isHost()) {
             
-            // Reúne os nomes para enviar aos clientes
+            // Reune os nomes para enviar aos clientes
             let finalNames = {};
             if (typeof window.NameManager !== 'undefined') {
                 finalNames = window.NameManager.getAll();
@@ -165,17 +169,17 @@ window.startMatch = function() {
                 targetScore: window.STATE ? window.STATE.targetScore : 3
             });
 
-            // O Host roda a função de início após um breve delay
+            // O Host roda a funcao de inicio apos um breve delay
             setTimeout(doStartRound, 600);
         }
         
-    // --- Lógica Local (Offline) ---
+    // --- Logica Local (Offline) ---
     } else if (window.netMode === 'offline') {
         doStartRound();
     }
     
-    // NOTA: Se netMode === 'client', ele não roda o `doStartRound`. Ele apenas 
-    // esconde a tela inicial e aguarda o Host enviar o pacote `state_update` com as peças!
+    // NOTA: Se netMode === 'client', ele nao roda o `doStartRound`. Ele apenas 
+    // esconde a tela inicial e aguarda o Host enviar o pacote `state_update` com as pecas!
 };
 
 /**

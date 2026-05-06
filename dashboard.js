@@ -1,6 +1,6 @@
 /* 
    ========================================================================
-   DASHBOARD.JS - O PAINEL DE CONTROLE (VERSÃO BLINDADA)
+   DASHBOARD.JS - O PAINEL DE CONTROLE (VERSAO BLINDADA)
    Gerencia o placar, as etiquetas de time e a barra de status superior.
    ======================================================================== 
 */
@@ -17,20 +17,20 @@ window.Dashboard = {
         
         if (!scoreA || !scoreB || !labelA || !labelB) return;
 
-        // Fallbacks seguros caso STATE não esteja 100% carregado
+        // Fallbacks seguros caso STATE nao esteja 100% carregado
         const scores = window.STATE?.scores || [0, 0];
         const myIdx = window.myPlayerIdx ?? 0;
 
-        // Atualiza números
+        // Atualiza numeros
         scoreA.textContent = scores[0];
         scoreB.textContent = scores[1];
         
-        // Feedback visual: destaca quem está vencendo
+        // Feedback visual: destaca quem esta vencendo
         scoreA.classList.toggle('winning', scores[0] > scores[1]);
         scoreB.classList.toggle('winning', scores[1] > scores[0]);
 
-        // Lógica de Perspectiva: 
-        // Define se o Time A no placar é "Sua Dupla" ou "Oponentes"
+        // Logica de Perspectiva: 
+        // Define se o Time A no placar e "Sua Dupla" ou "Oponentes"
         const teamLabels = (myIdx % 2 !== 0) 
             ? ["Oponentes", "Sua Dupla"] 
             : ["Sua Dupla", "Oponentes"];
@@ -47,7 +47,7 @@ window.Dashboard = {
         // Atualiza localmente primeiro
         this._renderStatusLocal(text, cls);
 
-        // Se houver conexão de rede, usa o adaptador para sincronizar
+        // Se houver conexao de rede, usa o adaptador para sincronizar
         if (typeof window.Network !== 'undefined' && typeof window.Network.isHost === 'function' && window.Network.isHost()) {
             window.Network.sync({ type: 'status', text, cls });
         }
@@ -64,18 +64,18 @@ window.Dashboard = {
         let displayMsg = text;
         const myIdx = window.myPlayerIdx ?? 0;
         
-        // Garante que não quebre se o NameManager ainda não carregou
+        // Garante que nao quebre se o NameManager ainda nao carregou
         const allNames = typeof window.NameManager !== 'undefined' ? window.NameManager.getAll() : {};
         
         /**
          * Tradutor de Nomes:
-         * Converte "JOGADOR X" no texto para o nome real ou "VOCÊ".
+         * Converte "JOGADOR X" no texto para o nome real ou "VOCE".
          */
         Object.keys(allNames).forEach(idx => {
             const genericName = `JOGADOR ${parseInt(idx) + 1}`;
             if (displayMsg.includes(genericName)) {
                 const isMe = (parseInt(idx) === myIdx);
-                displayMsg = displayMsg.replace(genericName, isMe ? "VOCÊ" : allNames[idx]);
+                displayMsg = displayMsg.replace(genericName, isMe ? "VOCE" : allNames[idx]);
             }
         });
         
@@ -86,12 +86,12 @@ window.Dashboard = {
     },
 
     /**
-     * Inicializa os estilos CSS baseados nas configurações globais.
+     * Inicializa os estilos CSS baseados nas configuracoes globais.
      */
     init: function() {
         this.updateScore();
         
-        // Sincroniza o tamanho das peças no CSS com o config.js de forma segura
+        // Sincroniza o tamanho das pecas no CSS com o config.js de forma segura
         const width = window.CONFIG?.GAME?.TILE_W ?? 18;
         const height = window.CONFIG?.GAME?.TILE_L ?? 36;
         document.documentElement.style.setProperty('--tile-width', `${width}px`);

@@ -1,13 +1,13 @@
 /* 
    ========================================================================
-   AUDIO.JS - SISTEMA DE SOM SINTETIZADO (VERSÃO BLINDADA)
-   Gera efeitos sonoros matematicamente para economizar banda e memória.
+   AUDIO.JS - SISTEMA DE SOM SINTETIZADO (VERSAO BLINDADA)
+   Gera efeitos sonoros matematicamente para economizar banda e memoria.
    ======================================================================== 
 */
 
 /**
- * 1. GESTÃO DE CONTEXTO
- * Inicializa e gerencia o ciclo de vida do motor de áudio.
+ * 1. GESTAO DE CONTEXTO
+ * Inicializa e gerencia o ciclo de vida do motor de audio.
  */
 window.safeAudioInit = function() {
     try {
@@ -17,16 +17,16 @@ window.safeAudioInit = function() {
             if (AudioContextClass) window.audioCtx = new AudioContextClass();
         }
         
-        // O navegador exige que o áudio seja "resumido" após uma interação do usuário
+        // O navegador exige que o audio seja "resumido" apos uma interacao do usuario
         if (window.audioCtx && window.audioCtx.state === 'suspended') {
             window.audioCtx.resume();
         }
     } catch (e) {
-        console.warn("Motor de áudio não pôde ser iniciado:", e);
+        console.warn("Motor de audio nao pode ser iniciado:", e);
     }
 };
 
-// Fecha o contexto ao sair da página para liberar memória do dispositivo
+// Fecha o contexto ao sair da pagina para liberar memoria do dispositivo
 window.addEventListener('pagehide', () => {
     if (window.audioCtx) {
         window.audioCtx.close();
@@ -34,15 +34,15 @@ window.addEventListener('pagehide', () => {
 });
 
 /**
- * 2. SÍNTESE DE SOM (CORE)
- * Gera o som de impacto das peças ("Clack").
+ * 2. SINTESE DE SOM (CORE)
+ * Gera o som de impacto das pecas ("Clack").
  */
 window.playClack = function(freq, dur) {
-    // Busca no CONFIG global com fallback de segurança
+    // Busca no CONFIG global com fallback de seguranca
     const finalFreq = freq ?? window.CONFIG?.AUDIO?.CLACK_FREQ ?? 800;
     const finalDur = dur ?? window.CONFIG?.AUDIO?.DUR ?? 0.1;
 
-    // Feedback tátil (Vibração) para dispositivos móveis
+    // Feedback tatil (Vibracao) para dispositivos moveis
     if (navigator.vibrate) {
         try { navigator.vibrate(30); } catch (e) {}
     }
@@ -53,20 +53,20 @@ window.playClack = function(freq, dur) {
         const osc = window.audioCtx.createOscillator();
         const gain = window.audioCtx.createGain();
         
-        // Tipo de onda 'triangle' dá um som mais "oco" parecido com madeira/resina
+        // Tipo de onda 'triangle' da um som mais "oco" parecido com madeira/resina
         osc.type = 'triangle'; 
         
-        // Configuração de Frequência (Pitch)
+        // Configuracao de Frequencia (Pitch)
         osc.frequency.setValueAtTime(finalFreq, window.audioCtx.currentTime); 
-        // Sweep de frequência: cai rapidamente para simular o impacto
+        // Sweep de frequencia: cai rapidamente para simular o impacto
         osc.frequency.exponentialRampToValueAtTime(80, window.audioCtx.currentTime + Math.max(finalDur, 0.1));
         
-        // Configuração de Volume (Gain)
+        // Configuracao de Volume (Gain)
         gain.gain.setValueAtTime(0.45, window.audioCtx.currentTime); 
-        // Fade-out suave para evitar estalos (clicks) de áudio
+        // Fade-out suave para evitar estalos (clicks) de audio
         gain.gain.exponentialRampToValueAtTime(0.001, window.audioCtx.currentTime + Math.max(finalDur, 0.1));
         
-        // Conexões: Oscilador -> Volume -> Saída (Alto-falantes)
+        // Conexoes: Oscilador -> Volume -> Saida (Alto-falantes)
         osc.connect(gain); 
         gain.connect(window.audioCtx.destination);
         
@@ -110,7 +110,7 @@ window.speak = function(text) {
     
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'pt-BR';
-    utter.rate = 1.1; // Levemente mais rápido
+    utter.rate = 1.1; // Levemente mais rapido
     utter.pitch = 1.0;
     window.speechSynthesis.speak(utter);
 };

@@ -1,4 +1,4 @@
-<!-- Declara que este documento é um HTML5 válido -->
+<!-- Declara que este documento e um HTML5 valido -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<!-- CONTÊINER DA TELA INICIAL (Lobby) -->
+<!-- CONTEINER DA TELA INICIAL (Lobby) -->
 <div id="start-screen">
   <div class="start-logo">domino</div>
   <div class="start-sub">Felipe W.</div>
@@ -86,7 +86,7 @@
     <button class="step-back" onclick="cancelHosting()"> Cancelar e Voltar</button>
   </div>
 
-  <!-- PASSO 4B: Tela de Conexão do CLIENTE -->
+  <!-- PASSO 4B: Tela de Conexao do CLIENTE -->
   <div class="start-step" id="step-lobby-client">
     <div class="start-options">
       <div class="start-label">Entrar em uma Sala</div>
@@ -99,7 +99,7 @@
   </div>
 </div>
 
-<!-- CABEÇALHO DO JOGO -->
+<!-- CABECALHO DO JOGO -->
 <div id="header">
   <div class="score-block">
     <span class="score-name" id="label-team-a">Sua dupla</span>
@@ -122,7 +122,7 @@
     <div id="history-list" class="history-list"></div>
   </div>
 
-  <!-- Mão do Parceiro -->
+  <!-- Mao do Parceiro -->
   <div id="hand-2" class="hand"></div> 
   
   <!-- Linha do meio -->
@@ -136,7 +136,7 @@
     <div id="hand-3" class="hand hand-side"></div> 
   </div>
   
-  <!-- Sua Mão -->
+  <!-- Sua Mao -->
   <div id="hand-0" class="hand"></div> 
   
   <!-- Seletor de Lado -->
@@ -147,7 +147,7 @@
   </div>
 </div>
 
-<!-- OVERLAYS DE CONEXÃO -->
+<!-- OVERLAYS DE CONEXAO -->
 <div id="reconnect-overlay" style="display:none">
     <div id="reconnect-box">
         <div class="reconnect-spinner"></div>
@@ -157,20 +157,20 @@
     </div>
 </div>
 
-<!-- SCRIPTS (A ordem abaixo garante o funcionamento da câmera e interações) -->
-<!-- 1. Dados e Configurações -->
+<!-- SCRIPTS (A ordem abaixo garante o funcionamento da camera e interacoes) -->
+<!-- 1. Dados e Configuracoes -->
 <script src="config.js" defer></script>
 <script src="state.js" defer></script>
 <script src="names.js" defer></script>
 <script src="utils.js" defer></script>
 
-<!-- 2. Matemática do Jogo e IA -->
+<!-- 2. Matematica do Jogo e IA -->
 <script src="logic.js" defer></script>
 <script src="dealer.js" defer></script>
 <script src="referee.js" defer></script>
 <script src="bots.js" defer></script>
 
-<!-- 3. Visual e Câmera (Carregados antes dos renderizadores) -->
+<!-- 3. Visual e Camera (Carregados antes dos renderizadores) -->
 <script src="audio.js" defer></script>
 <script src="animations.js" defer></script>
 <script src="renderer.js" defer></script>
@@ -188,7 +188,7 @@
 <script src="input.js" defer></script>
 <script src="lobby.js" defer></script>
 
-<!-- 6. O Motor Principal (Sempre por último) -->
+<!-- 6. O Motor Principal (Sempre por ultimo) -->
 <script src="game.js" defer></script>
 
 </body>
