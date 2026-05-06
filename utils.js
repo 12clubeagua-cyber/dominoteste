@@ -1,8 +1,29 @@
 /* 
    ========================================================================
-   UTILS.JS - GERADOR DE PONTOS (PIPS) PRECISO
+   UTILS.JS - UTILS GERAIS
    ======================================================================== 
 */
+
+/**
+ * Persistencia Segura (Anti-Crash)
+ */
+window.safeSetStorage = function(key, val) {
+    try {
+        localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {
+        console.error("Erro ao salvar localStorage (Storage full?):", e);
+    }
+};
+
+window.safeGetStorage = function(key, defaultValue) {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (e) {
+        console.error("Erro ao ler localStorage:", e);
+        return defaultValue;
+    }
+};
 
 window.getPips = function(val, color) {
     if (val === 0) return ''; // Peca branca
@@ -19,10 +40,10 @@ window.getPips = function(val, color) {
 
     const activePips = layouts[val] || [];
     let html = '';
-    
+
     // Define a cor se for passada (ex: para pecas bucha/carroca)
     const style = color ? `style="background:${color}"` : '';
-    
+
     // Gera 9 espacos de grid, mas so coloca a classe 'pip' nos indices ativos
     for (let i = 1; i <= 9; i++) {
         if (activePips.includes(i)) {

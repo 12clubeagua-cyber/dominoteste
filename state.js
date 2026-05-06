@@ -22,12 +22,12 @@ window.STATE = {
     playerPassed: [false, false, false, false], 
     isBlocked: false,             // Trava interacoes durante animacoes
     isShuffling: false,           // Estado de embaralhamento inicial
+    sessions: {},                 // Mapeamento: seatIdx -> peerId (para reconexao)
     
     // --- Regras e Metas ---
     scores: [0, 0],               // Placar: [Time A+C, Time B+D]
     targetScore: 10,              // Pontuacao para vencer a partida
     difficulty: 'normal',         // 'easy', 'normal' ou 'hard'
-    matchHistory: [],             // Registro de rodadas (vencedor, pontos, msg)
     botPersonalities: ['normal', 'aggressive', 'defensive', 'random'], 
     
     // --- Status Finalizadores ---

@@ -42,10 +42,6 @@ window.FlowUI = {
         
         // 2. Zoom na peca vencedora e Confetes
         if (winTeam !== -1) {
-            const lastTile = window.STATE?.positions?.[window.STATE.positions.length - 1];
-            if (lastTile && typeof window.victoryZoom === 'function') {
-                window.victoryZoom(lastTile);
-            }
             if (typeof window.Renderer !== 'undefined' && typeof window.Renderer.spawnConfetti === 'function') {
                 window.Renderer.spawnConfetti();
             }
@@ -56,17 +52,9 @@ window.FlowUI = {
             window.Dashboard.updateScore();
         }
         
-        // 4. Grava no Historico e Persistencia
+        // 4. Grava na Persistencia
         if (winTeam !== -1) {
-            const historyItem = {
-                winTeam: winTeam,
-                msg: msg,
-                scores: [...window.STATE.scores],
-                time: new Date().toLocaleTimeString()
-            };
-            window.STATE.matchHistory.push(historyItem);
-            this.saveMatchState();
-            this.renderHistory();
+            window.FlowUI.saveMatchState();
         }
 
         // 5. Feedback sonoro
@@ -75,7 +63,7 @@ window.FlowUI = {
         }
         
         // 6. Efeito visual de brilho nas maos da dupla vencedora
-        this._highlightWinningTeam(winTeam);
+        window.FlowUI._highlightWinningTeam(winTeam);
 
         // 7. Verifica se a partida inteira acabou
         const target = (window.STATE && window.STATE.targetScore) ? window.STATE.targetScore : 10;
@@ -85,9 +73,9 @@ window.FlowUI = {
         const isMatchOver = (scoreA >= target || scoreB >= target);
         
         if (isMatchOver) {
-            this._handleMatchEnd(target);
+            window.FlowUI._handleMatchEnd(target);
         } else {
-            this._startNextRoundCountdown(msg);
+            window.FlowUI._startNextRoundCountdown(msg);
         }
     },
 
@@ -95,35 +83,12 @@ window.FlowUI = {
      * Salva o estado atual da partida no localStorage para persistencia.
      */
     saveMatchState: function() {
-        try {
-            const stateToSave = {
-                scores: window.STATE.scores,
-                targetScore: window.STATE.targetScore,
-                difficulty: window.STATE.difficulty,
-                matchHistory: window.STATE.matchHistory
-            };
-            localStorage.setItem('domino_match_state', JSON.stringify(stateToSave));
-        } catch (e) {
-            console.warn("Nao foi possivel salvar o estado:", e);
-        }
-    },
-
-    /**
-     * Renderiza o historico na barra lateral.
-     */
-    renderHistory: function() {
-        const list = document.getElementById('history-list');
-        if (!list) return;
-
-        list.innerHTML = window.STATE.matchHistory.map((h, i) => {
-            const isWin = (h.winTeam === 0); // Time A (voce)
-            return `
-                <div class="history-item ${isWin ? 'win' : 'loss'}">
-                    <strong>Rodada ${i + 1}</strong>: ${isWin ? 'Vitoria' : 'Derrota'}<br>
-                    <small>${h.scores[0]} x ${h.scores[1]}</small>
-                </div>
-            `;
-        }).join('');
+        const stateToSave = {
+            scores: window.STATE.scores,
+            targetScore: window.STATE.targetScore,
+            difficulty: window.STATE.difficulty
+        };
+        window.safeSetStorage('domino_match_state', stateToSave);
     },
 
     /**
