@@ -1,537 +1,206 @@
-Excelente decisão. O modo multiplayer (P2P) no navegador, especialmente usando WebRTC/PeerJS, é muito sensível. Uma oscilação de 1 segundo no Wi-Fi de um jogador é suficiente para a conexão disparar o evento `close`[cite: 15]. 
+Excelente escolha. Retirar o histórico é uma decisão de engenharia muito pragmática: elimina o risco de vazamento de memória (memory leak) no `localStorage` e limpa a interface e o processamento sem afetar a jogabilidade central.
 
-No seu código atual, quando o Cliente perde a conexão, o jogo exibe um alerta e recarrega a página (`window.location.reload()`)[cite: 15]. Do lado do Host, o jogador é removido da lista e a cadeira é liberada imediatamente[cite: 15], o que quebra totalmente uma partida em andamento.
+Aqui está o plano de implementação completo e direto ao ponto para executar essas três melhorias estruturais e a remoção do histórico.
 
-Para criar um sistema de reconexão **robusto e de nível profissional**, precisamos separar a **Conexão** (o link do PeerJS) da **Sessão** (a cadeira e as peças do jogador). 
+---
 
-Aqui está o plano de ação completo, dividido por fases e arquivos, para você implementar:
+### Passo 1: A "Cirurgia" de Retirada do Histórico
 
-### Fase 1: Identidade e Retenção de Cadeiras (Host)
-Atualmente, se a conexão cai, o Host esquece o jogador. Precisamos fazer o Host "reservar" a cadeira.
+Vamos remover todos os vestígios do histórico da sua base de código para deixá-la mais leve.
 
-*   **O que mudar em `state.js`:**
-    *   Crie um objeto para registrar as sessões: `window.STATE.sessions = {}`. Ele deve mapear o índice da cadeira (`seatIdx`) para o `peerId` original do jogador.
-*   **O que mudar em `seats.js` e `multiplayer.js` (Host):**
-    *   No evento `conn.on('close')` do Host no `multiplayer.js`[cite: 15], **NÃO** remova o jogador do `window.connectedClients` se a partida já estiver em andamento (`window.STATE.positions.length > 0`).
-    *   Em vez disso, marque a conexão como inativa (ex: `conn.isActive = false`). 
-    *   O Host deve enviar um `window.Network.sendStatus`[cite: 17] avisando: `"Aguardando [Nome do Jogador] reconectar..."` e pausar o jogo (`window.STATE.isBlocked = true`)[cite: 21].
+**1. Em `index.html`:**
+Delete o bloco inteiro do histórico na área principal do jogo[cite: 11]:
+```html
+<!-- REMOVA ESTE BLOCO -->
+<div id="history-sidebar" class="sidebar">
+    <div class="sidebar-header">Historico</div>
+    <div id="history-list" class="history-list"></div>
+</div>
+```
 
-### Fase 2: O Loop de Reconexão (Cliente)
-O Cliente precisa tentar voltar silenciosamente antes de desistir. Você já tem as variáveis em `state.js` (`reconnectAttempts`, `MAX_RECONNECT_ATTEMPTS`)[cite: 21] e o HTML pronto (`#reconnect-overlay`)[cite: 11].
+**2. Em `style.css`:**
+Delete todas as classes relacionadas à barra lateral no final do arquivo[cite: 22]:
+```css
+/* REMOVA TUDO ISSO */
+.sidebar { ... }
+.sidebar:hover { ... }
+.sidebar-header { ... }
+.history-list { ... }
+.history-item { ... }
+.history-item.win { ... }
+.history-item.loss { ... }
+```
 
-*   **O que mudar em `multiplayer.js` (Cliente):**
-    *   No `conn.on('close')` do Cliente[cite: 15], remova o `window.location.reload()`.
-    *   Exiba a tela de reconexão mudando o estilo do overlay: `document.getElementById('reconnect-overlay').style.display = 'flex'`[cite: 11].
-    *   Crie uma função `window.attemptReconnect()` que usa um `setInterval` baseado no `RECONNECT_DELAY_MS` (3000ms)[cite: 21].
-    *   Nesta função, destrua o Peer antigo (`window.myPeer.destroy()`)[cite: 15], crie um novo Peer e tente conectar novamente usando o `window.lastRoomCode`[cite: 21].
-
-### Fase 3: O Handshake de Restauração (Cliente ➔ Host)
-Quando o Cliente conseguir reconectar, ele precisa avisar ao Host: *"Sou eu, o jogador da cadeira X"*.
-
-*   **O que implementar no Cliente:**
-    *   Assim que a nova conexão abrir, envie um novo tipo de pacote para o Host: `{ type: 'reconnect_request', seatIdx: window.myPlayerIdx }`.
-*   **O que implementar no Host (`multiplayer.js`):**
-    *   Adicione um verificador no `conn.on('data')` para interceptar `reconnect_request`[cite: 15].
-    *   O Host deve verificar: "A cadeira informada estava marcada como desconectada?". Se sim, o Host atualiza o `conn` daquele assento para esta nova conexão.
-    *   O Host então envia um pacote exclusivo para este jogador contendo o estado atual do jogo E a **mão oculta de peças** que pertencia a ele (`window.STATE.hands[seatIdx]`)[cite: 21].
-
-### Fase 4: Retomada Segura (Motor do Jogo)
-Quando o jogador reconecta e recebe seus dados, o jogo precisa "despausar" perfeitamente.
-
-*   **O que mudar em `game.js` e `ui.js`:**
-    *   O Host desativa a pausa (`window.STATE.isBlocked = false`)[cite: 21] e chama `window.Network.syncState()`[cite: 17].
-    *   O Cliente, ao receber os dados recuperados, esconde o `#reconnect-overlay`[cite: 11], recarrega a própria mão (`renderHands(true)`)[cite: 23] e recarrega a mesa (`renderBoardFromState()`)[cite: 23].
-    *   Se for o turno do jogador que reconectou, certifique-se de chamar a função de validação de jogadas para que as peças dele voltem a brilhar (`window.highlight`)[cite: 12].
-
-### Fase 5: Plano de Fuga (Bot Takeover)
-O que acontece se o jogador perder a internet de vez ou a bateria do celular acabar? O jogo dos outros três não pode ficar travado para sempre.
-
-*   **O que implementar no Host:**
-    *   Quando a conexão cai, inicie um `setTimeout` de segurança (por exemplo, 60 segundos).
-    *   Se o timer estourar e o jogador não tiver voltado, o Host exibe: *"Jogador desconectado. Bot assumiu a cadeira."*
-    *   O Host transforma aquele `seatIdx` em um Bot. Na função `processTurn` do `game.js`, quando chegar a vez dessa cadeira, ela será processada pela lógica de inteligência artificial (`chooseBotMove`)[cite: 3].
-
-
-Aqui está a reescrita técnica do `multiplayer.js` focada em resiliência de rede. Essa implementação substitui a queda abrupta[cite: 15] por um sistema de "Sessão Fantasma" no Host e um "Loop de Restauração" no Cliente.
-
-### 1. Atualizando o Cliente: O Loop de Reconexão
-
-Primeiro, precisamos salvar o código da sala quando o Cliente se conecta para que o loop automático saiba para onde voltar. Em seguida, alteramos o evento de fechamento de conexão para acionar o `#reconnect-overlay`[cite: 11, 15].
-
-Substitua a função `connectToHost` e `setupClientEvents` no seu `multiplayer.js`:
-
+**3. Em `state.js`:**
+Remova a propriedade `matchHistory` do objeto `window.STATE`[cite: 21]:
 ```javascript
-window.connectToHost = function() {
-    const inputEl = document.getElementById('join-code-input');
-    if (!inputEl) return;
-    
-    const input = inputEl.value.toUpperCase().trim();
-    if (!input) return alert("Digite o código da sala!");
+// REMOVA ESTA LINHA:
+matchHistory: [], // Registro de rodadas (vencedor, pontos, msg)
+```
 
-    window.netMode = 'client';
-    window.lastRoomCode = input; // SALVA O CÓDIGO PARA RECONEXÃO
-    window.mobileLog("Procurando sala...", "yellow");
+**4. Em `lobby.js`:**
+Na função `loadMatchState()`, remova a leitura do histórico salvo e a chamada de renderização[cite: 13]:
+```javascript
+// REMOVA ESTAS LINHAS de loadMatchState:
+window.STATE.matchHistory = data.matchHistory || [];
 
-    window._initiateConnection(input);
-};
+if (typeof window.FlowUI !== 'undefined' && typeof window.FlowUI.renderHistory === 'function') {
+    window.FlowUI.renderHistory();
+}
+```
 
-// Separamos a criação da conexão para reutilizar no loop de reconexão
-window._initiateConnection = function(roomCode) {
+**5. Em `flowui.js`:**
+Esta é a parte principal. Na função `endRound`, remova a criação e o push do `historyItem`[cite: 7]. 
+```javascript
+// NO endRound, REMOVA ESTE BLOCO:
+if (winTeam !== -1) {
+    const historyItem = { ... };
+    window.STATE.matchHistory.push(historyItem);
+    this.saveMatchState();
+    this.renderHistory();
+}
+// SUBSTITUA APENAS POR:
+if (winTeam !== -1) {
+    this.saveMatchState();
+}
+```
+Ainda no `flowui.js`, altere o `saveMatchState` para não salvar mais o histórico e **delete a função `renderHistory` inteira**[cite: 7]:
+```javascript
+saveMatchState: function() {
     try {
-        if (window.myPeer) window.myPeer.destroy();
-        window.myPeer = new Peer();
-
-        window.myPeer.on('open', () => {
-            const conn = window.myPeer.connect('domino-' + roomCode, { reliable: true });
-            window.setupClientEvents(conn);
-        });
-
-        window.myPeer.on('error', (err) => {
-            window.mobileLog("Erro de rede: " + err.type, "red");
-        });
-    } catch (e) { 
-        alert("Erro ao conectar: " + e.message); 
+        const stateToSave = {
+            scores: window.STATE.scores,
+            targetScore: window.STATE.targetScore,
+            difficulty: window.STATE.difficulty
+            // matchHistory removido daqui!
+        };
+        localStorage.setItem('domino_match_state', JSON.stringify(stateToSave));
+    } catch (e) {
+        console.warn("Nao foi possivel salvar o estado:", e);
     }
-};
-
-window.setupClientEvents = function(conn) {
-    conn.on('open', () => {
-        window.mobileLog("Conectado ao Host!", "#00ff00");
-        window.myConnToHost = conn;
-        
-        // Se for uma reconexão bem-sucedida, dispara o handshake
-        if (window.isReconnecting) {
-            conn.send({ type: 'reconnect_request', seatIdx: window.myPlayerIdx });
-        }
-    });
-
-    conn.on('close', () => {
-        // Se a partida já começou, não recarrega a página. Inicia o resgate.
-        if (window.STATE && window.STATE.scores) {
-            window.attemptReconnect();
-        } else {
-            alert("A conexão com o Host foi perdida no lobby.");
-            window.location.reload(); 
-        }
-    });
-
-    conn.on('data', (data) => {
-        if (!data) return;
-
-        if (data.type === 'game_start') {
-            window.myPlayerIdx = data.yourIdx;
-            if (data.names && typeof window.NameManager !== 'undefined') {
-                window.NameManager.updateAll(data.names);
-            }
-            if (typeof window.startMatch === 'function') window.startMatch();
-        }
-        
-        if (data.type === 'state_update' && window.STATE) {
-            Object.assign(window.STATE, data.state);
-            if (typeof window.renderHands === 'function') window.renderHands();
-            if (typeof window.renderBoardFromState === 'function') window.renderBoardFromState();
-        }
-
-        // NOVO: Pacote de recuperação de estado privado
-        if (data.type === 'recovery_state') {
-            Object.assign(window.STATE, data.state);
-            window.STATE.hands[window.myPlayerIdx] = data.myHand; // Restaura a mão oculta
-            
-            // Limpa UI de reconexão
-            window.isReconnecting = false;
-            clearInterval(window.reconnectTimer);
-            document.getElementById('reconnect-overlay').style.display = 'none';
-            
-            // Redesenha e verifica se é o turno do jogador
-            if (typeof window.renderHands === 'function') window.renderHands(true);
-            if (typeof window.renderBoardFromState === 'function') window.renderBoardFromState();
-            
-            if (window.STATE.current === window.myPlayerIdx && !window.STATE.isBlocked) {
-                if (typeof window.getMoves === 'function') {
-                    const moves = window.getMoves(window.STATE.hands[window.myPlayerIdx]);
-                    if (moves.length > 0 && typeof window.highlight === 'function') window.highlight(moves);
-                }
-            }
-        }
-        
-        if (data.type === 'status') {
-            if (typeof window.updateStatusLocal === 'function') {
-                window.updateStatusLocal(data.text, data.cls);
-            }
-        }
-    });
-};
-
-// A Máquina de Reconexão
-window.attemptReconnect = function() {
-    if (window.isReconnecting) return;
-    window.isReconnecting = true;
-    window.reconnectAttempts = 0;
-
-    const overlay = document.getElementById('reconnect-overlay');
-    const msgEl = document.getElementById('reconnect-msg');
-    if (overlay) overlay.style.display = 'flex';
-
-    window.reconnectTimer = setInterval(() => {
-        window.reconnectAttempts++;
-        if (msgEl) msgEl.innerText = `Tentando reconectar... (${window.reconnectAttempts}/${window.MAX_RECONNECT_ATTEMPTS})`;
-
-        if (window.reconnectAttempts > window.MAX_RECONNECT_ATTEMPTS) {
-            clearInterval(window.reconnectTimer);
-            alert("Sinal perdido. Retornando ao menu.");
-            window.location.reload();
-            return;
-        }
-
-        window._initiateConnection(window.lastRoomCode);
-    }, window.RECONNECT_DELAY_MS || 3000);
-};
-
-window.cancelReconnect = function() {
-    if (window.reconnectTimer) clearInterval(window.reconnectTimer);
-    window.location.reload();
-};
+},
+// DELETE A FUNÇÃO renderHistory: function() { ... } COMPLETAMENTE.
 ```
 
 ---
 
-### 2. Atualizando o Host: O Guardião de Cadeiras
+### Passo 2: Implementação do Anti-Cheat (Validação de Autoridade)
 
-O Host deve parar de deletar as conexões[cite: 15] caso a partida esteja em andamento (`window.STATE.positions.length > 0`)[cite: 14]. Ele pausará o motor e processará o `reconnect_request`.
+No arquivo `multiplayer.js`, o Host não pode mais aceitar qualquer pacote `play_request` cegamente[cite: 15]. Vamos validar a jogada usando o motor matemático do jogo.
 
-Atualize o `setupHostEvents` no `multiplayer.js`:
+Atualize o bloco `data.type === 'play_request'` dentro de `window.setupHostEvents`[cite: 15]:
 
 ```javascript
-window.setupHostEvents = function(conn) {
-    conn.on('open', () => {
-        window.mobileLog("Jogador conectado!", "#00ff00");
-        if (!window.connectedClients) window.connectedClients = [];
+if (data.type === 'play_request') {
+    const isPlayersTurn = (window.STATE.current === conn.assignedIdx);
+    
+    if (isPlayersTurn && typeof window.getMoves === 'function') {
+        // 1. O Host calcula quais são os movimentos válidos para este cliente
+        const validMoves = window.getMoves(window.STATE.hands[conn.assignedIdx]);
         
-        if (!window.connectedClients.includes(conn)) {
-            window.connectedClients.push(conn);
-        }
-        window.broadcastState(); 
-    });
+        // 2. Verifica se o que o Cliente pediu está na lista de jogadas permitidas pelo Host
+        const isValid = validMoves.some(m => 
+            m.idx === data.tIdx && 
+            (m.side === 'both' || m.side === 'any' || m.side === data.side)
+        );
 
-    // BLINDAGEM CONTRA QUEDAS: Sessões Fantasmas
-    conn.on('close', () => {
-        const gameStarted = window.STATE && window.STATE.positions && window.STATE.positions.length > 0;
-
-        if (gameStarted) {
-            window.mobileLog("Queda detectada. Pausando a mesa.", "var(--red)");
-            conn.isActive = false; // Marca como offline, mas mantém a cadeira
-            window.STATE.isBlocked = true; // Pausa o motor do jogo
-            
-            const pName = typeof window.NameManager !== 'undefined' ? window.NameManager.get(conn.assignedIdx) : `Jogador ${conn.assignedIdx}`;
-            if (typeof window.Network !== 'undefined') {
-                window.Network.sendStatus(`Aguardando ${pName}...`, 'pass');
-            }
-        } else {
-            // Comportamento original do Lobby (Libera a cadeira)
-            window.mobileLog("Um jogador saiu do lobby", "var(--red)");
-            if (window.connectedClients) {
-                window.connectedClients = window.connectedClients.filter(c => c !== conn);
-            }
-            if (conn.assignedIdx !== undefined && typeof window.SeatManager !== 'undefined') {
-                window.SeatManager.renderSelectionUI();
-            }
-            window.broadcastState();
-        }
-    });
-
-    conn.on('data', (data) => {
-        if (!data) return;
-        
-        if (data.type === 'play_request') {
+        if (isValid) {
+            // Aprovado! Executa a jogada.
             if (typeof window.play === 'function') {
                 window.play(conn.assignedIdx, data.tIdx, data.side);
             }
-        }
-        
-        if (data.type === 'request_seat') {
-            conn.assignedIdx = data.seatIdx;
-            conn.isActive = true;
-            if (typeof window.SeatManager !== 'undefined') window.SeatManager.renderSelectionUI();
-            window.broadcastState();
-        }
-
-        // NOVO: Handshake de Restauração
-        if (data.type === 'reconnect_request') {
-            const targetIdx = data.seatIdx;
-            const oldConnIndex = window.connectedClients.findIndex(c => c.assignedIdx === targetIdx);
-            
-            if (oldConnIndex !== -1) {
-                // Atualiza o socket da cadeira com a nova conexão
-                conn.assignedIdx = targetIdx;
-                conn.isActive = true;
-                window.connectedClients[oldConnIndex] = conn;
-
-                window.mobileLog("Jogador restaurado!", "#00ff00");
-                window.STATE.isBlocked = false; // Despausa o motor
-                
-                const pName = typeof window.NameManager !== 'undefined' ? window.NameManager.get(targetIdx) : 'Jogador';
-                if (typeof window.Network !== 'undefined') {
-                    window.Network.sendStatus(`${pName} VOLTOU!`, 'active');
-                }
-
-                // Envia o estado completo + a mão privada desse jogador específico
-                conn.send({
-                    type: 'recovery_state',
-                    state: window.STATE,
-                    myHand: window.STATE.hands[targetIdx]
-                });
-
-                window.broadcastState();
-            }
-        }
-    });
-};
-```
-
-Essas alterações garantem que o estado do jogo não seja perdido se ocorrer uma flutuação de rede. O sistema de broadcast permanece seguro, mas agora suporta transmissões pontuais exclusivas (`recovery_state`) para alinhar um jogador sem comprometer a ocultação de cartas dos demais. O próximo passo lógico é o Bot Takeover (Fase 5), ativando a IA no lugar da Sessão Fantasma se o timer de `MAX_RECONNECT_ATTEMPTS` do Cliente estourar.
-
-Aqui está a reescrita técnica do `multiplayer.js` focada em resiliência de rede. Essa implementação substitui a queda abrupta[cite: 15] por um sistema de "Sessão Fantasma" no Host e um "Loop de Restauração" no Cliente.
-
-### 1. Atualizando o Cliente: O Loop de Reconexão
-
-Primeiro, precisamos salvar o código da sala quando o Cliente se conecta para que o loop automático saiba para onde voltar. Em seguida, alteramos o evento de fechamento de conexão para acionar o `#reconnect-overlay`[cite: 11, 15].
-
-Substitua a função `connectToHost` e `setupClientEvents` no seu `multiplayer.js`:
-
-```javascript
-window.connectToHost = function() {
-    const inputEl = document.getElementById('join-code-input');
-    if (!inputEl) return;
-    
-    const input = inputEl.value.toUpperCase().trim();
-    if (!input) return alert("Digite o código da sala!");
-
-    window.netMode = 'client';
-    window.lastRoomCode = input; // SALVA O CÓDIGO PARA RECONEXÃO
-    window.mobileLog("Procurando sala...", "yellow");
-
-    window._initiateConnection(input);
-};
-
-// Separamos a criação da conexão para reutilizar no loop de reconexão
-window._initiateConnection = function(roomCode) {
-    try {
-        if (window.myPeer) window.myPeer.destroy();
-        window.myPeer = new Peer();
-
-        window.myPeer.on('open', () => {
-            const conn = window.myPeer.connect('domino-' + roomCode, { reliable: true });
-            window.setupClientEvents(conn);
-        });
-
-        window.myPeer.on('error', (err) => {
-            window.mobileLog("Erro de rede: " + err.type, "red");
-        });
-    } catch (e) { 
-        alert("Erro ao conectar: " + e.message); 
-    }
-};
-
-window.setupClientEvents = function(conn) {
-    conn.on('open', () => {
-        window.mobileLog("Conectado ao Host!", "#00ff00");
-        window.myConnToHost = conn;
-        
-        // Se for uma reconexão bem-sucedida, dispara o handshake
-        if (window.isReconnecting) {
-            conn.send({ type: 'reconnect_request', seatIdx: window.myPlayerIdx });
-        }
-    });
-
-    conn.on('close', () => {
-        // Se a partida já começou, não recarrega a página. Inicia o resgate.
-        if (window.STATE && window.STATE.scores) {
-            window.attemptReconnect();
         } else {
-            alert("A conexão com o Host foi perdida no lobby.");
-            window.location.reload(); 
+            window.mobileLog(`Tentativa de jogada inválida ignorada (Cadeira ${conn.assignedIdx})`, "var(--red)");
         }
-    });
-
-    conn.on('data', (data) => {
-        if (!data) return;
-
-        if (data.type === 'game_start') {
-            window.myPlayerIdx = data.yourIdx;
-            if (data.names && typeof window.NameManager !== 'undefined') {
-                window.NameManager.updateAll(data.names);
-            }
-            if (typeof window.startMatch === 'function') window.startMatch();
-        }
-        
-        if (data.type === 'state_update' && window.STATE) {
-            Object.assign(window.STATE, data.state);
-            if (typeof window.renderHands === 'function') window.renderHands();
-            if (typeof window.renderBoardFromState === 'function') window.renderBoardFromState();
-        }
-
-        // NOVO: Pacote de recuperação de estado privado
-        if (data.type === 'recovery_state') {
-            Object.assign(window.STATE, data.state);
-            window.STATE.hands[window.myPlayerIdx] = data.myHand; // Restaura a mão oculta
-            
-            // Limpa UI de reconexão
-            window.isReconnecting = false;
-            clearInterval(window.reconnectTimer);
-            document.getElementById('reconnect-overlay').style.display = 'none';
-            
-            // Redesenha e verifica se é o turno do jogador
-            if (typeof window.renderHands === 'function') window.renderHands(true);
-            if (typeof window.renderBoardFromState === 'function') window.renderBoardFromState();
-            
-            if (window.STATE.current === window.myPlayerIdx && !window.STATE.isBlocked) {
-                if (typeof window.getMoves === 'function') {
-                    const moves = window.getMoves(window.STATE.hands[window.myPlayerIdx]);
-                    if (moves.length > 0 && typeof window.highlight === 'function') window.highlight(moves);
-                }
-            }
-        }
-        
-        if (data.type === 'status') {
-            if (typeof window.updateStatusLocal === 'function') {
-                window.updateStatusLocal(data.text, data.cls);
-            }
-        }
-    });
-};
-
-// A Máquina de Reconexão
-window.attemptReconnect = function() {
-    if (window.isReconnecting) return;
-    window.isReconnecting = true;
-    window.reconnectAttempts = 0;
-
-    const overlay = document.getElementById('reconnect-overlay');
-    const msgEl = document.getElementById('reconnect-msg');
-    if (overlay) overlay.style.display = 'flex';
-
-    window.reconnectTimer = setInterval(() => {
-        window.reconnectAttempts++;
-        if (msgEl) msgEl.innerText = `Tentando reconectar... (${window.reconnectAttempts}/${window.MAX_RECONNECT_ATTEMPTS})`;
-
-        if (window.reconnectAttempts > window.MAX_RECONNECT_ATTEMPTS) {
-            clearInterval(window.reconnectTimer);
-            alert("Sinal perdido. Retornando ao menu.");
-            window.location.reload();
-            return;
-        }
-
-        window._initiateConnection(window.lastRoomCode);
-    }, window.RECONNECT_DELAY_MS || 3000);
-};
-
-window.cancelReconnect = function() {
-    if (window.reconnectTimer) clearInterval(window.reconnectTimer);
-    window.location.reload();
-};
+    }
+}
 ```
 
 ---
 
-### 2. Atualizando o Host: O Guardião de Cadeiras
+### Passo 3: Configuração dos Servidores ICE (STUN) no PeerJS
 
-O Host deve parar de deletar as conexões[cite: 15] caso a partida esteja em andamento (`window.STATE.positions.length > 0`)[cite: 14]. Ele pausará o motor e processará o `reconnect_request`.
+Para garantir que celulares no 4G/5G consigam se conectar, precisamos adicionar a configuração do Google STUN nas instâncias do PeerJS no `multiplayer.js`[cite: 15].
 
-Atualize o `setupHostEvents` no `multiplayer.js`:
-
+**1. No Host (`initializeHost`):**
 ```javascript
-window.setupHostEvents = function(conn) {
-    conn.on('open', () => {
-        window.mobileLog("Jogador conectado!", "#00ff00");
-        if (!window.connectedClients) window.connectedClients = [];
-        
-        if (!window.connectedClients.includes(conn)) {
-            window.connectedClients.push(conn);
-        }
-        window.broadcastState(); 
-    });
-
-    // BLINDAGEM CONTRA QUEDAS: Sessões Fantasmas
-    conn.on('close', () => {
-        const gameStarted = window.STATE && window.STATE.positions && window.STATE.positions.length > 0;
-
-        if (gameStarted) {
-            window.mobileLog("Queda detectada. Pausando a mesa.", "var(--red)");
-            conn.isActive = false; // Marca como offline, mas mantém a cadeira
-            window.STATE.isBlocked = true; // Pausa o motor do jogo
-            
-            const pName = typeof window.NameManager !== 'undefined' ? window.NameManager.get(conn.assignedIdx) : `Jogador ${conn.assignedIdx}`;
-            if (typeof window.Network !== 'undefined') {
-                window.Network.sendStatus(`Aguardando ${pName}...`, 'pass');
-            }
-        } else {
-            // Comportamento original do Lobby (Libera a cadeira)
-            window.mobileLog("Um jogador saiu do lobby", "var(--red)");
-            if (window.connectedClients) {
-                window.connectedClients = window.connectedClients.filter(c => c !== conn);
-            }
-            if (conn.assignedIdx !== undefined && typeof window.SeatManager !== 'undefined') {
-                window.SeatManager.renderSelectionUI();
-            }
-            window.broadcastState();
-        }
-    });
-
-    conn.on('data', (data) => {
-        if (!data) return;
-        
-        if (data.type === 'play_request') {
-            if (typeof window.play === 'function') {
-                window.play(conn.assignedIdx, data.tIdx, data.side);
-            }
-        }
-        
-        if (data.type === 'request_seat') {
-            conn.assignedIdx = data.seatIdx;
-            conn.isActive = true;
-            if (typeof window.SeatManager !== 'undefined') window.SeatManager.renderSelectionUI();
-            window.broadcastState();
-        }
-
-        // NOVO: Handshake de Restauração
-        if (data.type === 'reconnect_request') {
-            const targetIdx = data.seatIdx;
-            const oldConnIndex = window.connectedClients.findIndex(c => c.assignedIdx === targetIdx);
-            
-            if (oldConnIndex !== -1) {
-                // Atualiza o socket da cadeira com a nova conexão
-                conn.assignedIdx = targetIdx;
-                conn.isActive = true;
-                window.connectedClients[oldConnIndex] = conn;
-
-                window.mobileLog("Jogador restaurado!", "#00ff00");
-                window.STATE.isBlocked = false; // Despausa o motor
-                
-                const pName = typeof window.NameManager !== 'undefined' ? window.NameManager.get(targetIdx) : 'Jogador';
-                if (typeof window.Network !== 'undefined') {
-                    window.Network.sendStatus(`${pName} VOLTOU!`, 'active');
-                }
-
-                // Envia o estado completo + a mão privada desse jogador específico
-                conn.send({
-                    type: 'recovery_state',
-                    state: window.STATE,
-                    myHand: window.STATE.hands[targetIdx]
-                });
-
-                window.broadcastState();
-            }
-        }
-    });
-};
+// Onde está: window.myPeer = new Peer(fullID);
+// MUDE PARA:
+window.myPeer = new Peer(fullID, {
+    config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+});
 ```
 
-Retenção de Cadeiras (Sessão Fantasma): O Host agora pausa o motor em vez de expulsar o jogador.
+**2. No Cliente (dentro do `_initiateConnection` ou `connectToHost`):**
+```javascript
+// Onde está: window.myPeer = new Peer();
+// MUDE PARA:
+window.myPeer = new Peer({
+    config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+});
+```
 
-Loop de Reconexão: O Cliente tenta voltar silenciosamente em background usando o window.lastRoomCode.
+---
 
-Handshake de Restauração: O pacote reconnect_request avisa quem é quem.
+### Passo 4: Transformação em PWA (Progressive Web App)
 
-Retomada Segura: O pacote recovery_state devolve a mão escondida do jogador e redesenha a mesa.
+Para o jogo instalar no celular e rodar offline e em tela cheia, adicione estes dois pequenos arquivos na raiz do seu projeto e chame-os no HTML.
 
-Plano de Fuga (Bot Takeover): O Host ativa a IA do bots.js se o Cliente não voltar em 45 segundos.
+**1. Crie o arquivo `manifest.json`:**
+```json
+{
+  "name": "Domino Felipe W.",
+  "short_name": "Domino",
+  "description": "Simulador de domino",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "background_color": "#0d1b14",
+  "theme_color": "#ffcc33",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    }
+  ]
+}
+```
+
+**2. Crie o arquivo `sw.js` (Service Worker):**
+Ele fará o cache básico para rodar offline.
+```javascript
+const CACHE_NAME = 'domino-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/config.js', '/state.js', '/names.js', '/utils.js',
+  '/logic.js', '/dealer.js', '/referee.js', '/bots.js',
+  '/audio.js', '/animations.js', '/renderer.js',
+  '/dashboard.js', '/flowui.js', '/identity.js', '/ui.js',
+  '/network.js', '/seats.js', '/multiplayer.js', '/input.js', '/lobby.js', '/game.js'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
+  );
+});
+```
+
+**3. Conecte tudo no seu `index.html`**[cite: 11]**:**
+Dentro da tag `<head>`, adicione:
+```html
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+```
+
+
