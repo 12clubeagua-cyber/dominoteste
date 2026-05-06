@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domino-felipe-v1'; // Mude este número sempre que atualizar o código!
+const CACHE_NAME = 'domino-felipe-v5'; // Incrementado para v5: Design System e Glassmorphism aplicados
 
 const ASSETS = [
   '/',
@@ -35,8 +35,18 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    // Network-First para arquivos locais durante o desenvolvimento
+    // Stale-While-Revalidate strategy for optimal performance
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.match(event.request).then(cachedResponse => {
+                const fetchPromise = fetch(event.request).then(networkResponse => {
+                    if (networkResponse.status === 200) {
+                        cache.put(event.request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                });
+                return cachedResponse || fetchPromise;
+            });
+        })
     );
 });

@@ -42,32 +42,32 @@
   <!-- Arquivo de Estilo corrigido -->
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body role="document">
 
 <!-- CONTÊINER DA TELA INICIAL (Lobby) -->
-<div id="start-screen">
-  <div class="start-logo">domino</div>
+<main id="start-screen" role="main">
+  <h1 class="start-logo">domino</h1>
   <div class="start-sub">Felipe W.</div>
 
   <!-- PASSO 1: Escolha do Modo de Jogo -->
-  <div class="start-step active" id="step-mode">
+  <section class="start-step active" id="step-mode" aria-label="Seleção de modo">
     <div class="start-options">
-      <div class="start-label">Modo de Jogo</div>
+      <h2 class="start-label">Modo de Jogo</h2>
       <button class="start-btn" id="btn-continue" onclick="loadMatchState()" style="display:none; background:var(--gold); color:var(--bg);">
         Continuar <span>Partida Salva</span>
       </button>
-      <button class="start-btn" onclick="selectMode('offline')">
+      <button class="start-btn" onclick="selectMode('offline')" aria-label="Modo Um Jogador, contra bots">
         Um Jogador <span>Vs Bots</span>
       </button>
-      <button class="start-btn" onclick="selectMode('host')">
+      <button class="start-btn" onclick="selectMode('host')" aria-label="Criar sala multiplayer">
         Criar Sala <span>Multiplayer Wi-Fi</span>
       </button>
-      <button class="start-btn" onclick="selectMode('client')">
+      <button class="start-btn" onclick="selectMode('client')" aria-label="Entrar em uma sala existente">
         Entrar na Sala <span>Conectar Wi-Fi</span>
       </button>
       <button class="start-btn" onclick="changeName()">Alterar Nome</button>
     </div>
-  </div>
+  </section>
 
   <!-- PASSO 2: Escolha da Dificuldade -->
   <div class="start-step" id="step-diff">
@@ -128,37 +128,35 @@
 
 <!-- CABEÇALHO DO JOGO -->
 <div id="header">
-  <div class="score-block">
-    <span class="score-name" id="label-team-a">Sua dupla</span>
-    <span class="score-val" id="scoreA">0</span>
-  </div>
-  <div id="game-status">domino Master</div>
-  <div class="score-block right">
-    <span class="score-name" id="label-team-b">Oponentes</span>
-    <span class="score-val" id="scoreB">0</span>
-  </div>
-</div>
-
-<!-- AREA PRINCIPAL DO JOGO -->
-<div id="game-area">
-  <button id="btn-exit" onclick="exitGame()">Sair</button>
-  
-  <!-- Mão do Parceiro -->
-  <div id="hand-2" class="hand"></div> 
-  
-  <!-- Linha do meio -->
-  <div id="mid-row">
-    <div id="hand-1" class="hand hand-side"></div> 
-    
-    <div id="board-container">
-      <div id="snake"></div>
+  <header id="header" role="banner">
+    <div class="score-block" aria-label="Placar da sua dupla">
+      <span class="score-name" id="label-team-a">Sua dupla</span>
+      <span class="score-val" id="scoreA">0</span>
     </div>
-    
-    <div id="hand-3" class="hand hand-side"></div> 
-  </div>
-  
-  <!-- Sua Mão -->
-  <div id="hand-0" class="hand"></div> 
+    <div id="game-status" aria-live="polite">domino Master</div>
+    <div class="score-block right" aria-label="Placar dos oponentes">
+      <span class="score-name" id="label-team-b">Oponentes</span>
+      <span class="score-val" id="scoreB">0</span>
+    </div>
+  </header>
+
+  <div id="game-area" role="application">
+    <button id="btn-exit" onclick="exitGame()" aria-label="Sair do jogo">Sair</button>
+
+    <section id="hand-2" class="hand" aria-label="Mão do oponente 2"></section> 
+
+    <div id="mid-row">
+      <section id="hand-1" class="hand hand-side" aria-label="Mão do oponente 1"></section> 
+
+      <section id="board-container" role="region" aria-label="Tabuleiro de jogo">
+        <div id="snake"></div>
+      </section>
+
+      <section id="hand-3" class="hand hand-side" aria-label="Mão do oponente 3"></section> 
+    </div>
+
+    <section id="hand-0" class="hand" aria-label="Sua mão"></section> 
+
   
   <!-- Seletor de Lado -->
   <div id="side-picker">

@@ -47,10 +47,10 @@ window.Referee = {
         }
 
         // Soma das pecas da Equipe A (Jogadores 0 e 2)
-        const sumA = this._sumHandPoints(hands[0]) + this._sumHandPoints(hands[2]);
+        const sumA = window.Referee._sumHandPoints(hands[0]) + window.Referee._sumHandPoints(hands[2]);
         
         // Soma das pecas da Equipe B (Jogadores 1 e 3)
-        const sumB = this._sumHandPoints(hands[1]) + this._sumHandPoints(hands[3]);
+        const sumB = window.Referee._sumHandPoints(hands[1]) + window.Referee._sumHandPoints(hands[3]);
 
         let winTeam = -1; // -1 indica empate tecnico (raro, mas possivel no domino)
         let detail = `Sua Dupla: ${sumA} pts | Oponentes: ${sumB} pts`; // Texto ajustado para a UI

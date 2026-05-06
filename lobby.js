@@ -82,10 +82,10 @@ window.selectGoal = function(limit) {
  */
 window.loadMatchState = function() {
     try {
-        const saved = localStorage.getItem('domino_match_state');
+        const saved = window.safeGetStorage('domino_match_state', null);
         if (!saved) return;
 
-        const data = JSON.parse(saved);
+        const data = saved; // Ja parseado pelo safeGetStorage
         if (window.STATE) {
             window.STATE.scores = data.scores || [0, 0];
             window.STATE.targetScore = data.targetScore || 10;
@@ -95,13 +95,13 @@ window.loadMatchState = function() {
         window.startMatch();
     } catch (e) {
         console.warn("Erro ao carregar partida:", e);
-        localStorage.removeItem('domino_match_state');
+        try { localStorage.removeItem('domino_match_state'); } catch(ex) {}
     }
 };
 
 // Verifica se existe partida salva ao carregar a pagina
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('domino_match_state');
+    const saved = window.safeGetStorage('domino_match_state', null);
     const btn = document.getElementById('btn-continue');
     if (saved && btn) {
         btn.style.display = 'flex';

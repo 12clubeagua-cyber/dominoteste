@@ -220,11 +220,16 @@ window.play = function(pIdx, tIdx, side) {
     const netMode = window.netMode || 'offline';
     const myIdx = window.myPlayerIdx || 0;
 
-    if (netMode === 'client' && pIdx === myIdx) {
-        window.STATE.isBlocked = true;
-        if (typeof window.Network !== 'undefined') {
-            window.Network.request({ type: 'play_request', tIdx, side });
+    if (netMode === 'client') {
+        if (pIdx === myIdx) {
+            window.STATE.isBlocked = true;
+            if (typeof window.Network !== 'undefined') window.Network.request({ type: 'play_request', tIdx, side });
         }
+        return;
+    }
+
+    if (window.STATE.current !== pIdx) {
+        console.warn("Jogada fora de turno.");
         return;
     }
 
@@ -235,21 +240,14 @@ window.play = function(pIdx, tIdx, side) {
     const tile = window.STATE.hands[pIdx].splice(tIdx, 1)[0];
     window.STATE.handSize[pIdx]--;
     
-    // Shake se for carroca (bucha)
-    if (tile[0] === tile[1] && typeof window.screenShake === 'function') {
-        window.screenShake();
-    }
+    if (tile[0] === tile[1] && typeof window.screenShake === 'function') window.screenShake();
 
-    if (typeof window.Renderer !== 'undefined' && typeof window.Renderer.drawHands === 'function') {
-        window.Renderer.drawHands(); 
-    }
+    if (typeof window.Renderer !== 'undefined' && typeof window.Renderer.drawHands === 'function') window.Renderer.drawHands(); 
 
     const normalizedSide = (side === 'any') ? 0 : side;
     
     let placement = null;
-    if (typeof calculateTilePlacement === 'function') {
-        placement = calculateTilePlacement(tile, normalizedSide);
-    }
+    if (typeof calculateTilePlacement === 'function') placement = calculateTilePlacement(tile, normalizedSide);
 
     if (placement) {
         if (!window.STATE.positions.length) {
@@ -260,18 +258,14 @@ window.play = function(pIdx, tIdx, side) {
         window.STATE.positions.push(placement.nP);
     }
 
-    // Chama a câmera globalmente
     if (typeof window.updateCamera === 'function') window.updateCamera();
 
-    if (typeof window.Network !== 'undefined') {
-        window.Network.sync({ type: 'animate_play', pIdx, nP: placement ? placement.nP : null, tIdx });
-    }
+    if (typeof window.Network !== 'undefined') window.Network.sync({ type: 'animate_play', pIdx, nP: placement ? placement.nP : null, tIdx });
 
-    // Anima a peça voadora
     if (typeof animateTile === 'function' && placement) {
         animateTile(pIdx, placement.nP, () => window._completePlay(pIdx));
     } else {
-        window._completePlay(pIdx); // Fallback instantâneo
+        window._completePlay(pIdx);
     }
 };
 

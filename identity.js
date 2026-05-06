@@ -10,18 +10,10 @@ window.Identity = {
 
     /**
      * Retorna o nome salvo ou o padrão 'JOGADOR'.
-     * Utiliza o safeGetStorage criado no names.js para evitar crash em aba anônima.
+     * Utiliza o safeGetStorage criado no utils.js para evitar crash em aba anônima.
      */
     get: function() {
-        if (typeof window.safeGetStorage === 'function') {
-            return window.safeGetStorage(this.STORAGE_KEY, 'JOGADOR');
-        }
-        // Fallback redundante caso names.js atrase no carregamento
-        try { 
-            return localStorage.getItem(this.STORAGE_KEY) || 'JOGADOR'; 
-        } catch (e) { 
-            return 'JOGADOR'; 
-        }
+        return window.safeGetStorage(window.Identity.STORAGE_KEY, 'JOGADOR');
     },
 
     /**
@@ -36,11 +28,7 @@ window.Identity = {
         if (cleaned.length > 0 && cleaned.length <= 10 && /^[A-ZÁ-Ú ]+$/.test(cleaned)) {
             
             // Salva de forma segura
-            if (typeof window.safeSetStorage === 'function') {
-                window.safeSetStorage(this.STORAGE_KEY, cleaned);
-            } else {
-                try { localStorage.setItem(this.STORAGE_KEY, cleaned); } catch(e) {}
-            }
+            window.safeSetStorage(window.Identity.STORAGE_KEY, cleaned);
             
             // Sincroniza com o gerenciador global
             if (typeof window.NameManager !== 'undefined') {
@@ -58,12 +46,12 @@ window.Identity = {
         let valid = false;
 
         while (!valid) {
-            const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", this.get());
+            const input = prompt("Digite seu apelido (até 10 letras, apenas A-Z):", window.Identity.get());
             
             // Se o usuário clicar em "Cancelar", interrompe
             if (input === null) break; 
 
-            if (this.set(input)) {
+            if (window.Identity.set(input)) {
                 valid = true;
                 // Notifica o Dashboard para atualizar os textos na tela
                 if (typeof window.Dashboard !== 'undefined' && typeof window.Dashboard.updateScore === 'function') {
@@ -79,17 +67,10 @@ window.Identity = {
      * Verificação inicial ao carregar o jogo.
      */
     init: function() {
-        let savedName = null;
-        
-        // Tenta buscar o nome sem forçar o default ainda
-        if (typeof window.safeGetStorage === 'function') {
-            savedName = window.safeGetStorage(this.STORAGE_KEY, null);
-        } else {
-            try { savedName = localStorage.getItem(this.STORAGE_KEY); } catch(e) {}
-        }
+        const savedName = window.safeGetStorage(window.Identity.STORAGE_KEY, null);
 
         if (!savedName) {
-            this.promptChange();
+            window.Identity.promptChange();
         } else {
             if (typeof window.NameManager !== 'undefined') {
                 window.NameManager.set(0, savedName);

@@ -10,6 +10,7 @@ window.Dealer = {
      * Gera as 28 peças clássicas do dominó (0-0 até 6-6).
      */
     generateDeck: function() {
+        if (window.netMode === 'client') return [];
         const deck = [];
         for (let i = 0; i <= 6; i++) {
             for (let j = i; j <= 6; j++) {
@@ -24,6 +25,7 @@ window.Dealer = {
      * Algoritmo de alta performance e justiça estatística.
      */
     shuffle: function(deck) {
+        if (window.netMode === 'client') return [];
         if (!Array.isArray(deck)) return [];
         for (let i = deck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -37,6 +39,7 @@ window.Dealer = {
      * Inclui trava de segurança para evitar erros com decks incompletos.
      */
     distribute: function(deck) {
+        if (window.netMode === 'client') return [[], [], [], []];
         // --- Failsafe: Garante que ninguém receba menos peças do que deveria ---
         if (!Array.isArray(deck) || deck.length < 28) {
             console.error("Dealer: Deck incompleto ou inválido para distribuição!");

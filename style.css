@@ -1,391 +1,92 @@
 /* 
    ========================================================================
-   STYLE.CSS - O ESTILO DEFINITIVO (CORRIGIDO)
+   STYLE.CSS - MODERN DESIGN SYSTEM (GLASSMORPHISM)
    ======================================================================== 
 */
 
-/* 1. RESET E VARIAVEIS (Essencial para as cores e tamanhos) */
 :root {
-  --bg: #0d1b14;
-  --surface: #162318;
-  --surface2: #1e2f22;
+  /* Colors */
+  --bg-dark: #0a120e;
+  --glass-bg: rgba(22, 35, 24, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --gold: #ffcc33;
+  --gold-glow: rgba(255, 204, 51, 0.3);
   --red: #c0392b;
-  --text: #e8e4d4;
+  --text-main: #f0ede0;
   --text-dim: #a8b4a8;
+  
+  /* Tile System */
   --tile-bg: #fdfcf0;
   --tile-border: #c8c4a0;
   --pip: #1a1a2e;
-  
   --tile-width: 18px;
   --tile-height: 36px;
-  --radius: 12px;
+  
+  /* Layout & Spacing */
+  --radius: 16px;
+  --spacing: clamp(0.5rem, 2vw, 1rem);
 }
 
 html, body {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    position: fixed; /* Trava a tela completamente */
-    overscroll-behavior: none; /* Impede o efeito "elástico" de atualizar a página ao puxar */
+  height: 100%; width: 100%; margin: 0; padding: 0;
+  overflow: hidden; position: fixed; overscroll-behavior: none;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
-body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: sans-serif;
-}
-
-/* 2. LOGICA DE EXIBICAO DO MENU */
-.start-step { 
-  display: none;        /* Esconde todas as etapas por padrao */
-  flex-direction: column; 
-  align-items: center; 
-  width: 320px; 
-}
-
-.start-step.active { 
-  display: flex;        /* Mostra apenas a que tiver a classe 'active' */
-}
-
-/* 3. ESTILIZACAO DO LOBBY */
-#start-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 9000;
-  background-color: var(--bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.start-logo {
-  font-size: 60px;
-  color: var(--gold);
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.start-sub {
-  color: var(--text-dim);
-  margin-bottom: 30px;
-}
-
-.start-btn {
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text);
-  padding: 15px 20px;
+/* Glassmorphism Classes */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
-  margin-bottom: 10px;
-  cursor: pointer;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  box-sizing: border-box;
 }
-
-/* ========================================================================
-   CABECALHO E PLACAR
-   ======================================================================== */
 
 #header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: var(--surface);
-  border-bottom: 2px solid var(--surface2);
-  height: 60px;
-  box-sizing: border-box;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; height: 60px; box-sizing: border-box;
+  background: var(--glass-bg); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--glass-border);
 }
 
-.score-block { display: flex; flex-direction: column; font-weight: bold; }
-.score-block.right { text-align: right; }
-.score-val { color: var(--gold); font-size: 24px; }
-#game-status { color: var(--text-dim); text-transform: uppercase; font-size: 14px; letter-spacing: 2px; font-weight: bold; }
+.score-val { color: var(--gold); font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: 800; }
+#game-status { color: var(--text-dim); font-size: clamp(0.7rem, 2vw, 0.9rem); letter-spacing: 0.15em; font-weight: 600; text-transform: uppercase; }
 
-/* ========================================================================
-   AREA DO JOGO (CONTEINER PRINCIPAL)
-   ======================================================================== */
-
-#game-area {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 60px); /* Preenche o resto da tela abaixo do header */
-  height: calc(100dvh - 60px);
-  position: relative;
+/* Buttons */
+.start-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  padding: 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
 }
 
-#mid-row {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+.start-btn:active { transform: scale(0.98); background: var(--glass-border); }
 
-/* CAMERA E TABULEIRO */
-#board-container {
-  flex: 1;
-  position: relative; /* Cria uma janela para a camera rodar dentro */
-  overflow: hidden;
-}
-
-#snake {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: 0 0;
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* ========================================================================
-   MAOS DOS JOGADORES
-   ======================================================================== */
-
-.hand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  transition: background 0.3s;
-  z-index: 20;
-  position: relative;
-}
-
-.hand-horiz { min-height: 80px; }
-.hand-side { width: 90px; }
-
-.tiles-rack {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
-}
-
-.hand-side .tiles-rack { flex-direction: column; }
-.player-name-tag { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; }
-
-/* Destaques da Interface */
-.active-turn { background: rgba(255, 204, 51, 0.12); border-radius: 8px; }
-
-/* Efeito vermelho intenso com texto quando o jogador passa a vez */
-.hand-passed { 
-    animation: passFlash 0.3s ease-in-out infinite alternate;
-    z-index: 30;
-}
-
-.hand-passed::after {
-    content: "PASSOU!";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-weight: bold;
-    font-size: 28px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px #c0392b;
-    z-index: 100;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
-@keyframes passFlash {
-    from { background: rgba(192, 57, 43, 0.4); }
-    to { background: rgba(192, 57, 43, 0.95); box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
-}
-
-.hand-win-blink {
-  animation: winBlink 0.8s infinite alternate;
-  border-radius: 8px;
-}
-
-@keyframes winBlink {
-  from { background: rgba(255, 204, 51, 0.1); box-shadow: 0 0 10px rgba(255, 204, 51, 0.2); }
-  to { background: rgba(255, 204, 51, 0.4); box-shadow: 0 0 20px rgba(255, 204, 51, 0.6); }
-}
-
-/* ========================================================================
-   AS PECAS (DOMINOS)
-   ======================================================================== */
-
+/* Tile Styling */
 .tile {
   background: var(--tile-bg);
   border: 1px solid var(--tile-border);
-  display: flex; 
-  border-radius: 3px;
-  position: absolute;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(0,0,0,0.1);
-  z-index: 10;
-}
-
-/* ! CORRECAO: Verso da peca (Para oponentes) */
-.tile-back {
-    background-color: #2a3a30 !important; /* Cor solida para o verso */
-    border: 1px solid #1a251e !important;
-    box-shadow: inset 0 0 8px rgba(0,0,0,0.4) !important;
-}
-
-.tile-back .half {
-    border: none !important;
-}
-
-.tile-back .pip {
-    display: none; /* Garante que nenhum ponto apareca no verso */
-}
-
-/* Pecas nas maos */
-.tile-rel {
-  position: relative !important; 
-  left: auto !important;
-  top: auto !important;
-  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  display: flex; position: absolute;
   transition: transform 0.2s ease-out;
 }
 
-.tile-rel:hover { transform: translateY(-5px); }
-.hand-side .tile-rel:hover { transform: translateX(-5px); }
-
-.tile-h { width: var(--tile-height); height: var(--tile-width); }
-.tile-v { width: var(--tile-width); height: var(--tile-height); flex-direction: column; }
-
-/* Grid Interno para os Pontos */
-.half {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 0; /* Removido gap para evitar overflow em pecas pequenas */
-    padding: 2px; /* Reduzido respiro para dar mais espaco aos pontos */
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    align-items: center; 
-    justify-items: center;
-}
-
-.pip {
-    width: 3px; /* Reduzido de 4px para 3px para caber no grid 18x18 */
-    height: 3px;
-    background: var(--pip); 
-    border-radius: 50%;
-}
-
-/* O Highlight Amarelo (Focado em contraste, sem brilho excessivo) */
 .tile.playable {
-    cursor: pointer;
-    border: 3px solid #d4af37 !important; /* Dourado escuro para contraste */
-    box-shadow: 0 8px 15px rgba(0,0,0,0.6); /* Sombra projetada */
-    transform: translateY(-12px) scale(1.05); 
-    z-index: 100;
+  border: 3px solid var(--gold) !important;
+  box-shadow: 0 0 20px var(--gold-glow);
+  transform: translateY(-8px) scale(1.05);
 }
 
-/* Ajuste para pecas na mesa (para nao brilhar quando jogadas) */
-#snake .tile.playable {
-    transform: none;
-    box-shadow: none;
-    border: 1px solid var(--tile-border);
-}
-
-/* ========================================================================
-   INTERFACE FLUTUANTE (OVERLAYS E BOTOES)
-   ======================================================================== */
-
-#side-picker {
-  position: absolute;
-  bottom: 110px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: none;
-  gap: 15px;
-  z-index: 1000;
-  background: var(--surface2);
-  padding: 10px;
+.hand {
+  padding: var(--spacing);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: var(--radius);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  margin: 4px;
 }
 
-.btn-side {
-  background: var(--gold); color: var(--bg);
-  border: none; padding: 12px 24px;
-  border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase;
-}
-
-.btn-cancel { background: var(--red); color: white; }
-
-#btn-exit {
-  position: absolute; top: 10px; left: 10px;
-  background: rgba(255,255,255,0.1); border: none;
-  color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer;
-  z-index: 1000;
-}
-
-.hidden { display: none !important; }
-
-/* --- ANIMACOES DE IMPACTO (JUICE) --- */
-.shake {
-    animation: cameraShake 0.2s ease-in-out;
-}
-
-@keyframes cameraShake {
-    0% { transform: scale(var(--cam-scale)) translate(var(--cam-x), var(--cam-y)); }
-    25% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) + 5px), calc(var(--cam-y) + 5px)); }
-    50% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) - 5px), calc(var(--cam-y) - 5px)); }
-    75% { transform: scale(var(--cam-scale)) translate(calc(var(--cam-x) + 3px), calc(var(--cam-y) - 3px)); }
-    100% { transform: scale(var(--cam-scale)) translate(var(--cam-x), var(--cam-y)); }
-}
-
-/* Balao de Pensamento dos Bots */
-.thinking-bubble {
-    position: absolute;
-    top: -25px;
-    background: white;
-    color: #1a1a2e;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: bold;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    animation: bubblePop 0.3s ease-out;
-    white-space: nowrap;
-    z-index: 50;
-}
-
-@keyframes bubblePop {
-    0% { transform: scale(0); opacity: 0; }
-    80% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-/* Particulas de Confete (Vitoria) */
-.confetti {
-    position: fixed;
-    width: 8px;
-    height: 8px;
-    background: var(--gold);
-    z-index: 10000;
-    pointer-events: none;
-    border-radius: 2px;
-}
-
-@keyframes confettiFall {
-    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-}
-@media (max-width: 600px) {
-  .start-logo { font-size: 52px; }
-  .start-step { width: 90%; }
-  
-  #header { padding: 5px 10px; height: 50px; }
-  .score-val { font-size: 20px; }
-  #game-area { 
-    height: calc(100vh - 50px);
-    height: calc(100dvh - 50px);
-  }
-  
-  .hand-side { width: 60px; }
-  .hand-horiz { min-height: 60px; }
-}

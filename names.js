@@ -6,29 +6,6 @@
 */
 
 /**
- * 1. PERSISTENCIA DE DADOS (STORAGE)
- * Funcoes seguras para ler e salvar no localStorage sem quebrar o jogo.
- * Exportadas globalmente.
- */
-
-window.safeGetStorage = function(key, defaultValue) {
-    try {
-        return localStorage.getItem(key) || defaultValue;
-    } catch (e) {
-        // Fallback para abas anonimas ou bloqueio de cookies
-        return defaultValue; 
-    }
-};
-
-window.safeSetStorage = function(key, value) {
-    try {
-        localStorage.setItem(key, value);
-    } catch (e) {
-        // Falha silenciosa se o armazenamento estiver bloqueado
-    }
-};
-
-/**
  * 2. ESTADO INICIAL
  * Registro base dos ocupantes das cadeiras exportado para window.
  */

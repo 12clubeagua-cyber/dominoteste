@@ -369,18 +369,18 @@ window.broadcastState = function() {
     if (window.netMode !== 'host' || !window.STATE) return;
 
     // Criamos um pacote apenas com os dados públicos. 
-    // NOTA: As 'hands' (mãos) não vão inteiras para evitar cheats (trapaças) de rede.
+    // NOTA: Usamos serializacao para garantir isolamento total de referencias (deep copy)
     const statePackage = {
         type: 'state_update',
         state: {
-            current: window.STATE.current,
-            extremes: window.STATE.extremes,
-            positions: window.STATE.positions,
-            handSize: window.STATE.handSize,
-            scores: window.STATE.scores,
-            isOver: window.STATE.isOver,
-            playerPassed: window.STATE.playerPassed,
-            roundWinner: window.STATE.roundWinner
+            current: Number(window.STATE.current),
+            extremes: JSON.parse(JSON.stringify(window.STATE.extremes)),
+            positions: JSON.parse(JSON.stringify(window.STATE.positions)),
+            handSize: window.STATE.handSize.map(n => Number(n)),
+            scores: [Number(window.STATE.scores[0]), Number(window.STATE.scores[1])],
+            isOver: !!window.STATE.isOver,
+            playerPassed: [...window.STATE.playerPassed],
+            roundWinner: window.STATE.roundWinner !== null ? Number(window.STATE.roundWinner) : null
         }
     };
     window.broadcastToClients(statePackage);
