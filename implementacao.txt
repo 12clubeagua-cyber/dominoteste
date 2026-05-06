@@ -207,7 +207,80 @@ Service Worker com Auto-Atualização Ligeira
 Para evitar a "Maldição do Cache" quando você fizer edições no Koder ou a-Shell, precisamos de um Service Worker que perceba atualizações, assuma o controle imediatamente (skipWaiting) e force a página a recarregar para usar o código novo.
 
 1. O novo arquivo sw.js:
-Crie este arquivo na raiz do projeto. Toda vez que você mudar qualquer arquivo JS ou CSS, basta mudar o CACHE_VERSION aqui dentro (ex: 'v2', 'v3') e salvar.
+Crie este arquivo na raiz do projeto. Toda vez que você mudar qualquer arquivo JS ou CSS, basta mudar o CACHE_VERSION aqui dentro (ex: 'v2', 'v3') e const CACHE_NAME = 'domino-felipe-v1'; // Mude este número sempre que atualizar o código!
+
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/config.js', '/state.js', '/names.js', '/utils.js',
+  '/logic.js', '/dealer.js', '/referee.js', '/bots.js',
+  '/audio.js', '/animations.js', '/renderer.js',
+  '/dashboard.js', '/flowui.js', '/identity.js', '/ui.js',
+  '/network.js', '/seats.js', '/multiplayer.js', '/input.js', '/lobby.js', '/game.js'
+];
+
+self.addEventListener('install', event => {
+    // skipWaiting força o novo SW a instalar imediatamente, sem esperar fechar a aba
+    self.skipWaiting();
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    );
+});
+
+self.addEventListener('activate', event => {
+    // Apaga os caches antigos para garantir que a versão nova entre no ar
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cache => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim()) // Assume o controle de todas as abas abertas
+    );
+});
+
+self.addEventListener('fetch', event => {
+    // Network-First para arquivos locais durante o desenvolvimento
+    event.respondWith(
+        fetch(event.request).catch(() => caches.match(event.request))
+    );
+});
+
+
+Injeção no index.html:
+Adicione o script abaixo no <head> do seu index.html. Ele registra o Service Worker e monitora mudanças. Assim que o novo sw.js assumir o controle (porque você mudou a versão), ele recarrega a página automaticamente para injetar o código fresco.
+
+
+<script>
+  if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    
+    // Escuta quando um novo Service Worker assume o controle
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload(); // Recarrega com os arquivos novos
+      }
+    });
+
+    // Registra o Service Worker
+    navigator.serviceWorker.register('sw.js').then(reg => {
+        // Checa se há atualizações silenciosamente
+        reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('Nova atualização encontrada. Recarregando...');
+                }
+            };
+        };
+    }).catch(err => console.error("Erro no Service Worker:", err));
+  }
+</script>
 
 
 
