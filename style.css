@@ -22,12 +22,20 @@
   --radius: 12px;
 }
 
+html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed; /* Trava a tela completamente */
+    overscroll-behavior: none; /* Impede o efeito "elástico" de atualizar a página ao puxar */
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
   font-family: sans-serif;
-  margin: 0;
-  overflow: hidden; /* Evita barras de rolagem desnecessarias */
 }
 
 /* 2. LOGICA DE EXIBICAO DO MENU */
@@ -108,6 +116,7 @@ body {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 60px); /* Preenche o resto da tela abaixo do header */
+  height: calc(100dvh - 60px);
   position: relative;
 }
 
@@ -366,60 +375,16 @@ body {
     0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
 }
-/* Historico Lateral (Sidebar) */
-.sidebar {
-    position: absolute;
-    left: -200px; /* Escondida por padrao */
-    top: 50%;
-    transform: translateY(-50%);
-    width: 180px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    border-radius: 0 15px 15px 0;
-    padding: 15px;
-    z-index: 1000;
-    transition: left 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-left: none;
-}
-
-.sidebar:hover {
-    left: 0; /* Aparece ao passar o mouse */
-}
-
-.sidebar-header {
-    color: var(--gold);
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 12px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 204, 51, 0.3);
-    padding-bottom: 5px;
-}
-
-.history-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.history-item {
-    font-size: 11px;
-    margin-bottom: 8px;
-    padding: 5px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.history-item.win { border-left: 3px solid #2ecc71; }
-.history-item.loss { border-left: 3px solid #e74c3c; }
-
 @media (max-width: 600px) {
   .start-logo { font-size: 52px; }
   .start-step { width: 90%; }
   
   #header { padding: 5px 10px; height: 50px; }
   .score-val { font-size: 20px; }
-  #game-area { height: calc(100vh - 50px); }
+  #game-area { 
+    height: calc(100vh - 50px);
+    height: calc(100dvh - 50px);
+  }
   
   .hand-side { width: 60px; }
   .hand-horiz { min-height: 60px; }

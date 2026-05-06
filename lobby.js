@@ -90,12 +90,6 @@ window.loadMatchState = function() {
             window.STATE.scores = data.scores || [0, 0];
             window.STATE.targetScore = data.targetScore || 10;
             window.STATE.difficulty = data.difficulty || 'normal';
-            window.STATE.matchHistory = data.matchHistory || [];
-        }
-
-        // Renderiza o historico salvo
-        if (typeof window.FlowUI !== 'undefined' && typeof window.FlowUI.renderHistory === 'function') {
-            window.FlowUI.renderHistory();
         }
 
         window.startMatch();

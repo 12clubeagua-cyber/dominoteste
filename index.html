@@ -8,6 +8,33 @@
   <title>domino Felipe W.</title>
   
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      
+      // Escuta quando um novo Service Worker assume o controle
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload(); // Recarrega com os arquivos novos
+        }
+      });
+  
+      // Registra o Service Worker
+      navigator.serviceWorker.register('sw.js').then(reg => {
+          // Checa se há atualizações silenciosamente
+          reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              installingWorker.onstatechange = () => {
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('Nova atualização encontrada. Recarregando...');
+                  }
+              };
+          };
+      }).catch(err => console.error("Erro no Service Worker:", err));
+    }
+  </script>
   
   <!-- Biblioteca PeerJS para o modo multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -116,12 +143,6 @@
 <div id="game-area">
   <button id="btn-exit" onclick="exitGame()">Sair</button>
   
-  <!-- Historico Lateral -->
-  <div id="history-sidebar" class="sidebar">
-    <div class="sidebar-header">Historico</div>
-    <div id="history-list" class="history-list"></div>
-  </div>
-
   <!-- Mão do Parceiro -->
   <div id="hand-2" class="hand"></div> 
   

@@ -56,17 +56,9 @@ window.FlowUI = {
             window.Dashboard.updateScore();
         }
         
-        // 4. Grava no Historico e Persistencia
+        // 4. Grava na Persistencia
         if (winTeam !== -1) {
-            const historyItem = {
-                winTeam: winTeam,
-                msg: msg,
-                scores: [...window.STATE.scores],
-                time: new Date().toLocaleTimeString()
-            };
-            window.STATE.matchHistory.push(historyItem);
             this.saveMatchState();
-            this.renderHistory();
         }
 
         // 5. Feedback sonoro
@@ -99,31 +91,12 @@ window.FlowUI = {
             const stateToSave = {
                 scores: window.STATE.scores,
                 targetScore: window.STATE.targetScore,
-                difficulty: window.STATE.difficulty,
-                matchHistory: window.STATE.matchHistory
+                difficulty: window.STATE.difficulty
             };
             localStorage.setItem('domino_match_state', JSON.stringify(stateToSave));
         } catch (e) {
             console.warn("Nao foi possivel salvar o estado:", e);
         }
-    },
-
-    /**
-     * Renderiza o historico na barra lateral.
-     */
-    renderHistory: function() {
-        const list = document.getElementById('history-list');
-        if (!list) return;
-
-        list.innerHTML = window.STATE.matchHistory.map((h, i) => {
-            const isWin = (h.winTeam === 0); // Time A (voce)
-            return `
-                <div class="history-item ${isWin ? 'win' : 'loss'}">
-                    <strong>Rodada ${i + 1}</strong>: ${isWin ? 'Vitoria' : 'Derrota'}<br>
-                    <small>${h.scores[0]} x ${h.scores[1]}</small>
-                </div>
-            `;
-        }).join('');
     },
 
     /**

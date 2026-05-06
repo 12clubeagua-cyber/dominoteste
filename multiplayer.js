@@ -66,7 +66,9 @@ window.initializeHost = function() {
             codeDisplay.style.color = "var(--gold)";
         }
 
-        window.myPeer = new Peer(fullID);
+        window.myPeer = new Peer(fullID, {
+            config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
 
         window.myPeer.on('open', () => {
             window.mobileLog("SALA ONLINE!", "#00ff00");
@@ -109,7 +111,9 @@ window.connectToHost = function() {
 window._initiateConnection = function(roomCode) {
     try {
         if (window.myPeer) window.myPeer.destroy();
-        window.myPeer = new Peer();
+        window.myPeer = new Peer({
+            config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
 
         window.myPeer.on('open', () => {
             // reliable: true garante que os pacotes de peças não se percam pelo caminho
@@ -182,8 +186,26 @@ window.setupHostEvents = function(conn) {
         if (!data) return;
         
         if (data.type === 'play_request') {
-            if (typeof window.play === 'function') {
-                window.play(conn.assignedIdx, data.tIdx, data.side);
+            const isPlayersTurn = (window.STATE.current === conn.assignedIdx);
+            
+            if (isPlayersTurn && typeof window.getMoves === 'function') {
+                // 1. O Host calcula quais são os movimentos válidos para este cliente
+                const validMoves = window.getMoves(window.STATE.hands[conn.assignedIdx]);
+                
+                // 2. Verifica se o que o Cliente pediu está na lista de jogadas permitidas pelo Host
+                const isValid = validMoves.some(m => 
+                    m.idx === data.tIdx && 
+                    (m.side === 'both' || m.side === 'any' || m.side === data.side)
+                );
+
+                if (isValid) {
+                    // Aprovado! Executa a jogada.
+                    if (typeof window.play === 'function') {
+                        window.play(conn.assignedIdx, data.tIdx, data.side);
+                    }
+                } else {
+                    window.mobileLog(`Tentativa de jogada inválida ignorada (Cadeira ${conn.assignedIdx})`, "var(--red)");
+                }
             }
         }
         if (data.type === 'request_seat') {
