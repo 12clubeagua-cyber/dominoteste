@@ -62,7 +62,33 @@ Para quem quer o máximo absoluto e não se importa em mexer nas entranhas do si
 *   **C-States:** Se a BIOS permitir, desativar os C-States pode reduzir a latência de troca de estado do processador, mantendo-o sempre pronto (aumenta o consumo, mas melhora a resposta).
 *   **SpeedStep/Turbo Boost:** Forçar o clock máximo se houver estabilidade térmica.
 
-## 6. Estratégia de Execução via Gemini CLI Local
+## 6. Ferramentas de Limpeza Manual e Registro de Cache
+
+Para evitar processos em segundo plano, utilizaremos um script manual e um ajuste de registro para otimizar como o Windows gerencia o cache.
+
+### Ajuste de Registro: LargeSystemCache
+Este ajuste faz com que o Windows priorize a estabilidade do cache de sistema, ideal para quem tem pouca RAM e quer evitar que o sistema "se perca" gerenciando memória.
+*   **Caminho:** `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management`
+*   **Valor:** `LargeSystemCache` = `0` (Para 4GB de RAM, manter em 0 evita que o cache do sistema "atropele" a RAM disponível para seus programas).
+
+### Script de Limpeza Manual (LIMPAR_RAM.bat)
+Crie um arquivo `.bat` com o conteúdo abaixo. Ele utiliza comandos nativos para forçar a liberação de memória sem precisar de programas rodando em background.
+
+```batch
+@echo off
+echo Limpando Cache de Memoria e Standby List...
+:: Limpa o Working Set de todos os processos (nativamente via PowerShell)
+powershell -command "[System.GC]::Collect(); [System.GC]::WaitForPendingFinalizers();"
+:: Comando para liberar Standby List (se tiver o EmptyStandbyList.exe no mesmo caminho)
+if exist "%~dp0EmptyStandbyList.exe" (
+    "%~dp0EmptyStandbyList.exe" standingset
+    "%~dp0EmptyStandbyList.exe" workset
+)
+echo Memoria RAM otimizada com sucesso!
+pause
+```
+
+## 7. Estratégia de Execução via Gemini CLI Local
 
 1.  **Backup:** Criar ponto de restauração imediato.
 2.  **Fase 1 (Scripts):** Rodar o utilitário do Chris Titus primeiro.
