@@ -42,7 +42,27 @@ Estes comandos devem ser executados no **PowerShell como Administrador** via Gem
 *   **Bing Search:** Desativar a integração do Bing na busca do Iniciar para reduzir uso de rede e RAM do `SearchHost.exe`.
 *   **Offline Maps:** Desativar serviços de mapas e localização.
 
-## 5. Estratégia de Execução via Gemini CLI Local
+## 5. Otimizações de "Nível Kernel" e Drivers (Hardcore)
+
+Para quem quer o máximo absoluto e não se importa em mexer nas entranhas do sistema:
+
+### Interrupções de Hardware (MSI Mode)
+*   **MSI Mode Utility:** Ferramenta para mudar drivers de "Line-based" para "Message Signaled Interrupts". Isso reduz a carga da CPU ao lidar com hardware (GPU, Áudio, Rede).
+
+### Latência do Sistema (Timer Resolution)
+*   **Intelligent Standby List Cleaner (ISLC):** Mantém a "Timer Resolution" em 0.5ms (padrão é 1ms ou mais) e limpa a lista de espera da RAM automaticamente. Vital para manter a fluidez em apenas 4GB.
+
+### Sistema de Arquivos (NTFS)
+*   **Desativar Nomes 8.3:** Evita que o Windows cria nomes curtos compatíveis com MS-DOS:
+    `fsutil behavior set disable8dot3 1`
+*   **Desativar Last Access Update:** Impede o registro de data/hora de cada vez que um arquivo é acessado:
+    `fsutil behavior set disablelastaccess 1`
+
+### BIOS (Legacy Mode)
+*   **C-States:** Se a BIOS permitir, desativar os C-States pode reduzir a latência de troca de estado do processador, mantendo-o sempre pronto (aumenta o consumo, mas melhora a resposta).
+*   **SpeedStep/Turbo Boost:** Forçar o clock máximo se houver estabilidade térmica.
+
+## 6. Estratégia de Execução via Gemini CLI Local
 
 1.  **Backup:** Criar ponto de restauração imediato.
 2.  **Fase 1 (Scripts):** Rodar o utilitário do Chris Titus primeiro.
