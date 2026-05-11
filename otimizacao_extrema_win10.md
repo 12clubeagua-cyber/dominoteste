@@ -88,7 +88,32 @@ echo Memoria RAM otimizada com sucesso!
 pause
 ```
 
-## 7. Estratégia de Execução via Gemini CLI Local
+## 7. Otimizações de Rede e Hardware Não Utilizado
+
+Para reduzir a carga de interrupções no processador e otimizar a pilha de rede:
+
+### Rede (Network Stack)
+*   **Desativar Algoritmo de Nagle:** Melhora a latência de rede (útil se você usar ferramentas online).
+    *   `TcpAckFrequency` = `1` e `TCPNoDelay` = `1` nas chaves de interface do registro.
+*   **Netsh Tweaks:**
+    `netsh int tcp set global autotuninglevel=normal`
+    `netsh int tcp set global chimney=enabled`
+
+### Gerenciador de Dispositivos (Liberação de IRQs)
+*   **Desativar Dispositivos Inúteis:** No Gerenciador de Dispositivos, desative o que não usa para liberar IRQs (Interrupções):
+    *   Portas Seriais (COM & LPT).
+    *   Controladores de disquete (se aparecerem).
+    *   Dispositivos de áudio HDMI (se usar caixas de som P2).
+    *   Bluetooth (se não usar).
+
+### Software e Navegação (A Escolha Certa)
+*   **Navegador:** Use o **Thorium** ou **LibreWolf** em vez de Chrome/Edge. São otimizados para hardware antigo.
+*   **Extensões:** Use apenas o **uBlock Origin** em modo "Hard" para bloquear scripts pesados em sites.
+*   **Alternativas Leves:**
+    *   PDF: **SumatraPDF** (muito mais leve que Adobe/Edge).
+    *   Texto: **Notepad++** ou **Sublime Text**.
+
+## 8. Estratégia de Execução via Gemini CLI Local
 
 1.  **Backup:** Criar ponto de restauração imediato.
 2.  **Fase 1 (Scripts):** Rodar o utilitário do Chris Titus primeiro.
